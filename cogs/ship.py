@@ -82,15 +82,12 @@ class DungeonShip(commands.Cog):
             av2_raw = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
             # 3. DYNAMIC COLOR ENGINE (0 to 100% Transition)
-            # Calculations for smooth color shifting
             if percent <= 50:
-                # Neutral Silver to Deep Red
                 ratio = percent / 50
                 r = int(120 + (135 * ratio))
                 g = int(120 - (120 * ratio))
                 b = int(140 - (100 * ratio))
             else:
-                # Deep Red to Imperial Gold
                 ratio = (percent - 50) / 50
                 r = 255
                 g = int(50 * (1 - ratio) + 215 * ratio)
@@ -115,7 +112,7 @@ class DungeonShip(commands.Cog):
             draw.rectangle([48, 58, 52+av_size, 62+av_size], outline=aura_color, width=12)
             draw.rectangle([708, 58, 712+av_size, 62+av_size], outline=aura_color, width=12)
 
-            # Paste Avatars (Maximized)
+            # Paste Avatars
             canvas.paste(av1_raw, (50, 60), av1_raw)
             canvas.paste(av2_raw, (710, 60), av2_raw)
 
@@ -136,8 +133,8 @@ class DungeonShip(commands.Cog):
             text_main = (255, 255, 255) if percent < 90 else aura_color
             text_stroke = (aura_color[0], aura_color[1], aura_color[2])
 
+            # THE SCORE RENDERING - Forced Visibility Fix
             pct_text = f"{percent}%"
-            # Explicit layering for visibility
             draw.text((612, 312), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) # Deep Shadow
             draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=14, stroke_fill=text_stroke)
 
@@ -182,6 +179,19 @@ class DungeonShip(commands.Cog):
 
         percent = random.randint(0, 100)
         
+        # 15 Random Fate Messages
+        fate_messages = [
+            "A match made in the celestial heavens!", "The arena floor trembles at this bond.",
+            "Two souls forged in the fires of destiny.", "A romance the Emperors would envy.",
+            "The stars align perfectly for this union.", "A spark that could ignite the entire arena.",
+            "Tread carefully, for this bond is fragile.", "A connection written in the ancient scrolls.",
+            "The fates whisper of a legendary pair.", "Even the gods are watching this duo.",
+            "An alliance that shall echo through time.", "Destiny has chosen its favorite pair.",
+            "A harmony that silences the colosseum.", "The Oracle foresees a powerful future.",
+            "Two hearts, one unbreakable battle cry."
+        ]
+        chosen_msg = random.choice(fate_messages)
+
         if percent >= 90: title = "👑 ABSOLUTE DYNASTY"
         elif percent >= 70: title = "💖 ETERNAL FLAME"
         elif percent >= 50: title = "⚖️ BALANCED DESTINY"
@@ -191,7 +201,7 @@ class DungeonShip(commands.Cog):
         async with ctx.typing():
             ship_img = await self.create_ship_visual(ctx.author.display_avatar.url, member.display_avatar.url, percent)
             embed = discord.Embed(title=f"🏹 {title}", color=0xff4500)
-            embed.description = f"### {ctx.author.mention} 💓 {member.mention}"
+            embed.description = f"### {ctx.author.mention} 💓 {member.mention}\n\n> *{chosen_msg}*"
             if ship_img:
                 file = discord.File(ship_img, filename="ship.png")
                 embed.set_image(url="attachment://ship.png")
