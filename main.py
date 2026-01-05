@@ -62,6 +62,9 @@ class MyBot(commands.Bot):
             global PREMIUM_GUILDS
             for guild_id in list(PREMIUM_GUILDS.keys()):
                 # Filter out modules where the timestamp is in the past
+                if not isinstance(PREMIUM_GUILDS[guild_id], dict):
+                    continue
+                    
                 original_count = len(PREMIUM_GUILDS[guild_id])
                 PREMIUM_GUILDS[guild_id] = {
                     mod: expiry for mod, expiry in PREMIUM_GUILDS[guild_id].items() 
@@ -89,35 +92,42 @@ class MyBot(commands.Bot):
         # Custom now sends "GUILD_ID|MODULE_NAME"
         custom_data = data.get('custom', "")
         payment_status = data.get('payment_status')
-        amount = data.get('mc_gross', "0.00") # Grab the payment amount from PayPal
+        amount_str = data.get('mc_gross', "0.00")
+        amount = float(amount_str) # Grab the payment amount from PayPal
 
         if payment_status == 'Completed' and "|" in custom_data:
             guild_id_str, module_name = custom_data.split("|")
             
-            # Calculate 30 days from now
-            expiry_date = datetime.now(timezone.utc) + timedelta(days=30)
+            # --- DYNAMIC DURATION LOGIC ---
+            # Map the payment amounts to days based on your plans
+            days_to_add = 30
+            if amount >= 15.0: days_to_add = 180
+            elif amount >= 7.5: days_to_add = 90
+            elif amount >= 5.0: days_to_add = 60
+            
+            expiry_date = datetime.now(timezone.utc) + timedelta(days=days_to_add)
             expiry_timestamp = expiry_date.timestamp()
 
             global PREMIUM_GUILDS
             if guild_id_str not in PREMIUM_GUILDS:
-                PREMIUM_GUILDS[guild_id_str] = {} # Use dict instead of list for timestamps
+                PREMIUM_GUILDS[guild_id_str] = {} 
             
             # Store the module with its specific expiry time
             PREMIUM_GUILDS[guild_id_str][module_name] = expiry_timestamp
             
             with open(PREMIUM_FILE, "w") as f:
                 json.dump(PREMIUM_GUILDS, f)
-            print(f"💎 MONTHLY ACCESS ACTIVATED: {module_name} for {guild_id_str}")
+            print(f"💎 {days_to_add} DAYS ACTIVATED: {module_name} for {guild_id_str}")
 
-            # --- NEW: AUTOMATED SUCCESS BROADCAST TO CUSTOMER SERVER ---
+            # --- AUTOMATED SUCCESS BROADCAST TO CUSTOMER SERVER ---
             try:
                 target_guild = self.get_guild(int(guild_id_str))
                 if target_guild:
                     # Find the best channel to announce the upgrade
                     chan = next((c for c in target_guild.text_channels if c.permissions_for(target_guild.me).send_messages), None)
                     if chan:
-                        success_emb = discord.Embed(title="💎 30-DAY PREMIUM UNLOCKED", color=0x00ff00)
-                        success_emb.description = f"The **{module_name.upper()}** module is now active for 30 days! Expiry: <t:{int(expiry_timestamp)}:F>"
+                        success_emb = discord.Embed(title=f"💎 {days_to_add}-DAY PREMIUM UNLOCKED", color=0x00ff00)
+                        success_emb.description = f"The **{module_name.upper()}** module has been activated! Enjoy your new high-level features.\n\n**Expiry:** <t:{int(expiry_timestamp)}:F>"
                         if os.path.exists("fierylogo.jpg"):
                             file = discord.File("fierylogo.jpg", filename="logo.png")
                             success_emb.set_thumbnail(url="attachment://logo.png")
@@ -127,12 +137,13 @@ class MyBot(commands.Bot):
             except Exception as e:
                 print(f"Broadcast Error: {e}")
 
-            # --- NEW: SALES LOG TO YOUR DEVELOPER SERVER ---
+            # --- SALES LOG TO YOUR DEVELOPER SERVER ---
             try:
                 dev_channel = self.get_channel(1457706030199996570)
                 if dev_channel:
-                    log_emb = discord.Embed(title="💰 NEW SUBSCRIPTION", color=0x00ff00)
+                    log_emb = discord.Embed(title="💰 NEW SALE DETECTED", color=0x00ff00)
                     log_emb.add_field(name="Module", value=module_name.upper(), inline=True)
+                    log_emb.add_field(name="Tier", value=f"{days_to_add} Days", inline=True)
                     log_emb.add_field(name="Amount", value=f"${amount} USD", inline=True)
                     log_emb.add_field(name="Server ID", value=guild_id_str, inline=False)
                     log_emb.set_footer(text=f"Time: {discord.utils.utcnow().strftime('%Y-%m-%d %H:%M')}")
@@ -157,7 +168,7 @@ bot = MyBot()
 async def invite(ctx):
     await ctx.send(f"Add me: {discord.utils.oauth_url(bot.user.id, permissions=discord.Permissions(administrator=True))}")
 
-# --- NEW: MASTER COMMAND DIRECTORY ---
+# --- MASTER COMMAND DIRECTORY ---
 @bot.command(name="fiery")
 async def fiery(ctx):
     embed = discord.Embed(title="⚔️ FIERY COMMAND DIRECTORY", color=0xff4500)
@@ -184,22 +195,15 @@ async def fiery(ctx):
     else:
         await ctx.send(embed=embed)
 
-# --- NEW: THE HIGH LEVEL SHOP LOBBY ---
+# --- THE HIGH LEVEL SHOP LOBBY ---
 @bot.command(name="premium")
 @commands.has_permissions(administrator=True)
 async def premium(ctx):
-    # Add your prices here when you create new .py files!
-    MODULE_PRICES = {
-        "ask": "2.50",
-        "casino": "3.50",
-        "economy": "2.00"
-    }
-    
     available_modules = [f[:-3] for f in os.listdir('./cogs') if f.endswith('.py')]
     
     embed = discord.Embed(
         title="🔥 FIERY MODULE SHOP", 
-        description="Select a module to unlock 30 days of premium features.",
+        description="Select the module you wish to upgrade to view our **Payment Tiers**.",
         color=0xff4500
     )
     
@@ -209,53 +213,68 @@ async def premium(ctx):
         logo_file = discord.File("fierylogo.jpg", filename="shop_logo.png")
         embed.set_thumbnail(url="attachment://shop_logo.png")
 
-    class ShopView(discord.ui.View):
-        def __init__(self):
+    class TierView(discord.ui.View):
+        def __init__(self, module):
             super().__init__(timeout=180)
+            self.module = module
+            # Payment Plan Model
+            plans = [
+                ("30 Days", "2.50", "🥉 Bronze Tier"),
+                ("60 Days", "5.00", "🥈 Silver Tier"),
+                ("90 Days", "7.50", "🥇 Gold Tier"),
+                ("180 Days", "15.00", "💎 Diamond Tier")
+            ]
             options = []
-            for mod in available_modules:
-                price = MODULE_PRICES.get(mod, "5.00") # Default $5 if price not set
+            for label, price, emoji_name in plans:
                 options.append(discord.SelectOption(
-                    label=f"Unlock {mod.upper()} (Monthly)", 
-                    description=f"30 Days Access - ${price}", 
-                    value=f"{mod}|{price}",
-                    emoji="💎"
+                    label=f"{label} - ${price}", 
+                    value=price, 
+                    emoji=emoji_name.split()[0], 
+                    description=f"Unlock {module.upper()} for {label}"
                 ))
             
-            if not options:
-                return # Prevent crash if no cogs exist
-                
-            self.select = discord.ui.Select(placeholder="Select a module to subscribe...", options=options)
-            self.select.callback = self.select_callback
+            self.select = discord.ui.Select(placeholder="Choose your duration tier...", options=options)
+            self.select.callback = self.tier_callback
             self.add_item(self.select)
 
-        async def select_callback(self, interaction: discord.Interaction):
-            mod_name, price = self.select.values[0].split("|")
+        async def tier_callback(self, interaction: discord.Interaction):
+            price = self.select.values[0]
             pay_email = os.getenv('PAYPAL_EMAIL')
-            custom_payload = f"{interaction.guild_id}|{mod_name}"
+            custom_payload = f"{interaction.guild_id}|{self.module}"
             
             paypal_url = (
                 f"https://www.paypal.com/cgi-bin/webscr?cmd=_xclick"
                 f"&business={pay_email}&amount={price}&currency_code=USD"
-                f"&item_name=Fiery_{mod_name.upper()}_Monthly_Server_{interaction.guild_id}"
-                f"&custom={custom_payload}"
+                f"&item_name=Fiery_{self.module.upper()}_Access&custom={custom_payload}"
             )
             
-            checkout_emb = discord.Embed(title=f"🛒 Monthly Subscription: {mod_name.upper()}", color=0x00ff00)
-            checkout_emb.description = (
-                f"You are subscribing to the **{mod_name.upper()}** module.\n"
-                f"**Price:** ${price} USD per month\n\n"
-                f"Click [**HERE TO PAY**]({paypal_url})\n\n"
-                "*Access is granted for 30 days from payment.*"
+            final_emb = discord.Embed(title="🛒 SECURE CHECKOUT", color=0x00ff00)
+            final_emb.description = (
+                f"**Module:** {self.module.upper()}\n"
+                f"**Price:** ${price} USD\n\n"
+                f"Click [**HERE TO PAY VIA PAYPAL**]({paypal_url})\n\n"
+                "*Activation is immediate after payment completes.*"
             )
-            await interaction.response.send_message(embed=checkout_emb, ephemeral=True)
+            await interaction.response.send_message(embed=final_emb, ephemeral=True)
+
+    class ModuleSelectView(discord.ui.View):
+        def __init__(self):
+            super().__init__(timeout=180)
+            options = [discord.SelectOption(label=m.upper(), value=m, emoji="📦") for m in available_modules]
+            self.select = discord.ui.Select(placeholder="Select a module to view plans...", options=options)
+            self.select.callback = self.module_callback
+            self.add_item(self.select)
+
+        async def module_callback(self, interaction: discord.Interaction):
+            selected_mod = self.select.values[0]
+            await interaction.response.send_message(f"✨ Viewing plans for **{selected_mod.upper()}**:", view=TierView(selected_mod), ephemeral=True)
 
     if logo_file:
-        await ctx.send(file=logo_file, embed=embed, view=ShopView())
+        await ctx.send(file=logo_file, embed=embed, view=ModuleSelectView())
     else:
-        await ctx.send(embed=embed, view=ShopView())
+        await ctx.send(embed=embed, view=ModuleSelectView())
 
-# --- NEW: THE ULTIMATE MODULAR DASHBOARD ---
+# --- THE ULTIMATE MODULAR DASHBOARD ---
 @bot.command(name="premiumstatus")
 @commands.has_permissions(administrator=True)
 async def premiumstatus(ctx):
