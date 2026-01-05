@@ -134,12 +134,14 @@ class DungeonShip(commands.Cog):
                 text_main, text_stroke = (255, 255, 255), (255, 0, 0)
             elif percent >= 70:
                 text_main, text_stroke = (255, 215, 0), (0, 0, 0)
+            elif percent < 20:
+                text_main, text_stroke = (0, 255, 255), (0, 50, 150) # Neon "Doom" Blue
             else:
                 text_main, text_stroke = (255, 255, 255), (50, 50, 50)
 
             # FIXED % SYMBOL VISIBILITY
             pct_text = f"{percent}%"
-            # Rendering text on a separate layer for absolute clarity
+            # Explicit layering for visibility - rendering text on a separate layer for clarity
             text_layer = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             t_draw = ImageDraw.Draw(text_layer)
             t_draw.text((612, 312), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) # Deep Shadow
@@ -210,7 +212,7 @@ class DungeonShip(commands.Cog):
             ship_img = await self.create_ship_visual(ctx.author.display_avatar.url, member.display_avatar.url, percent)
             
             # Dynamic color logic for the embed color
-            embed_color = 0xFFD700 if percent >= 90 else 0xFF4500 if percent >= 50 else 0x808080
+            embed_color = 0xFFD700 if percent >= 90 else 0xFF4500 if percent >= 50 else 0x00FFFF if percent < 20 else 0x808080
             
             embed = discord.Embed(title=f"🏹 {title}", color=embed_color)
             embed.description = f"### {ctx.author.mention} 💓 {member.mention}\n\n> *{chosen_msg}*"
