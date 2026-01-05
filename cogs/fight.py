@@ -120,9 +120,9 @@ class DungeonFight(commands.Cog):
             if os.path.exists("fight.jpg"):
                 bg = Image.open("fight.jpg").convert("RGBA")
                 # Resize slightly larger to allow "shifting" the background to center the sword
-                bg = bg.resize((1300, 600)) 
-                # Paste with -50 offset to shift the image slightly to the right
-                canvas.paste(bg, (-50, 0))
+                bg = bg.resize((1400, 600)) 
+                # Paste with -100 offset to shift the image right compared to previous -50
+                canvas.paste(bg, (-100, 0))
             
             draw = ImageDraw.Draw(canvas)
             async with aiohttp.ClientSession() as session:
