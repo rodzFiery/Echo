@@ -43,9 +43,8 @@ class DungeonShip(commands.Cog):
             canvas = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             draw = ImageDraw.Draw(canvas)
 
-            # --- FONT SYSTEM LOADER (COLOSSAL SCALING) ---
-            # Forced massive sizes for arena dominance - 450 is now the Titanic scale
-            font_size_pct = 450 if percent < 100 else 350 
+            # --- FONT SYSTEM LOADER (COLOSSAL SCALING - MAXIMUM) ---
+            font_size_pct = 500 if percent < 100 else 400 
             font_size_heart = 120
             try:
                 font_paths = [
@@ -66,7 +65,6 @@ class DungeonShip(commands.Cog):
                 font_heart = ImageFont.load_default()
             
             # 2. PARTICLE GENERATOR (Skulls for Doom, Hearts for Glory)
-            # DYNAMIC RADIANCE: More particles for 80%+ scores
             particle_count = 100 if percent >= 80 else 50
             for _ in range(particle_count):
                 px, py = random.randint(0, 1200), random.randint(0, 600)
@@ -74,7 +72,7 @@ class DungeonShip(commands.Cog):
                 if percent < 20:
                     draw.text((px, py), "💀", fill=(0, 255, 255, 100), font=font_heart)
                 else:
-                    p_color = (255, 105, 180, 160) if percent < 80 else (255, 215, 0, 180) # Gold sparkles for 80%+
+                    p_color = (255, 105, 180, 160) if percent < 80 else (255, 215, 0, 180) 
                     draw.polygon([(px, py), (px+p_size, py-p_size), (px+p_size*2, py)], fill=p_color)
 
             async with aiohttp.ClientSession() as session:
@@ -114,7 +112,7 @@ class DungeonShip(commands.Cog):
             canvas.paste(av1_raw, (50, 60), av1_raw)
             canvas.paste(av2_raw, (710, 60), av2_raw)
 
-            # 4. IMPERIAL BOND (Center Bloom)
+            # 4. IMPERIAL BOND
             nova = Image.new("RGBA", (1200, 600), (0,0,0,0))
             ImageDraw.Draw(nova).ellipse([400, 100, 800, 500], fill=(255, 255, 255, 15))
             nova = nova.filter(ImageFilter.GaussianBlur(50))
@@ -139,14 +137,13 @@ class DungeonShip(commands.Cog):
             glow = canvas.filter(ImageFilter.GaussianBlur(8))
             canvas = Image.alpha_composite(glow, canvas)
 
-            # --- 7. FINAL OVERLAY: THE COLOSSAL SCORE ---
+            # --- 7. FINAL OVERLAY: THE COLOSSAL SCORE (ULTRA VISIBILITY) ---
             final_draw = ImageDraw.Draw(canvas)
             
-            # REFINED: MASSIVE Loving Crystal Heart Plate
-            # Expanded points to accommodate the much bigger text
-            heart_points = [(600, 550), (320, 270), (420, 80), (600, 180), (780, 80), (880, 270)]
-            final_draw.polygon(heart_points, fill=(aura_color[0], aura_color[1], aura_color[2], 75))
-            final_draw.polygon(heart_points, outline=(255, 255, 255, 120), width=6)
+            # MASSIVE Loving Crystal Heart Plate (Centrally Focused)
+            heart_points = [(600, 570), (280, 280), (400, 50), (600, 180), (800, 50), (920, 280)]
+            final_draw.polygon(heart_points, fill=(aura_color[0], aura_color[1], aura_color[2], 90))
+            final_draw.polygon(heart_points, outline=(255, 255, 255, 150), width=8)
 
             if percent >= 90:
                 text_main, text_stroke = (255, 255, 255), (255, 215, 0)
@@ -158,12 +155,10 @@ class DungeonShip(commands.Cog):
                 text_main, text_stroke = (255, 255, 255), (255, 105, 180) 
 
             pct_text = f"{percent}%"
-            # Titanic Rendering - drawing with massive stroke for weight
-            final_draw.text((615, 315), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
-            
-            # Pulsive Glow: Thicker stroke for 80%+
-            final_stroke_width = 40 if percent >= 80 else 30
-            final_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=final_stroke_width, stroke_fill=text_stroke)
+            # COLOSSAL SHADOW FOR ULTIMATE VISIBILITY
+            final_draw.text((620, 320), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
+            # COLOSSAL FOCAL SCORE
+            final_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=35, stroke_fill=text_stroke)
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
@@ -175,7 +170,6 @@ class DungeonShip(commands.Cog):
 
     @commands.command(name="ship")
     async def ship(self, ctx, member: discord.Member = None):
-        """Calculates the romantic power between two gladiators."""
         if member is None:
             return await ctx.send("💘 **THE ORACLE NEEDS A PARTNER!** Mention someone to challenge the fates!")
         if member.id == ctx.author.id:
@@ -213,7 +207,6 @@ class DungeonShip(commands.Cog):
 
     @commands.command(name="matchme")
     async def matchme(self, ctx):
-        """Scans the arena for top 5 romantic tension candidates."""
         async with ctx.typing():
             potential_members = [m for m in ctx.guild.members if not m.bot and m.id != ctx.author.id]
             if not potential_members:
