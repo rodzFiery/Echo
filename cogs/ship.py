@@ -115,9 +115,16 @@ class DungeonShip(commands.Cog):
             draw.text((608, 308), pct_text, fill=(0, 0, 0, 200), anchor="mm", size=230) # Shadow
             draw.text((600, 300), pct_text, fill=text_main, anchor="mm", size=230, stroke_width=6, stroke_fill=text_stroke)
 
-            # Status Icon
+            # Status Icon with Dynamic Glow for high scores
             heart_emoji = "❤️" if percent > 50 else "💔"
-            draw.text((600, 435), heart_emoji, anchor="mm", size=100)
+            if percent >= 75:
+                heart_glow = Image.new("RGBA", (1200, 600), (0,0,0,0))
+                hg_draw = ImageDraw.Draw(heart_glow)
+                hg_draw.text((600, 435), heart_emoji, anchor="mm", size=110, fill=(text_main[0], text_main[1], text_main[2], 150))
+                heart_glow = heart_glow.filter(ImageFilter.GaussianBlur(15))
+                canvas = Image.alpha_composite(canvas, heart_glow)
+            
+            draw.text((600, 435), heart_emoji, anchor="mm", size=100, fill=text_main if percent >= 75 else None)
 
             # Fiery Logo Placement
             if os.path.exists("fierylogo.jpg"):
