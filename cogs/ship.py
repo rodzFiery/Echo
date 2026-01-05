@@ -43,9 +43,10 @@ class DungeonShip(commands.Cog):
             canvas = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             draw = ImageDraw.Draw(canvas)
 
-            # --- FONT SYSTEM LOADER ---
-            font_size_pct = 230 if percent < 100 else 180 
-            font_size_heart = 100
+            # --- FONT SYSTEM LOADER (MASSIVE SCALING) ---
+            # Increased base sizes significantly for the "Arena" feel
+            font_size_pct = 350 if percent < 100 else 280 
+            font_size_heart = 120
             try:
                 font_paths = [
                     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
@@ -68,7 +69,6 @@ class DungeonShip(commands.Cog):
             for _ in range(50):
                 px, py = random.randint(0, 1200), random.randint(0, 600)
                 p_size = random.randint(5, 18)
-                # If score is low, use Skulls, otherwise use Heart-sparkles
                 if percent < 20:
                     draw.text((px, py), "💀", fill=(0, 255, 255, 100), font=font_heart)
                 else:
@@ -148,11 +148,16 @@ class DungeonShip(commands.Cog):
             glow = canvas.filter(ImageFilter.GaussianBlur(8))
             canvas = Image.alpha_composite(glow, canvas)
 
-            # --- 7. FINAL OVERLAY: THE SCORE FIX ---
-            # We draw this AFTER the glow to ensure it is 100% visible on top
+            # --- 7. FINAL OVERLAY: THE TITANIC SCORE FIX ---
+            # We use a secondary drawing layer to force massive scale
             final_draw = ImageDraw.Draw(canvas)
+            
+            # Arena Obsidian Plate (Center Background for Text)
+            # This ensures the score has a dark area to pop out from
+            final_draw.rounded_rectangle([350, 150, 850, 450], radius=40, fill=(0, 0, 0, 200))
+
             if percent >= 90:
-                text_main, text_stroke = (255, 255, 255), (255, 0, 0)
+                text_main, text_stroke = (255, 255, 255), (255, 215, 0) # White on Gold
             elif percent >= 70:
                 text_main, text_stroke = (255, 215, 0), (0, 0, 0)
             elif percent < 20:
@@ -161,8 +166,10 @@ class DungeonShip(commands.Cog):
                 text_main, text_stroke = (255, 255, 255), (50, 50, 50)
 
             pct_text = f"{percent}%"
-            final_draw.text((612, 312), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) # Shadow
-            final_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=18, stroke_fill=text_stroke)
+            # Draw Titanic Shadow for Depth
+            final_draw.text((615, 315), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
+            # Draw Massive Focal Score
+            final_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=25, stroke_fill=text_stroke)
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
