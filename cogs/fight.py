@@ -147,14 +147,14 @@ class DungeonFight(commands.Cog):
             av1_raw = Image.open(p1).convert("RGBA").resize((av_size, av_size))
             av2_raw = Image.open(p2).convert("RGBA").resize((av_size, av_size))
 
-            # REFINED MASK: High visibility center with soft cinematic edges
+            # FIXED MASK: Highly opaque center for clarity
             mask = Image.new("L", (av_size, av_size), 0)
             mask_draw = ImageDraw.Draw(mask)
             
-            # Larger solid center, tighter feathering at the edges
+            # Use a much sharper mask to avoid the "vanished" look
             for i in range(av_size // 2):
-                # Stronger alpha ramp to keep avatars visible
-                alpha = int(255 * (1 - (i / (av_size // 2))**4)) 
+                # Alpha stays solid for much longer (raised to power of 10 for sharpness)
+                alpha = int(255 * (1 - (i / (av_size // 2))**10)) 
                 mask_draw.ellipse([i, i, av_size-i, av_size-i], outline=255-alpha, fill=255-alpha)
 
             av1 = ImageOps.fit(av1_raw, mask.size, centering=(0.5, 0.5))
