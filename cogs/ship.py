@@ -96,59 +96,60 @@ class DungeonShip(commands.Cog):
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     p1_data, p2_data = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
 
-            # --- CANVAS ENGINE ---
             canvas = Image.new("RGBA", (1200, 700), (10, 8, 5, 255))
             draw = ImageDraw.Draw(canvas)
-            av_size = 440
+            av_size = 480
 
-            # --- ASSET LOADING ---
             av1 = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2 = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
+            # --- DYNAMIC NEON COLOR ---
+            if percent >= 90: neon = (255, 0, 100) # Imperial Rose
+            elif percent >= 70: neon = (255, 215, 0) # Gold
+            elif percent >= 50: neon = (0, 255, 200) # Cyan Spark
+            else: neon = (150, 150, 150) # Cold Steel
+
             # --- CRYSTAL CORE RADIANCE ---
-            # Create a glow layer for the central column
             glow_layer = Image.new("RGBA", (1200, 700), (0, 0, 0, 0))
             g_draw = ImageDraw.Draw(glow_layer)
-            
-            # Dynamic Glow Color based on sync
-            core_color = (255, 50, 50) if percent > 80 else (218, 165, 32) if percent > 40 else (100, 100, 255)
-            
-            # Draw the glowing orb behind the score
-            g_draw.ellipse([450, 150, 750, 550], fill=(*core_color, 60))
-            glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(30))
+            g_draw.ellipse([400, 100, 800, 600], fill=(*neon, 50))
+            glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(50))
             canvas.alpha_composite(glow_layer)
 
-            # --- CENTRAL CRYSTAL COLUMN (THE NEVER SEEN BEFORE DESIGN) ---
-            col_x, col_y, col_w, col_h = 520, 80, 160, 540
-            # Beveled Frame
-            draw.rectangle([col_x, col_y, col_x+col_w, col_y+col_h], fill=(20, 20, 20), outline=(255, 255, 255, 100), width=3)
-            
-            # Internal "Energy" Fill
-            fill_h = (percent / 100) * (col_h - 10)
-            if percent > 0:
-                # Gradient-style rect
-                draw.rectangle([col_x+5, (col_y+col_h-5)-fill_h, col_x+col_w-5, col_y+col_h-5], fill=(*core_color, 200))
-
-            # --- SCORE OVERLAY (ON THE COLUMN) ---
+            # --- TITANIC FONT ENGINE ---
+            # Font sizing scaled to be gargantuan
+            font_size = 450 if percent == 100 else 350 if percent >= 80 else 250
             try:
-                # Using massive font for impact
-                font_large = ImageFont.truetype("arial.ttf", 110)
+                font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if os.path.exists("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") else "arial.ttf"
+                font_main = ImageFont.truetype(font_path, font_size)
             except:
-                font_large = ImageFont.load_default()
+                font_main = ImageFont.load_default()
 
+            # --- THE IMPERIAL SEAL (100% ONLY) ---
+            if percent == 100:
+                seal = Image.new("RGBA", (1200, 700), (0,0,0,0))
+                s_draw = ImageDraw.Draw(seal)
+                # Crown shape polygon
+                points = [(600, 100), (650, 200), (750, 200), (670, 280), (700, 380), (600, 320), (500, 380), (530, 280), (450, 200), (550, 200)]
+                s_draw.polygon(points, fill=(255, 215, 0, 100), outline=(255, 255, 255, 180), width=5)
+                canvas.alpha_composite(seal)
+
+            # --- NEON SCORE PULSE ---
             score_text = f"{percent}%"
-            # Draw shadow for the text inside the column
-            draw.text((603, 353), score_text, fill=(0, 0, 0, 255), anchor="mm", font=font_large)
-            # Draw the main score directly over the "Heat Meter"
-            draw.text((600, 350), score_text, fill=(255, 255, 255, 255), anchor="mm", font=font_large, stroke_width=4, stroke_fill=(core_color))
+            # Outer Neon Glow (Blurred Stroke)
+            for i in range(15, 0, -2):
+                alpha = int(150 * (1 - i/15))
+                draw.text((600, 350), score_text, fill=(0,0,0,0), anchor="mm", font=font_main, stroke_width=i, stroke_fill=(*neon, alpha))
+            
+            # Focal Score
+            draw.text((600, 350), score_text, fill=(255, 255, 255, 255), anchor="mm", font=font_main, stroke_width=4, stroke_fill=(255,255,255))
 
-            # --- GLADIATOR PASTE ---
-            # Subtle outer glow for avatars
-            draw.rectangle([40, 140, 40+av_size+20, 140+av_size+20], outline=(*core_color, 150), width=15)
-            draw.rectangle([740, 140, 740+av_size+20, 140+av_size+20], outline=(*core_color, 150), width=15)
+            # --- GLADIATOR FRAMES ---
+            draw.rectangle([45, 145, 45+av_size+10, 145+av_size+10], outline=neon, width=15)
+            draw.rectangle([715, 145, 715+av_size+10, 145+av_size+10], outline=neon, width=15)
 
             canvas.paste(av1, (50, 150), av1)
-            canvas.paste(av2, (750, 150), av2)
+            canvas.paste(av2, (720, 150), av2)
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
