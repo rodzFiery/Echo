@@ -7,7 +7,7 @@ import io
 import aiohttp
 from datetime import datetime, timezone
 from PIL import Image, ImageDraw, ImageOps
-import __main__ # Access the premium list from main.py
+import __main__
 
 class DungeonFight(commands.Cog):
     def __init__(self, bot):
@@ -134,87 +134,63 @@ class DungeonFight(commands.Cog):
         
         main_msg = await ctx.send(files=files, embed=embed)
 
+        # --- AUTOMATED COMBAT LOOP ---
         while p1["hp"] > 0 and p2["hp"] > 0:
+            await asyncio.sleep(2.5) # Pacing between turns
+            
+            # Automated balanced logic (70% strike, 30% heal)
+            action = random.choices(["strike", "heal"], weights=[70, 30])[0]
+            
+            if action == "strike":
+                dmg = int(random.randint(12, 28) * turn["luck"])
+                other["hp"] = max(0, other["hp"] - dmg)
+                battle_log = f"💥 **{turn['user'].display_name}** {self.get_funny_msg('strike')} **{other['user'].display_name}** for **{dmg} damage!**"
+            else:
+                amt = random.randint(10, 22)
+                turn["hp"] = min(turn["max"], turn["hp"] + amt)
+                battle_log = f"🧪 **{turn['user'].display_name}** {self.get_funny_msg('heal')} (+{amt} HP)"
+
+            # Refreshing the combat display
             embed = discord.Embed(title="⚔️ ARENA OF GLORY", color=0x2f3136)
             embed.set_image(url="attachment://arena.png")
-            
-            # Thumbnail Logic for every turn
             if os.path.exists("fierylogo.jpg"):
                 embed.set_thumbnail(url="attachment://logo.png")
             
-            # Display Health Bars
             p1_status = f"{self.get_health_bar(p1['hp'], p1['max'], is_premium)}"
             if p1['luck'] > 1.0: p1_status += " ✨ *LUCKY*"
-            
             p2_status = f"{self.get_health_bar(p2['hp'], p2['max'], is_premium)}"
             if p2['luck'] > 1.0: p2_status += " ✨ *LUCKY*"
 
             embed.add_field(name=f"👤 {p1['user'].display_name}", value=p1_status, inline=True)
             embed.add_field(name=f"👤 {p2['user'].display_name}", value=p2_status, inline=True)
             embed.add_field(name="📜 Battle Logs", value=f"*{battle_log}*", inline=False)
-            embed.set_footer(text=f"Current Turn: {turn['user'].display_name}")
+            embed.set_footer(text=f"Turn: {turn['user'].display_name}")
 
-            view = discord.ui.View(timeout=60)
-            
-            # Action Buttons
-            strike_btn = discord.ui.Button(label="Strike", style=discord.ButtonStyle.danger, emoji="💥")
-            heal_btn = discord.ui.Button(label="Heal", style=discord.ButtonStyle.success, emoji="🧪")
+            # Spectator View (Allows others to influence luck)
+            view = discord.ui.View(timeout=1)
             cheer_btn = discord.ui.Button(label="Cheering!", style=discord.ButtonStyle.secondary, emoji="🙌")
-
-            async def strike_callback(interaction):
-                nonlocal turn, other, battle_log
-                if interaction.user.id != turn["user"].id: return
-                
-                dmg = int(random.randint(15, 30) * turn["luck"])
-                other["hp"] = max(0, other["hp"] - dmg)
-                battle_log = f"**{turn['user'].display_name}** {self.get_funny_msg('strike')} **{other['user'].display_name}** for **{dmg} damage!**"
-                await interaction.response.defer()
-                view.stop()
-
-            async def heal_callback(interaction):
-                nonlocal turn, other, battle_log
-                if interaction.user.id != turn["user"].id: return
-                
-                amt = random.randint(10, 25)
-                turn["hp"] = min(turn["max"], turn["hp"] + amt)
-                battle_log = f"**{turn['user'].display_name}** {self.get_funny_msg('heal')} (+{amt} HP)"
-                await interaction.response.defer()
-                view.stop()
-
+            
             async def cheer_callback(interaction):
                 if interaction.user.id in [p1["user"].id, p2["user"].id]:
                     return await interaction.response.send_message("Concentrate on the fight!", ephemeral=True)
-                
                 turn["luck"] += 0.05
-                await interaction.response.send_message(f"📣 {interaction.user.display_name} cheers from the stands! {turn['user'].display_name} feels luckier!", ephemeral=False)
+                await interaction.response.send_message(f"📣 {interaction.user.display_name} cheered! {turn['user'].display_name} feels luckier!", ephemeral=False)
 
-            strike_btn.callback = strike_callback
-            heal_btn.callback = heal_callback
             cheer_btn.callback = cheer_callback
-            
-            view.add_item(strike_btn)
-            view.add_item(heal_btn)
             view.add_item(cheer_btn)
 
             await main_msg.edit(embed=embed, view=view)
 
-            # Wait for user input
-            timed_out = await view.wait()
-            if timed_out:
-                return await ctx.send(f"⏲️ {turn['user'].mention} retreated! Duel ended.")
-
-            # Check for death
             if other["hp"] <= 0:
                 break
 
-            # Switch Turns
+            # Swap turns
             turn, other = other, turn
-            await asyncio.sleep(1)
 
         # Winner Announcement
         winner = turn if turn["hp"] > 0 else other
         win_emb = discord.Embed(title="🏆 THE CHAMPION EMERGES", color=0x00ff00)
-        win_emb.description = f"**{winner['user'].display_name}** stands victorious!\n\n*The crowd goes wild!*"
+        win_emb.description = f"**{winner['user'].display_name}** stands victorious in the arena!\n\n*The crowd goes wild!*"
         win_emb.set_image(url="attachment://arena.png")
         
         if os.path.exists("fierylogo.jpg"):
@@ -223,4 +199,5 @@ class DungeonFight(commands.Cog):
         await ctx.send(embed=win_emb)
 
 async def setup(bot):
+    await bot.add_cog(DungeonFight(bot))
     await bot.add_cog(DungeonFight(bot))
