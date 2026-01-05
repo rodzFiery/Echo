@@ -96,62 +96,54 @@ class DungeonShip(commands.Cog):
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     p1_data, p2_data = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
 
-            # 1. BASE CANVAS
+            # 1. CANVAS SETUP
             canvas = Image.new("RGBA", (1200, 700), (10, 8, 5, 255))
             draw = ImageDraw.Draw(canvas)
             av_size = 480
 
-            # 2. ASSETS
+            # 2. AVATARS
             av1 = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2 = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
-            # 3. COLOR SYSTEM
+            # 3. COLOR SELECTION
             if percent >= 90: neon = (255, 0, 100) 
             elif percent >= 70: neon = (255, 215, 0) 
             elif percent >= 50: neon = (0, 255, 200) 
             else: neon = (150, 150, 150) 
 
-            # 4. LOVE GREEN COLUMN (CENTRAL RULER)
+            # 4. CENTRAL PROGRESS COLUMN
             col_x, col_y, col_w, col_h = 560, 120, 80, 480
             draw.rectangle([col_x, col_y, col_x + col_w, col_y + col_h], fill=(20, 20, 20), outline=(255, 255, 255, 100), width=3)
             fill_height = (percent / 100) * col_h
             if percent > 0:
                 draw.rectangle([col_x + 5, (col_y + col_h) - fill_height, col_x + col_w - 5, col_y + col_h - 5], fill=(50, 255, 50, 200))
 
-            # 5. TITANIC FONT WORKAROUND
-            # Set colossal size - 450pt is massive on 1200 width
-            font_size = 550 if percent < 100 else 450
+            # 5. FONT LOADER - TITANIC SCALE (WORKAROUND)
+            # Size 850 makes the number absolutely massive in the center
+            font_size = 850 if percent < 100 else 700
             try:
-                font_paths = ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "arial.ttf", "C:\\Windows\\Fonts\\arialbd.ttf"]
+                font_paths = ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "arial.ttf"]
                 font_file = next((f for f in font_paths if os.path.exists(f)), None)
-                if font_file:
-                    font_main = ImageFont.truetype(font_file, font_size)
-                else:
-                    font_main = ImageFont.load_default()
+                font_main = ImageFont.truetype(font_file, font_size) if font_file else ImageFont.load_default()
             except:
                 font_main = ImageFont.load_default()
 
-            # 6. SCORE OVERLAY LAYER (ENSURES MAX VISIBILITY)
-            score_layer = Image.new("RGBA", (1200, 700), (0, 0, 0, 0))
-            s_draw = ImageDraw.Draw(score_layer)
+            # 6. SCORE OVERLAY (NO CONSTRAINING SHAPE)
+            score_overlay = Image.new("RGBA", (1200, 700), (0, 0, 0, 0))
+            s_draw = ImageDraw.Draw(score_overlay)
             score_text = f"{percent}%"
 
-            # WORKAROUND: Double Shadow + Extreme Stroke
-            # Layer 1: Massive Black Outer Shadow (Shifted)
-            s_draw.text((615, 365), score_text, fill=(0, 0, 0, 255), anchor="mm", font=font_main)
-            
-            # Layer 2: Heavy Neon Glow Stroke (Width 50)
-            s_draw.text((600, 350), score_text, fill=(0, 0, 0, 0), anchor="mm", font=font_main, stroke_width=50, stroke_fill=(*neon, 180))
-            
-            # Layer 3: Pure White High-Contrast Focal Text
-            s_draw.text((600, 350), score_text, fill=(255, 255, 255, 255), anchor="mm", font=font_main, stroke_width=5, stroke_fill=(0,0,0))
+            # Deep shadow for readability
+            s_draw.text((610, 360), score_text, fill=(0, 0, 0, 255), anchor="mm", font=font_main)
+            # Colossal Main Text with Neon Stroke
+            s_draw.text((600, 350), score_text, fill=(255, 255, 255), anchor="mm", font=font_main, stroke_width=40, stroke_fill=(*neon, 150))
+            s_draw.text((600, 350), score_text, fill=(255, 255, 255), anchor="mm", font=font_main)
 
-            canvas.alpha_composite(score_layer)
+            canvas.alpha_composite(score_overlay)
 
-            # 7. GLADIATOR FRAMES
+            # 7. ASSET FRAMING
             draw.rectangle([45, 145, 45+av_size+10, 145+av_size+10], outline=neon, width=15)
             draw.rectangle([715, 145, 715+av_size+10, 145+av_size+10], outline=neon, width=15)
-
             canvas.paste(av1, (50, 150), av1)
             canvas.paste(av2, (720, 150), av2)
 
@@ -160,7 +152,7 @@ class DungeonShip(commands.Cog):
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"Arena Visual Error: {e}")
+            print(f"Visual Error: {e}")
             return None
 
     @commands.command(name="ship")
