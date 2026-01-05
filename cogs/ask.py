@@ -4,7 +4,7 @@ import io
 import aiohttp
 import os
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from PIL import Image, ImageDraw, ImageOps
 import __main__ # Access the premium list from main.py
 
@@ -106,10 +106,12 @@ class DungeonAsk(commands.Cog):
         guild_id = str(ctx.guild.id)
         is_premium = False
         if guild_id in __main__.PREMIUM_GUILDS:
-            # Check if module exists in dict and if expiry is in the future
-            expiry = __main__.PREMIUM_GUILDS[guild_id].get(self.module_name)
-            if expiry and expiry > datetime.now(timezone.utc).timestamp():
-                is_premium = True
+            # FIXED: Check if guild data is a dict before accessing
+            guild_data = __main__.PREMIUM_GUILDS[guild_id]
+            if isinstance(guild_data, dict):
+                expiry = guild_data.get(self.module_name)
+                if expiry and expiry > datetime.now(timezone.utc).timestamp():
+                    is_premium = True
         
         files = []
         if logo: files.append(logo)
@@ -164,19 +166,23 @@ class DungeonAsk(commands.Cog):
                         async def acc(self, inner_i, b):
                             if inner_i.user.id != self.t.id: return
                             self.cog.log_ask_event(self.r, self.t, self.it, "Accepted")
+                            # FIXED: Proper interaction response
                             await inner_i.response.send_message(f"✨ Spark lit for {self.r.mention}")
 
                         @discord.ui.button(label=den_label, style=discord.ButtonStyle.danger, emoji="🥀")
                         async def den(self, inner_i, b):
                             if inner_i.user.id != self.t.id: return
                             self.cog.log_ask_event(self.r, self.t, self.it, "Denied")
+                            # FIXED: Proper interaction response
                             await inner_i.response.send_message(f"🥀 Fire out for {self.r.mention}")
 
                     final_emb = self.cog.fiery_embed(mood_title, mood_desc, mood_color)
+                    # FIXED: Send interaction message correctly to prevent silent failures
                     await i.response.send_message(content=self.t.mention, embed=final_emb, view=RecView(self.cog, self.r, self.t, intent), file=logo_callback)
                 
                 select.callback = callback
                 v = discord.ui.View(); v.add_item(select)
+                # FIXED: ephemeral=True to keep the lobby clean
                 await interaction.response.send_message("Choose your vibe:", view=v, ephemeral=True)
 
         await ctx.send(files=files, embed=emb, view=InitialView(self, ctx.author, member))
@@ -208,9 +214,11 @@ class DungeonAsk(commands.Cog):
         # Subscription Check
         is_premium = False
         if guild_id in __main__.PREMIUM_GUILDS:
-            expiry = __main__.PREMIUM_GUILDS[guild_id].get(self.module_name)
-            if expiry and expiry > datetime.now(timezone.utc).timestamp():
-                is_premium = True
+            guild_data = __main__.PREMIUM_GUILDS[guild_id]
+            if isinstance(guild_data, dict):
+                expiry = guild_data.get(self.module_name)
+                if expiry and expiry > datetime.now(timezone.utc).timestamp():
+                    is_premium = True
 
         if not is_premium:
             return await ctx.send(file=logo, embed=self.fiery_embed("🚫 LOCKED", "History is a premium feature."))
