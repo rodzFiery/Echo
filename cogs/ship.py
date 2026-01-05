@@ -5,13 +5,6 @@ import asyncio
 import os
 import io
 import aiohttp
-import jsonimport discord
-from discord.ext import commands
-import random
-import asyncio
-import os
-import io
-import aiohttp
 import json
 from datetime import datetime, timezone
 from PIL import Image, ImageDraw, ImageOps, ImageFont, ImageFilter
@@ -50,8 +43,7 @@ class DungeonShip(commands.Cog):
             canvas = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             draw = ImageDraw.Draw(canvas)
 
-            # --- FONT SYSTEM LOADER (MASSIVE SCALING) ---
-            # Increased base sizes significantly for the "Arena" feel
+            # --- FONT SYSTEM LOADER (TITANIC SCALING) ---
             font_size_pct = 350 if percent < 100 else 280 
             font_size_heart = 120
             try:
@@ -131,40 +123,16 @@ class DungeonShip(commands.Cog):
             if fill_size > 0:
                 draw.rounded_rectangle([col_x + 3, col_y + col_h - 3 - fill_size, col_x + col_w - 3, col_y + col_h - 3], radius=12, fill=(255, 0, 40, 220))
 
-            # Status Icon
-            heart_emoji = "❤️" if percent > 50 else "💔"
-            draw.text((600, 435), heart_emoji, anchor="mm", font=font_heart)
-
-            # Logo
-            if os.path.exists("fierylogo.jpg"):
-                logo = Image.open("fierylogo.jpg").convert("RGBA").resize((135, 135))
-                mask = Image.new("L", (135, 135), 0)
-                ImageDraw.Draw(mask).ellipse([0, 0, 135, 135], fill=255)
-                logo.putalpha(mask)
-                canvas.paste(logo, (532, 35), logo)
-
-            # Love Bar
-            bar_w, bar_h = 1000, 40
-            bx, by = (1200-bar_w)//2, 545
-            draw.rounded_rectangle([bx-8, by-8, bx+bar_w+8, by+bar_h+8], radius=15, fill=(0, 0, 0, 180)) 
-            fill_w = (percent / 100) * bar_w
-            if fill_w > 10:
-                draw.rounded_rectangle([bx, by, bx+fill_w, by+bar_h], radius=10, fill=(255, 45, 95))
-
             # --- 6. IMPERIAL GLOW FILTER ---
             glow = canvas.filter(ImageFilter.GaussianBlur(8))
             canvas = Image.alpha_composite(glow, canvas)
 
-            # --- 7. FINAL OVERLAY: THE TITANIC SCORE FIX ---
-            # We use a secondary drawing layer to force massive scale
+            # --- 7. FINAL OVERLAY: THE TITANIC SCORE ---
             final_draw = ImageDraw.Draw(canvas)
-            
-            # Arena Obsidian Plate (Center Background for Text)
-            # This ensures the score has a dark area to pop out from
             final_draw.rounded_rectangle([350, 150, 850, 450], radius=40, fill=(0, 0, 0, 200))
 
             if percent >= 90:
-                text_main, text_stroke = (255, 255, 255), (255, 215, 0) # White on Gold
+                text_main, text_stroke = (255, 255, 255), (255, 215, 0)
             elif percent >= 70:
                 text_main, text_stroke = (255, 215, 0), (0, 0, 0)
             elif percent < 20:
@@ -173,9 +141,7 @@ class DungeonShip(commands.Cog):
                 text_main, text_stroke = (255, 255, 255), (50, 50, 50)
 
             pct_text = f"{percent}%"
-            # Draw Titanic Shadow for Depth
             final_draw.text((615, 315), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
-            # Draw Massive Focal Score
             final_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=25, stroke_fill=text_stroke)
 
             buf = io.BytesIO()
@@ -188,6 +154,7 @@ class DungeonShip(commands.Cog):
 
     @commands.command(name="ship")
     async def ship(self, ctx, member: discord.Member = None):
+        """Calculates the romantic power between two gladiators."""
         if member is None:
             return await ctx.send("💘 **THE ORACLE NEEDS A PARTNER!** Mention someone to challenge the fates!")
         if member.id == ctx.author.id:
@@ -221,13 +188,11 @@ class DungeonShip(commands.Cog):
                 file = discord.File(ship_img, filename="ship.png")
                 embed.set_image(url="attachment://ship.png")
             embed.set_footer(text="Glory to the Echo! | Master Matchmaker", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
-            if ship_img:
-                await ctx.send(file=file, embed=embed)
-            else:
-                await ctx.send(embed=embed)
+            await ctx.send(file=file if ship_img else None, embed=embed)
 
     @commands.command(name="matchme")
     async def matchme(self, ctx):
+        """Scans the arena for top 5 romantic tension candidates."""
         async with ctx.typing():
             potential_members = [m for m in ctx.guild.members if not m.bot and m.id != ctx.author.id]
             if len(potential_members) < 5:
@@ -246,10 +211,7 @@ class DungeonShip(commands.Cog):
                 results_text += f"**{i}. {member.display_name}** — {score}% {indicator}\n"
             embed.add_field(name="🏛️ TOP POTENTIAL MATCHES", value=results_text, inline=False)
             embed.set_footer(text="Glory to the Echo! | Try !ship with them.", icon_url=ctx.author.display_avatar.url)
-            if os.path.exists("fierylogo.jpg"):
-                await ctx.send(file=logo_file, embed=embed)
-            else:
-                await ctx.send(embed=embed)
+            await ctx.send(file=logo_file if os.path.exists("fierylogo.jpg") else None, embed=embed)
 
 async def setup(bot):
     await bot.add_cog(DungeonShip(bot))
