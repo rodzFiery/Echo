@@ -36,26 +36,30 @@ class DungeonFight(commands.Cog):
 
         # Global Update
         if wid not in self.stats["global"]:
-            self.stats["global"][wid] = {"wins": 0, "fights": 0, "victims": {}}
+            self.stats["global"][wid] = {"wins": 0, "fights": 0, "streak": 0, "victims": {}}
         if lid not in self.stats["global"]:
-            self.stats["global"][lid] = {"wins": 0, "fights": 0, "victims": {}}
+            self.stats["global"][lid] = {"wins": 0, "fights": 0, "streak": 0, "victims": {}}
             
         self.stats["global"][wid]["wins"] += 1
         self.stats["global"][wid]["fights"] += 1
+        self.stats["global"][wid]["streak"] += 1
         self.stats["global"][lid]["fights"] += 1
+        self.stats["global"][lid]["streak"] = 0 # Reset loser streak
         self.stats["global"][wid]["victims"][lid] = self.stats["global"][wid]["victims"].get(lid, 0) + 1
 
         # Local Update
         if gid not in self.stats["servers"]:
             self.stats["servers"][gid] = {}
         if wid not in self.stats["servers"][gid]:
-            self.stats["servers"][gid][wid] = {"wins": 0, "fights": 0, "victims": {}}
+            self.stats["servers"][gid][wid] = {"wins": 0, "fights": 0, "streak": 0, "victims": {}}
         if lid not in self.stats["servers"][gid]:
-            self.stats["servers"][gid][lid] = {"wins": 0, "fights": 0, "victims": {}}
+            self.stats["servers"][gid][lid] = {"wins": 0, "fights": 0, "streak": 0, "victims": {}}
 
         self.stats["servers"][gid][wid]["wins"] += 1
         self.stats["servers"][gid][wid]["fights"] += 1
+        self.stats["servers"][gid][wid]["streak"] += 1
         self.stats["servers"][gid][lid]["fights"] += 1
+        self.stats["servers"][gid][lid]["streak"] = 0 # Reset loser streak
         self.stats["servers"][gid][wid]["victims"][lid] = self.stats["servers"][gid][wid]["victims"].get(lid, 0) + 1
         
         self._save_stats()
@@ -163,8 +167,8 @@ class DungeonFight(commands.Cog):
         except:
             return None
 
-    # --- NEW: WINNER CARD ENGINE ---
-    async def create_winner_card(self, winner_url, name, wins, total_fights):
+    # --- WINNER CARD ENGINE ---
+    async def create_winner_card(self, winner_url, name, wins, total_fights, streak):
         try:
             # Base card setup
             card = Image.new("RGBA", (1000, 500), (15, 15, 15, 255))
@@ -173,7 +177,6 @@ class DungeonFight(commands.Cog):
             # Load fierylogo.jpg if exists
             if os.path.exists("fierylogo.jpg"):
                 logo = Image.open("fierylogo.jpg").convert("RGBA").resize((1000, 500))
-                # Add a dark overlay to make text readable
                 overlay = Image.new("RGBA", (1000, 500), (0, 0, 0, 160))
                 card.paste(logo, (0, 0))
                 card.paste(overlay, (0, 0), overlay)
@@ -193,16 +196,16 @@ class DungeonFight(commands.Cog):
             card.paste(av, (50, 100), av)
             draw.ellipse((45, 95, 355, 405), outline=(255, 215, 0), width=10)
 
-            # Text Labels
-            draw.text((400, 100), "CHAMPION", fill=(255, 69, 0), font=None) # Use default font if custom not provided
-            draw.text((400, 150), name.upper(), fill=(255, 255, 255), font=None)
+            # Text Rendering
+            draw.text((400, 80), "ARENA CHAMPION", fill=(255, 69, 0))
+            draw.text((400, 130), name.upper(), fill=(255, 255, 255))
             
-            draw.text((400, 250), f"TOTAL WINS: {wins}", fill=(255, 215, 0))
-            draw.text((400, 300), f"TOTAL FIGHTS: {total_fights}", fill=(200, 200, 200))
+            draw.text((400, 220), f"TOTAL WINS: {wins}", fill=(255, 215, 0))
+            draw.text((400, 270), f"CURRENT STREAK: {streak} 🔥", fill=(255, 100, 0))
+            draw.text((400, 320), f"TOTAL FIGHTS: {total_fights}", fill=(200, 200, 200))
             
-            # Accuracy percentage
             acc = (wins / total_fights) * 100 if total_fights > 0 else 0
-            draw.text((400, 350), f"WIN RATE: {acc:.1f}%", fill=(0, 255, 127))
+            draw.text((400, 370), f"WIN RATE: {acc:.1f}%", fill=(0, 255, 127))
 
             buf = io.BytesIO()
             card.save(buf, format="PNG")
@@ -232,7 +235,7 @@ class DungeonFight(commands.Cog):
                 if expiry and expiry > datetime.now(timezone.utc).timestamp():
                     is_premium = True
 
-        # Initial Stats (Added Luck key)
+        # Initial Stats
         p1 = {"user": ctx.author, "hp": 100, "max": 100, "luck": 1.0}
         p2 = {"user": member, "hp": 100, "max": 100, "luck": 1.0}
         turn = p1
@@ -260,9 +263,8 @@ class DungeonFight(commands.Cog):
 
         # --- AUTOMATED COMBAT LOOP ---
         while p1["hp"] > 0 and p2["hp"] > 0:
-            await asyncio.sleep(2.5) # Pacing between turns
+            await asyncio.sleep(2.5)
             
-            # Automated balanced logic (70% strike, 30% heal)
             action = random.choices(["strike", "heal"], weights=[70, 30])[0]
             
             if action == "strike":
@@ -274,7 +276,6 @@ class DungeonFight(commands.Cog):
                 turn["hp"] = min(turn["max"], turn["hp"] + amt)
                 battle_log = f"🧪 **{turn['user'].display_name}** {self.get_funny_msg('heal')} (+{amt} HP)"
 
-            # Refreshing the combat display
             embed = discord.Embed(title="🌋 ECHO ARENA: BATTLE RAGING", color=0xff4500)
             embed.set_image(url="attachment://arena.png")
             if os.path.exists("fierylogo.jpg"):
@@ -290,7 +291,6 @@ class DungeonFight(commands.Cog):
             embed.add_field(name="📜 COMBAT LOG", value=f"> *{battle_log}*", inline=False)
             embed.set_footer(text=f"🔥 Turn: {turn['user'].display_name.upper()} | CRUSH THEM!")
 
-            # Spectator View (Allows others to influence luck)
             view = discord.ui.View(timeout=1)
             cheer_btn = discord.ui.Button(label="CHEER!", style=discord.ButtonStyle.danger, emoji="🙌")
             
@@ -298,7 +298,7 @@ class DungeonFight(commands.Cog):
                 if interaction.user.id in [p1["user"].id, p2["user"].id]:
                     return await interaction.response.send_message("💢 You're too busy fighting! Focus!", ephemeral=True)
                 turn["luck"] += 0.05
-                await interaction.response.send_message(f"📣 **{interaction.user.display_name}** roars from the stands! **{turn['user'].display_name}** is fueled by the Echo!", ephemeral=False)
+                await interaction.response.send_message(f"📣 **{interaction.user.display_name}** roars! **{turn['user'].display_name}** is fueled!", ephemeral=False)
 
             cheer_btn.callback = cheer_callback
             view.add_item(cheer_btn)
@@ -308,7 +308,6 @@ class DungeonFight(commands.Cog):
             if other["hp"] <= 0:
                 break
 
-            # Swap turns
             turn, other = other, turn
 
         # Winner Announcement & Stats Update
@@ -316,17 +315,18 @@ class DungeonFight(commands.Cog):
         loser = other if turn["hp"] > 0 else turn
         self._update_winner(ctx.guild.id, winner["user"].id, loser["user"].id)
 
-        # --- GENERATE NEVER SEEN WINNER CARD ---
-        win_data = self.stats["global"].get(str(winner["user"].id), {"wins": 0, "fights": 0})
+        # Generate Winner Card with Streak
+        win_data = self.stats["global"].get(str(winner["user"].id), {"wins": 0, "fights": 0, "streak": 0})
         win_card_buf = await self.create_winner_card(
             winner["user"].display_avatar.url, 
             winner["user"].display_name, 
             win_data["wins"], 
-            win_data["fights"]
+            win_data["fights"],
+            win_data["streak"]
         )
 
         win_emb = discord.Embed(title="🏆 THE ECHO CHAMPION EMERGES", color=0x00ff00)
-        win_emb.description = f"🎊 **{winner['user'].display_name.upper()}** HAS CLAIMED VICTORY!"
+        win_emb.description = f"🎊 **{winner['user'].display_name.upper()}** HAS CLAIMED THE THRONE!"
         
         if win_card_buf:
             win_file = discord.File(win_card_buf, filename="winner_card.png")
@@ -342,13 +342,12 @@ class DungeonFight(commands.Cog):
         tid = str(target.id)
         gid = str(ctx.guild.id)
 
-        # Global Stats
         g_data = self.stats["global"]
         g_sorted = sorted(g_data.items(), key=lambda x: x[1]["wins"], reverse=True)
         g_pos = next((i for i, (uid, _) in enumerate(g_sorted, 1) if uid == tid), "N/A")
         g_wins = g_data.get(tid, {}).get("wins", 0)
+        g_streak = g_data.get(tid, {}).get("streak", 0)
 
-        # Local Stats
         l_data = self.stats["servers"].get(gid, {})
         l_sorted = sorted(l_data.items(), key=lambda x: x[1]["wins"], reverse=True)
         l_pos = next((i for i, (uid, _) in enumerate(l_sorted, 1) if uid == tid), "N/A")
@@ -356,15 +355,13 @@ class DungeonFight(commands.Cog):
 
         embed = discord.Embed(title=f"🛡️ COMBATANT RANK: {target.display_name.upper()}", color=0xff4500)
         
-        # Consistent Thumbnail
         if os.path.exists("fierylogo.jpg"):
             file = discord.File("fierylogo.jpg", filename="rank_logo.png")
             embed.set_thumbnail(url="attachment://rank_logo.png")
         
-        embed.add_field(name="🌍 GLOBAL STANDING", value=f"**Rank:** #{g_pos}\n**Total Wins:** {g_wins}", inline=True)
+        embed.add_field(name="🌍 GLOBAL STANDING", value=f"**Rank:** #{g_pos}\n**Total Wins:** {g_wins}\n**Streak:** {g_streak} 🔥", inline=True)
         embed.add_field(name="🏰 LOCAL STANDING", value=f"**Rank:** #{l_pos}\n**Server Wins:** {l_wins}", inline=True)
 
-        # Top 5 Victims (Global)
         victims = g_data.get(tid, {}).get("victims", {})
         if victims:
             v_sorted = sorted(victims.items(), key=lambda x: x[1], reverse=True)[:5]
