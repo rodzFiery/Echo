@@ -42,7 +42,39 @@ class DungeonShip(commands.Cog):
             # 1. IMPERIAL ARENA ENGINE (1200x600 for Max Embed Fit)
             canvas = Image.new("RGBA", (1200, 600), (40, 0, 5, 255))
             
+            # Use ship.jpg as the background for the Gladiator theme
+            if os.path.exists("ship.jpg"):
+                bg = Image.open("ship.jpg").convert("RGBA").resize((1200, 600))
+                # Add a warm pink/red romantic tint to the arena
+                tint = Image.new("RGBA", (1200, 600), (255, 20, 147, 45))
+                bg = Image.alpha_composite(bg, tint)
+                canvas.paste(bg, (0, 0))
+            elif os.path.exists("fight.jpg"):
+                bg = Image.open("fight.jpg").convert("RGBA").resize((1200, 600))
+                tint = Image.new("RGBA", (1200, 600), (255, 20, 147, 45))
+                bg = Image.alpha_composite(bg, tint)
+                canvas.paste(bg, (0, 0))
+            
             draw = ImageDraw.Draw(canvas)
+            
+            # --- FONT LOADING LOGIC ---
+            # Added to ensure the % love score actually appears on the display
+            try:
+                # Searching for a valid system font path
+                font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+                if not os.path.exists(font_path):
+                    font_path = "arial.ttf"
+                
+                # If a real font is found, use it; otherwise, use default
+                if os.path.exists(font_path) or font_path == "arial.ttf":
+                    font_pct = ImageFont.truetype(font_path, 230)
+                    font_heart = ImageFont.truetype(font_path, 100)
+                else:
+                    font_pct = ImageFont.load_default()
+                    font_heart = ImageFont.load_default()
+            except:
+                font_pct = ImageFont.load_default()
+                font_heart = ImageFont.load_default()
             
             # 2. LOVE PARTICLE GENERATOR (Heart-shaped sparkles)
             for _ in range(50):
@@ -107,20 +139,20 @@ class DungeonShip(commands.Cog):
 
             # Massive focal Percentage (SHOWING THE LOVE SCORE)
             pct_text = f"{percent}%"
-            # Multi-layered text for maximum visibility (VERY BIG AT THE MIDDLE)
-            draw.text((608, 308), pct_text, fill=(0, 0, 0, 200), anchor="mm", size=230) # Shadow
-            draw.text((600, 300), pct_text, fill=text_main, anchor="mm", size=230, stroke_width=6, stroke_fill=text_stroke)
+            # Multi-layered text for maximum visibility
+            draw.text((608, 308), pct_text, fill=(0, 0, 0, 200), anchor="mm", font=font_pct) # Shadow
+            draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=6, stroke_fill=text_stroke)
 
             # Status Icon with Dynamic Glow for high scores
             heart_emoji = "❤️" if percent > 50 else "💔"
             if percent >= 75:
                 heart_glow = Image.new("RGBA", (1200, 600), (0,0,0,0))
                 hg_draw = ImageDraw.Draw(heart_glow)
-                hg_draw.text((600, 435), heart_emoji, anchor="mm", size=110, fill=(text_main[0], text_main[1], text_main[2], 150))
+                hg_draw.text((600, 435), heart_emoji, anchor="mm", font=font_heart, fill=(text_main[0], text_main[1], text_main[2], 150))
                 heart_glow = heart_glow.filter(ImageFilter.GaussianBlur(15))
                 canvas = Image.alpha_composite(canvas, heart_glow)
             
-            draw.text((600, 435), heart_emoji, anchor="mm", size=100, fill=text_main if percent >= 75 else None)
+            draw.text((600, 435), heart_emoji, anchor="mm", font=font_heart, fill=text_main if percent >= 75 else None)
 
             # Fiery Logo Placement
             if os.path.exists("fierylogo.jpg"):
@@ -149,7 +181,9 @@ class DungeonShip(commands.Cog):
             canvas.save(buf, format="PNG")
             buf.seek(0)
             return buf
-        except:
+        except Exception as e:
+            # Print error to console for debugging
+            print(f"Visual Error: {e}")
             return None
 
     @commands.command(name="ship")
@@ -189,17 +223,20 @@ class DungeonShip(commands.Cog):
     async def matchme(self, ctx):
         """Scans the arena for top 5 romantic tension candidates."""
         async with ctx.typing():
+            # Filter members: No bots, not the author, must be present
             potential_members = [m for m in ctx.guild.members if not m.bot and m.id != ctx.author.id]
             
             if len(potential_members) < 5:
                 return await ctx.send("❌ Not enough gladiators in the arena to find a match!")
 
+            # Pick random members to simulate a 'scan'
             sample = random.sample(potential_members, min(len(potential_members), 15))
             matches = []
             
             for m in sample:
                 matches.append((m, random.randint(1, 100)))
 
+            # Sort by highest percentage and take top 5
             matches.sort(key=lambda x: x[1], reverse=True)
             top_5 = matches[:5]
 
@@ -209,6 +246,7 @@ class DungeonShip(commands.Cog):
                 color=0xFF4500
             )
 
+            # Fiery Logo logic
             if os.path.exists("fierylogo.jpg"):
                 logo_file = discord.File("fierylogo.jpg", filename="logo.png")
                 embed.set_thumbnail(url="attachment://logo.png")
