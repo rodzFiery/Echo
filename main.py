@@ -133,7 +133,7 @@ async def ask(ctx, member: discord.Member):
         embed.set_image(url="attachment://ask.png")
     else:
         file = None
-        embed = fiery_embed("🔥 BASIC DM REQUEST 🔥", f"{ctx.author.mention} wants to talk to {member.mention}.\n\n*Upgrade to Premium (!buy) for custom visual lobbies!*")
+        embed = fiery_embed("🔥 BASIC DM REQUEST 🔥", f"{ctx.author.mention} wants to talk to {member.mention}.\n\n*Upgrade to Premium (!askpremium) for custom visual lobbies!*")
 
     class InitialView(discord.ui.View):
         def __init__(self, req, tar):
@@ -185,7 +185,7 @@ async def ask(ctx, member: discord.Member):
 @commands.has_permissions(administrator=True)
 async def adminask(ctx):
     if ctx.guild.id not in PREMIUM_GUILDS:
-        return await ctx.send("🚫 **Admin History is a Premium Feature.** Type `!buy` to upgrade.")
+        return await ctx.send("🚫 **Admin History is a Premium Feature.** Type `!askpremium` to upgrade.")
     
     embed = fiery_embed("📊 ASK HISTORY PANEL", "Select a timeframe to view the logs.")
     
@@ -213,16 +213,16 @@ async def adminask(ctx):
 
     await ctx.send(embed=embed, view=HistoryView())
 
-@bot.command()
+@bot.command(name="askpremium")
 @commands.has_permissions(administrator=True)
-async def buy(ctx):
+async def askpremium(ctx):
     paypal_link = f"https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business={PAYPAL_EMAIL}&amount=2.50&currency_code=USD&item_name=Premium_Server_{ctx.guild.id}&custom={ctx.guild.id}"
     embed = fiery_embed("💎 PREMIUM UPGRADE", f"Click [**HERE**]({paypal_link}) to pay $2.50 via PayPal.\nInclude Server ID: `{ctx.guild.id}` in notes.")
     await ctx.send(embed=embed)
 
-@bot.command()
+@bot.command(name="askactivate")
 @commands.is_owner()
-async def activate(ctx, guild_id: int):
+async def askactivate(ctx, guild_id: int):
     """Owner-only command to manually activate premium after checking PayPal."""
     if guild_id not in PREMIUM_GUILDS:
         PREMIUM_GUILDS.append(guild_id)
