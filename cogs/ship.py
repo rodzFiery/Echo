@@ -111,7 +111,7 @@ class DungeonShip(commands.Cog):
 
             # Massive focal Percentage
             pct_text = f"{percent}%"
-            # Multi-layered text for maximum visibility
+            # Multi-layered text for maximum visibility (VERY BIG AT THE MIDDLE)
             draw.text((608, 308), pct_text, fill=(0, 0, 0, 200), anchor="mm", size=230) # Shadow
             draw.text((600, 300), pct_text, fill=text_main, anchor="mm", size=230, stroke_width=6, stroke_fill=text_stroke)
 
