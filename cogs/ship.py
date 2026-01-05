@@ -5,6 +5,13 @@ import asyncio
 import os
 import io
 import aiohttp
+import jsonimport discord
+from discord.ext import commands
+import random
+import asyncio
+import os
+import io
+import aiohttp
 import json
 from datetime import datetime, timezone
 from PIL import Image, ImageDraw, ImageOps, ImageFont, ImageFilter
