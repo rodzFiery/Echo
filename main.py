@@ -118,13 +118,40 @@ class MyBot(commands.Bot):
 
     async def on_ready(self):
         print(f'🔥 Bot Online: {self.user}')
-        await self.change_presence(activity=discord.Game(name="!askcommands"))
+        await self.change_presence(activity=discord.Game(name="!fiery | !ask"))
 
 bot = MyBot()
 
 @bot.command()
 async def invite(ctx):
     await ctx.send(f"Add me: {discord.utils.oauth_url(bot.user.id, permissions=discord.Permissions(administrator=True))}")
+
+# --- NEW: MASTER COMMAND DIRECTORY ---
+@bot.command(name="fiery")
+async def fiery(ctx):
+    embed = discord.Embed(title="⚔️ FIERY COMMAND DIRECTORY", color=0xff4500)
+    embed.description = "Explore the full potential of your server with our modules."
+    
+    logo_file = None
+    if os.path.exists("fierylogo.jpg"):
+        logo_file = discord.File("fierylogo.jpg", filename="fiery_main.png")
+        embed.set_thumbnail(url="attachment://fiery_main.png")
+
+    # Group commands by module automatically
+    for cog_name, cog_object in bot.cogs.items():
+        commands_list = cog_object.get_commands()
+        if commands_list:
+            cmd_text = " ".join([f"`!{c.name}`" for c in commands_list if not c.hidden])
+            embed.add_field(name=f"📦 {cog_name.replace('Dungeon', '')} Module", value=cmd_text, inline=False)
+
+    # Core main.py commands
+    embed.add_field(name="🛠️ Core System", value="`!premium` `!premiumstatus` `!invite` `!fiery`", inline=False)
+    embed.set_footer(text="Type !premium to expand your arsenal.")
+    
+    if logo_file:
+        await ctx.send(file=logo_file, embed=embed)
+    else:
+        await ctx.send(embed=embed)
 
 # --- NEW: THE HIGH LEVEL SHOP LOBBY ---
 @bot.command(name="premium")
