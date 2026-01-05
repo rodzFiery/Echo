@@ -212,7 +212,7 @@ class DungeonFight(commands.Cog):
         # Global Stats Block
         embed.add_field(
             name="🌍 GLOBAL STANDING",
-            value=f"**Rank:** #{global_pos}\n**Total Conquests:** {g_data['wins']}\n**Total Battles:** {g_data['fights']}",
+            value=f"**Rank:** #{global_pos}\n**Total Wins:** {g_data['wins']}\n**Total Battles:** {g_data['fights']}",
             inline=True
         )
         
@@ -323,7 +323,7 @@ class DungeonFight(commands.Cog):
             logo_file = discord.File("fierylogo.jpg", filename="logo.png")
             embed.set_thumbnail(url="attachment://logo.png")
             
-        embed.add_field(name="🏛️ ARENA RECORD", value=f"**Battles:** {total_fights}\n**Conquests:** {total_wins}\n**Valor Ratio:** {ratio:.1f}%", inline=True)
+        embed.add_field(name="🏛️ ARENA RECORD", value=f"**Battles:** {total_fights}\n**Wins:** {total_wins}\n**Valor Ratio:** {ratio:.1f}%", inline=True)
         embed.add_field(name="🔥 CURRENT STATUS", value=f"**Glory Streak:** {g_data.get('streak', 0)}\n**Imperial Rank:** Gladiator", inline=True)
         
         # Victims Logic
@@ -380,7 +380,7 @@ class DungeonFight(commands.Cog):
         # Global Block
         embed.add_field(
             name="🌍 GLOBAL STANDING",
-            value=f"**Rank:** #1\n**Total Conquests:** {g_data['wins']}\n**Total Battles:** {g_data['fights']}",
+            value=f"**Rank:** #1\n**Total Wins:** {g_data['wins']}\n**Total Battles:** {g_data['fights']}",
             inline=True
         )
         
