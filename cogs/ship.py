@@ -98,11 +98,22 @@ class DungeonShip(commands.Cog):
             nova = nova.filter(ImageFilter.GaussianBlur(50))
             canvas = Image.alpha_composite(canvas, nova)
 
+            # Dynamic Percentage Color Selection
+            if percent >= 90:
+                text_main = (255, 69, 0)   # Fiery Red-Orange
+                text_stroke = (255, 215, 0) # Gold Stroke
+            elif percent >= 70:
+                text_main = (255, 215, 0)  # Pure Gold
+                text_stroke = (0, 0, 0)
+            else:
+                text_main = (220, 220, 220) # Imperial Silver
+                text_stroke = (0, 0, 0)
+
             # Massive focal Percentage
             pct_text = f"{percent}%"
             # Multi-layered text for maximum visibility
             draw.text((608, 308), pct_text, fill=(0, 0, 0, 200), anchor="mm", size=230) # Shadow
-            draw.text((600, 300), pct_text, fill=(255, 215, 0), anchor="mm", size=230, stroke_width=6, stroke_fill=(20, 0, 0))
+            draw.text((600, 300), pct_text, fill=text_main, anchor="mm", size=230, stroke_width=6, stroke_fill=text_stroke)
 
             # Status Icon
             heart_emoji = "❤️" if percent > 50 else "💔"
