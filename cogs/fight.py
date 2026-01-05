@@ -267,52 +267,54 @@ class DungeonFight(commands.Cog):
         
         await ctx.send(embed=win_emb)
 
-    @commands.command(name="fightleaderboard")
-    async def leaderboard(self, ctx, scope: str = "local"):
-        """Displays the top 5 fighters and their victims. Usage: !fightleaderboard local/global"""
-        scope = scope.lower()
-        data = {}
-        title_text = ""
+    @commands.command(name="fightrank")
+    async def fightrank(self, ctx, user: discord.Member = None):
+        """Displays combat ranking and victim stats. Usage: !fightrank [@user]"""
+        target = user or ctx.author
+        tid = str(target.id)
+        gid = str(ctx.guild.id)
 
-        if scope == "global":
-            data = self.stats["global"]
-            title_text = "🌍 GLOBAL ECHO CHAMPIONS"
-        else:
-            data = self.stats["servers"].get(str(ctx.guild.id), {})
-            title_text = "⚔️ LOCAL ARENA LEGENDS"
+        # Global Stats
+        g_data = self.stats["global"]
+        g_sorted = sorted(g_data.items(), key=lambda x: x[1]["wins"], reverse=True)
+        g_pos = next((i for i, (uid, _) in enumerate(g_sorted, 1) if uid == tid), "N/A")
+        g_wins = g_data.get(tid, {}).get("wins", 0)
 
-        if not data:
-            return await ctx.send("🏜️ This arena is empty... No blood has been spilled yet.")
+        # Local Stats
+        l_data = self.stats["servers"].get(gid, {})
+        l_sorted = sorted(l_data.items(), key=lambda x: x[1]["wins"], reverse=True)
+        l_pos = next((i for i, (uid, _) in enumerate(l_sorted, 1) if uid == tid), "N/A")
+        l_wins = l_data.get(tid, {}).get("wins", 0)
 
-        # Sort by total wins
-        sorted_users = sorted(data.items(), key=lambda x: x[1]["wins"], reverse=True)[:5]
+        embed = discord.Embed(title=f"🛡️ COMBATANT RANK: {target.display_name.upper()}", color=0xff4500)
         
-        embed = discord.Embed(title=title_text, color=0xff4500)
+        # Consistent Thumbnail
         if os.path.exists("fierylogo.jpg"):
-            file = discord.File("fierylogo.jpg", filename="lb_logo.png")
-            embed.set_thumbnail(url="attachment://lb_logo.png")
+            file = discord.File("fierylogo.jpg", filename="rank_logo.png")
+            embed.set_thumbnail(url="attachment://rank_logo.png")
+        
+        embed.add_field(name="🌍 GLOBAL STANDING", value=f"**Rank:** #{g_pos}\n**Total Wins:** {g_wins}", inline=True)
+        embed.add_field(name="🏰 LOCAL STANDING", value=f"**Rank:** #{l_pos}\n**Server Wins:** {l_wins}", inline=True)
 
-        for i, (user_id, stats) in enumerate(sorted_users, 1):
-            user = self.bot.get_user(int(user_id))
-            username = user.display_name if user else f"Unknown ({user_id})"
-            
-            # Get top 5 victims
-            v_sorted = sorted(stats["victims"].items(), key=lambda x: x[1], reverse=True)[:5]
-            victims_text = ""
-            for v_id, count in v_sorted:
-                v_user = self.bot.get_user(int(v_id))
-                v_name = v_user.display_name if v_user else f"Spirit_{v_id}"
-                victims_text += f"• {v_name}: {count} times\n"
-            
-            if not victims_text: victims_text = "None yet."
+        # Top 5 Victims (Global)
+        victims = g_data.get(tid, {}).get("victims", {})
+        if victims:
+            v_sorted = sorted(victims.items(), key=lambda x: x[1], reverse=True)[:5]
+            v_text = ""
+            for vid, count in v_sorted:
+                v_user = self.bot.get_user(int(vid))
+                v_name = v_user.display_name if v_user else f"Fallen_{vid}"
+                v_text += f"• **{v_name}**: {count} kills\n"
+            embed.add_field(name="💀 TOP GLOBAL VICTIMS", value=v_text, inline=False)
+        else:
+            embed.add_field(name="💀 TOP GLOBAL VICTIMS", value="No victims recorded yet.", inline=False)
 
-            embed.add_field(
-                name=f"#{i} {username} — {stats['wins']} Wins",
-                value=f"**Top Victims:**\n{victims_text}",
-                inline=False
-            )
-
-        await ctx.send(embed=embed)
+        embed.set_footer(text=f"Server ID: {gid} | Keep fighting to climb the ranks!")
+        
+        if os.path.exists("fierylogo.jpg"):
+            await ctx.send(file=file, embed=embed)
+        else:
+            await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(DungeonFight(bot))
