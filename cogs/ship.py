@@ -79,7 +79,8 @@ class DungeonShip(commands.Cog):
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     p1_data, p2_data = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
 
-            av_size = 380
+            # --- INCREASED AVATAR SIZE (MAXIMIZED) ---
+            av_size = 480
             av1_raw = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2_raw = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
@@ -88,19 +89,19 @@ class DungeonShip(commands.Cog):
             a_draw = ImageDraw.Draw(aura)
             aura_color = (255, 215, 0) if percent > 75 else (255, 50, 100) if percent > 40 else (120, 120, 140)
             
-            # UI Pedestals (Square backgrounds for avatars)
-            a_draw.rectangle([90, 100, 100+av_size+10, 110+av_size+10], fill=(0, 0, 0, 180))
-            a_draw.rectangle([740, 100, 750+av_size+10, 110+av_size+10], fill=(0, 0, 0, 180))
+            # UI Pedestals (Adjusted for larger avatars)
+            a_draw.rectangle([40, 50, 40+av_size+10, 60+av_size+10], fill=(0, 0, 0, 180))
+            a_draw.rectangle([700, 50, 710+av_size+10, 60+av_size+10], fill=(0, 0, 0, 180))
             
             # Platform Glows
-            a_draw.ellipse([70, 90, 110+av_size+30, 130+av_size+30], fill=(aura_color[0], aura_color[1], aura_color[2], 80))
-            a_draw.ellipse([720, 90, 760+av_size+30, 130+av_size+30], fill=(aura_color[0], aura_color[1], aura_color[2], 80))
+            a_draw.ellipse([20, 40, 60+av_size+30, 80+av_size+30], fill=(aura_color[0], aura_color[1], aura_color[2], 80))
+            a_draw.ellipse([680, 40, 720+av_size+30, 80+av_size+30], fill=(aura_color[0], aura_color[1], aura_color[2], 80))
             aura = aura.filter(ImageFilter.GaussianBlur(35))
             canvas = Image.alpha_composite(canvas, aura)
 
-            # Paste Avatars
-            canvas.paste(av1_raw, (100, 110), av1_raw)
-            canvas.paste(av2_raw, (750, 110), av2_raw)
+            # Paste Avatars (Maximized)
+            canvas.paste(av1_raw, (50, 60), av1_raw)
+            canvas.paste(av2_raw, (710, 60), av2_raw)
 
             # 4. THE IMPERIAL BOND (Center)
             # Central Light Nova
@@ -110,7 +111,7 @@ class DungeonShip(commands.Cog):
             canvas = Image.alpha_composite(canvas, nova)
 
             # --- VERTICAL LOVE COLUMN (CENTERED) ---
-            col_x, col_y, col_w, col_h = 585, 110, 30, 380
+            col_x, col_y, col_w, col_h = 585, 60, 30, 480
             # Column Background
             draw.rounded_rectangle([col_x, col_y, col_x + col_w, col_y + col_h], radius=15, fill=(20, 0, 0, 180), outline=(255, 255, 255, 60), width=2)
             # Love Fill (Bottom-up)
@@ -155,8 +156,8 @@ class DungeonShip(commands.Cog):
                 canvas.paste(logo, (532, 35), logo)
 
             # 5. DYNAMIC LOVE BAR (Imperial Shield Style)
-            bar_w, bar_h = 900, 35
-            bx, by = (1200-bar_w)//2, 530
+            bar_w, bar_h = 1000, 40
+            bx, by = (1200-bar_w)//2, 545
             draw.rounded_rectangle([bx-8, by-8, bx+bar_w+8, by+bar_h+8], radius=15, fill=(0, 0, 0, 180)) 
             
             fill_w = (percent / 100) * bar_w
