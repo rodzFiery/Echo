@@ -98,6 +98,15 @@ class DungeonShip(commands.Cog):
             nova = nova.filter(ImageFilter.GaussianBlur(50))
             canvas = Image.alpha_composite(canvas, nova)
 
+            # --- VERTICAL LOVE COLUMN ---
+            col_x, col_y, col_w, col_h = 585, 100, 30, 350
+            # Background Column (Empty)
+            draw.rounded_rectangle([col_x, col_y, col_x + col_w, col_y + col_h], radius=15, fill=(0, 0, 0, 150), outline=(255, 255, 255, 50), width=2)
+            # Filling Logic (Filling from Bottom to Top)
+            fill_height = int((percent / 100) * col_h)
+            if fill_height > 0:
+                draw.rounded_rectangle([col_x + 3, col_y + col_h - fill_height, col_x + col_w - 3, col_y + col_h - 3], radius=12, fill=(255, 0, 50, 200))
+
             # Dynamic Percentage Color Selection
             if percent >= 90:
                 text_main = (255, 69, 0)   # Fiery Red-Orange
@@ -109,9 +118,9 @@ class DungeonShip(commands.Cog):
                 text_main = (220, 220, 220) # Imperial Silver
                 text_stroke = (0, 0, 0)
 
-            # Massive focal Percentage (CENTERED BETWEEN AVATARS)
+            # Massive focal Percentage
             pct_text = f"{percent}%"
-            # Multi-layered text for maximum visibility (VERY BIG AT THE MIDDLE)
+            # Multi-layered text for maximum visibility
             draw.text((608, 308), pct_text, fill=(0, 0, 0, 200), anchor="mm", size=230) # Shadow
             draw.text((600, 300), pct_text, fill=text_main, anchor="mm", size=230, stroke_width=6, stroke_fill=text_stroke)
 
