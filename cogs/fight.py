@@ -76,14 +76,14 @@ class DungeonFight(commands.Cog):
     def get_health_bar(self, hp, max_hp, is_premium):
         pct = (hp / max_hp) * 100
         # Color Logic: Green (100-55%) > Yellow (54-25%) > Red (24-0%)
-        if pct >= 55: bar_color = "🟢"
-        elif pct >= 25: bar_color = "🟡"
-        else: bar_color = "🔴"
+        if pct >= 55: bar_color, segment = "🟢", "🟩"
+        elif pct >= 25: bar_color, segment = "🟡", "🟨"
+        else: bar_color, segment = "🔴", "🟥"
         
         # Dynamic Segmented Bar (10 segments)
         filled = max(0, min(10, int(pct / 10)))
         empty = 10 - filled
-        bar_str = "▬" * filled + "  " + "▬" * empty
+        bar_str = segment * filled + "⬛" * empty
         
         return f"{bar_color} **{bar_str}** {pct:.0f}% ({hp}/{max_hp} HP)"
 
