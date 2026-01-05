@@ -20,6 +20,28 @@ class DungeonFight(commands.Cog):
         # Battle log history tracking
         self.battle_histories = {}
 
+    # --- GLOBAL PREMIUM CHECK FOR ALL COMMANDS ---
+    async def cog_check(self, ctx):
+        guild_id = str(ctx.guild.id)
+        is_premium = False
+        if hasattr(__main__, "PREMIUM_GUILDS"):
+            guild_data = __main__.PREMIUM_GUILDS.get(guild_id, {})
+            expiry = guild_data.get(self.module_name)
+            if expiry and float(expiry) > datetime.now(timezone.utc).timestamp():
+                is_premium = True
+        
+        if not is_premium:
+            locked_emb = discord.Embed(title="🚫 MODULE LOCKED", color=0xFF0000)
+            locked_emb.description = "This server does not have an active **Premium Subscription** for the **FIGHT** module.\n\nType `!premium` to unlock the Arena, Rankings, and Global Leaderboards!"
+            if os.path.exists("fierylogo.jpg"):
+                file = discord.File("fierylogo.jpg", filename="lock.png")
+                locked_emb.set_thumbnail(url="attachment://lock.png")
+                await ctx.send(file=file, embed=locked_emb)
+            else:
+                await ctx.send(embed=locked_emb)
+            return False # Prevents command execution
+        return True
+
     def _load_stats(self):
         try:
             if os.path.exists(self.stats_file):
@@ -236,26 +258,15 @@ class DungeonFight(commands.Cog):
 
     @commands.command(name="fight")
     async def fight(self, ctx, member: discord.Member = None):
-        # PREMIUM CHECK
-        guild_id = str(ctx.guild.id)
-        is_premium = False
-        if hasattr(__main__, "PREMIUM_GUILDS"):
-            guild_data = __main__.PREMIUM_GUILDS.get(guild_id, {})
-            expiry = guild_data.get(self.module_name)
-            if expiry and float(expiry) > datetime.now(timezone.utc).timestamp():
-                is_premium = True
-        
-        if not is_premium:
-            locked_emb = discord.Embed(title="🚫 MODULE LOCKED", color=0xFF0000)
-            locked_emb.description = "This server does not have a **Premium Subscription** for the **FIGHT** module.\n\nType `!premium` to view our monthly plans and unlock high-impact arena duels!"
-            return await ctx.send(embed=locked_emb)
-
         if member is None:
             return await ctx.send("❌ **THE ARENA DEMANDS A TRIBUTE!** Mention someone to challenge them!")
         if member.id == ctx.author.id:
             return await ctx.send("💢 You can't fight yourself.")
         if member.bot:
             return await ctx.send("🤖 Bots don't feel pain.")
+
+        # For visual consistency in health bars
+        is_premium = True 
 
         p1 = {"user": ctx.author, "hp": 100, "max": 100, "luck": 1.0}
         p2 = {"user": member, "hp": 100, "max": 100, "luck": 1.0}
@@ -314,20 +325,6 @@ class DungeonFight(commands.Cog):
 
     @commands.command(name="fightrank")
     async def fightrank(self, ctx, user: discord.Member = None):
-        # PREMIUM CHECK
-        guild_id = str(ctx.guild.id)
-        is_premium = False
-        if hasattr(__main__, "PREMIUM_GUILDS"):
-            guild_data = __main__.PREMIUM_GUILDS.get(guild_id, {})
-            expiry = guild_data.get(self.module_name)
-            if expiry and float(expiry) > datetime.now(timezone.utc).timestamp():
-                is_premium = True
-        
-        if not is_premium:
-            locked_emb = discord.Embed(title="🚫 MODULE LOCKED", color=0xFF0000)
-            locked_emb.description = "The **FIGHTRANK** command is part of the **Premium Fight Module**.\n\nType `!premium` to unlock it."
-            return await ctx.send(embed=locked_emb)
-
         target = user or ctx.author
         tid = str(target.id)
         g_data = self.stats["global"].get(tid, {"wins": 0, "streak": 0, "fights": 0, "victims": {}})
@@ -369,20 +366,6 @@ class DungeonFight(commands.Cog):
 
     @commands.command(name="fighttop")
     async def fighttop(self, ctx):
-        # PREMIUM CHECK
-        guild_id = str(ctx.guild.id)
-        is_premium = False
-        if hasattr(__main__, "PREMIUM_GUILDS"):
-            guild_data = __main__.PREMIUM_GUILDS.get(guild_id, {})
-            expiry = guild_data.get(self.module_name)
-            if expiry and float(expiry) > datetime.now(timezone.utc).timestamp():
-                is_premium = True
-        
-        if not is_premium:
-            locked_emb = discord.Embed(title="🚫 MODULE LOCKED", color=0xFF0000)
-            locked_emb.description = "The **FIGHTTOP** command is part of the **Premium Fight Module**.\n\nType `!premium` to unlock it."
-            return await ctx.send(embed=locked_emb)
-
         gid = str(ctx.guild.id)
         
         # Identify the #1 Global Gladiator
