@@ -5,6 +5,7 @@ import asyncio
 import os
 import io
 import aiohttp
+import json
 from datetime import datetime, timezone
 from PIL import Image, ImageDraw, ImageOps
 import __main__
@@ -13,6 +14,41 @@ class DungeonFight(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.module_name = "fight"
+        # Persistent Data Storage
+        self.stats_file = "/app/data/fight_stats.json"
+        self._load_stats()
+
+    def _load_stats(self):
+        if os.path.exists(self.stats_file):
+            with open(self.stats_file, "r") as f:
+                self.stats = json.load(f)
+        else:
+            self.stats = {"global": {}, "servers": {}}
+
+    def _save_stats(self):
+        with open(self.stats_file, "w") as f:
+            json.dump(self.stats, f, indent=4)
+
+    def _update_winner(self, guild_id, winner_id, loser_id):
+        gid = str(guild_id)
+        wid = str(winner_id)
+        lid = str(loser_id)
+
+        # Global Update
+        if wid not in self.stats["global"]:
+            self.stats["global"][wid] = {"wins": 0, "victims": {}}
+        self.stats["global"][wid]["wins"] += 1
+        self.stats["global"][wid]["victims"][lid] = self.stats["global"][wid]["victims"].get(lid, 0) + 1
+
+        # Local Update
+        if gid not in self.stats["servers"]:
+            self.stats["servers"][gid] = {}
+        if wid not in self.stats["servers"][gid]:
+            self.stats["servers"][gid][wid] = {"wins": 0, "victims": {}}
+        self.stats["servers"][gid][wid]["wins"] += 1
+        self.stats["servers"][gid][wid]["victims"][lid] = self.stats["servers"][gid][wid]["victims"].get(lid, 0) + 1
+        
+        self._save_stats()
 
     def get_health_bar(self, hp, max_hp, is_premium):
         if not is_premium:
@@ -217,8 +253,11 @@ class DungeonFight(commands.Cog):
             # Swap turns
             turn, other = other, turn
 
-        # Winner Announcement
+        # Winner Announcement & Stats Update
         winner = turn if turn["hp"] > 0 else other
+        loser = other if turn["hp"] > 0 else turn
+        self._update_winner(ctx.guild.id, winner["user"].id, loser["user"].id)
+
         win_emb = discord.Embed(title="🏆 THE ECHO CHAMPION EMERGES", color=0x00ff00)
         win_emb.description = f"🎊 **{winner['user'].display_name.upper()}** HAS CLAIMED VICTORY!\n\n*The losing soul fades into the arena echoes...*"
         win_emb.set_image(url="attachment://arena.png")
@@ -227,6 +266,53 @@ class DungeonFight(commands.Cog):
             win_emb.set_thumbnail(url="attachment://logo.png")
         
         await ctx.send(embed=win_emb)
+
+    @commands.command(name="fightleaderboard")
+    async def leaderboard(self, ctx, scope: str = "local"):
+        """Displays the top 5 fighters and their victims. Usage: !fightleaderboard local/global"""
+        scope = scope.lower()
+        data = {}
+        title_text = ""
+
+        if scope == "global":
+            data = self.stats["global"]
+            title_text = "🌍 GLOBAL ECHO CHAMPIONS"
+        else:
+            data = self.stats["servers"].get(str(ctx.guild.id), {})
+            title_text = "⚔️ LOCAL ARENA LEGENDS"
+
+        if not data:
+            return await ctx.send("🏜️ This arena is empty... No blood has been spilled yet.")
+
+        # Sort by total wins
+        sorted_users = sorted(data.items(), key=lambda x: x[1]["wins"], reverse=True)[:5]
+        
+        embed = discord.Embed(title=title_text, color=0xff4500)
+        if os.path.exists("fierylogo.jpg"):
+            file = discord.File("fierylogo.jpg", filename="lb_logo.png")
+            embed.set_thumbnail(url="attachment://lb_logo.png")
+
+        for i, (user_id, stats) in enumerate(sorted_users, 1):
+            user = self.bot.get_user(int(user_id))
+            username = user.display_name if user else f"Unknown ({user_id})"
+            
+            # Get top 5 victims
+            v_sorted = sorted(stats["victims"].items(), key=lambda x: x[1], reverse=True)[:5]
+            victims_text = ""
+            for v_id, count in v_sorted:
+                v_user = self.bot.get_user(int(v_id))
+                v_name = v_user.display_name if v_user else f"Spirit_{v_id}"
+                victims_text += f"• {v_name}: {count} times\n"
+            
+            if not victims_text: victims_text = "None yet."
+
+            embed.add_field(
+                name=f"#{i} {username} — {stats['wins']} Wins",
+                value=f"**Top Victims:**\n{victims_text}",
+                inline=False
+            )
+
+        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(DungeonFight(bot))
