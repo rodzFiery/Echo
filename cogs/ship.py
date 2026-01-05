@@ -105,41 +105,40 @@ class DungeonShip(commands.Cog):
             av1 = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2 = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
-            # 3. COLOR SELECTION
+            # 3. TITANIC FONT SCALE
+            # 800pt fills the canvas for maximum visual impact
+            font_size = 800 if percent < 100 else 650
+            try:
+                font_paths = ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "arial.ttf", "C:\\Windows\\Fonts\\arialbd.ttf"]
+                font_file = next((f for f in font_paths if os.path.exists(f)), None)
+                font_main = ImageFont.truetype(font_file, font_size) if font_file else ImageFont.load_default()
+            except:
+                font_main = ImageFont.load_default()
+
+            # 4. COLOR SELECTION
             if percent >= 90: neon = (255, 0, 100) 
             elif percent >= 70: neon = (255, 215, 0) 
             elif percent >= 50: neon = (0, 255, 200) 
             else: neon = (150, 150, 150) 
 
-            # 4. CENTRAL PROGRESS COLUMN
+            # 5. CENTRAL PROGRESS COLUMN (BACKGROUND)
             col_x, col_y, col_w, col_h = 560, 120, 80, 480
             draw.rectangle([col_x, col_y, col_x + col_w, col_y + col_h], fill=(20, 20, 20), outline=(255, 255, 255, 100), width=3)
             fill_height = (percent / 100) * col_h
             if percent > 0:
                 draw.rectangle([col_x + 5, (col_y + col_h) - fill_height, col_x + col_w - 5, col_y + col_h - 5], fill=(50, 255, 50, 200))
 
-            # 5. FONT LOADER - TITANIC SCALE (WORKAROUND)
-            # Size 850 makes the number absolutely massive in the center
-            font_size = 850 if percent < 100 else 700
-            try:
-                font_paths = ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "arial.ttf"]
-                font_file = next((f for f in font_paths if os.path.exists(f)), None)
-                font_main = ImageFont.truetype(font_file, font_size) if font_file else ImageFont.load_default()
-            except:
-                font_main = ImageFont.load_default()
-
-            # 6. SCORE OVERLAY (NO CONSTRAINING SHAPE)
-            score_overlay = Image.new("RGBA", (1200, 700), (0, 0, 0, 0))
-            s_draw = ImageDraw.Draw(score_overlay)
+            # 6. SCORE OVERLAY (FRONT LAYER)
             score_text = f"{percent}%"
-
-            # Deep shadow for readability
-            s_draw.text((610, 360), score_text, fill=(0, 0, 0, 255), anchor="mm", font=font_main)
-            # Colossal Main Text with Neon Stroke
-            s_draw.text((600, 350), score_text, fill=(255, 255, 255), anchor="mm", font=font_main, stroke_width=40, stroke_fill=(*neon, 150))
-            s_draw.text((600, 350), score_text, fill=(255, 255, 255), anchor="mm", font=font_main)
-
-            canvas.alpha_composite(score_overlay)
+            
+            # Layer 1: Massive Deep Shadow for Contrast
+            draw.text((615, 365), score_text, fill=(0, 0, 0, 255), anchor="mm", font=font_main)
+            
+            # Layer 2: Heavy Neon Glow Effect
+            draw.text((600, 350), score_text, fill=(0, 0, 0, 0), anchor="mm", font=font_main, stroke_width=45, stroke_fill=(*neon, 160))
+            
+            # Layer 3: Main White Focal Text with thin Black Outline
+            draw.text((600, 350), score_text, fill=(255, 255, 255, 255), anchor="mm", font=font_main, stroke_width=5, stroke_fill=(0,0,0))
 
             # 7. ASSET FRAMING
             draw.rectangle([45, 145, 45+av_size+10, 145+av_size+10], outline=neon, width=15)
@@ -152,7 +151,7 @@ class DungeonShip(commands.Cog):
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"Visual Error: {e}")
+            print(f"Arena Visual Error: {e}")
             return None
 
     @commands.command(name="ship")
