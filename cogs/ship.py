@@ -139,7 +139,7 @@ class DungeonShip(commands.Cog):
 
             # FIXED % SYMBOL VISIBILITY
             pct_text = f"{percent}%"
-            # Explicit layering for visibility - rendering text on a separate layer for clarity
+            # Rendering text on a separate layer for absolute clarity
             text_layer = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             t_draw = ImageDraw.Draw(text_layer)
             t_draw.text((612, 312), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) # Deep Shadow
@@ -187,16 +187,16 @@ class DungeonShip(commands.Cog):
 
         percent = random.randint(0, 100)
         
-        # 15 Random Fate Messages
+        # 15 Random Fate Messages with Emojis
         fate_messages = [
-            "A match made in the celestial heavens!", "The arena floor trembles at this bond.",
-            "Two souls forged in the fires of destiny.", "A romance the Emperors would envy.",
-            "The stars align perfectly for this union.", "A spark that could ignite the entire arena.",
-            "Tread carefully, for this bond is fragile.", "A connection written in the ancient scrolls.",
-            "The fates whisper of a legendary pair.", "Even the gods are watching this duo.",
-            "An alliance that shall echo through time.", "Destiny has chosen its favorite pair.",
-            "A harmony that silences the colosseum.", "The Oracle foresees a powerful future.",
-            "Two hearts, one unbreakable battle cry."
+            "✨ A match made in the celestial heavens!", "🏛️ The arena floor trembles at this bond.",
+            "🔥 Two souls forged in the fires of destiny.", "👑 A romance the Emperors would envy.",
+            "🌟 The stars align perfectly for this union.", "🧨 A spark that could ignite the entire arena.",
+            "🥀 Tread carefully, for this bond is fragile.", "📜 A connection written in the ancient scrolls.",
+            "💎 The fates whisper of a legendary pair.", "🧿 Even the gods are watching this duo.",
+            "⚔️ An alliance that shall echo through time.", "🏹 Destiny has chosen its favorite pair.",
+            "🕊️ A harmony that silences the colosseum.", "🔮 The Oracle foresees a powerful future.",
+            "🛡️ Two hearts, one unbreakable battle cry."
         ]
         chosen_msg = random.choice(fate_messages)
 
@@ -208,12 +208,19 @@ class DungeonShip(commands.Cog):
 
         async with ctx.typing():
             ship_img = await self.create_ship_visual(ctx.author.display_avatar.url, member.display_avatar.url, percent)
-            embed = discord.Embed(title=f"🏹 {title}", color=0xff4500)
+            
+            # Dynamic color logic for the embed color
+            embed_color = 0xFFD700 if percent >= 90 else 0xFF4500 if percent >= 50 else 0x808080
+            
+            embed = discord.Embed(title=f"🏹 {title}", color=embed_color)
             embed.description = f"### {ctx.author.mention} 💓 {member.mention}\n\n> *{chosen_msg}*"
+            
             if ship_img:
                 file = discord.File(ship_img, filename="ship.png")
                 embed.set_image(url="attachment://ship.png")
+            
             embed.set_footer(text="Glory to the Echo! | Master Matchmaker", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
+            
             if ship_img:
                 await ctx.send(file=file, embed=embed)
             else:
