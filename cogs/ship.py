@@ -39,9 +39,9 @@ class DungeonShip(commands.Cog):
 
     async def create_ship_visual(self, u1_url, u2_url, percent):
         try:
-            # 1. IMPERIAL ARENA ENGINE (1200x600 for Max Embed Fit)
-            # Background logic removed: Using solid deep arena base
-            canvas = Image.new("RGBA", (1200, 600), (40, 0, 5, 255))
+            # 1. TRANSPARENT ENGINE (1200x600 for Max Embed Fit)
+            # Removed background color and theme for a clean look
+            canvas = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             
             draw = ImageDraw.Draw(canvas)
 
@@ -103,7 +103,7 @@ class DungeonShip(commands.Cog):
             canvas.paste(av2_raw, (750, 110), av2_raw)
 
             # 4. THE IMPERIAL BOND (Center)
-            # Central Light Nova - Increased transparency (lowered Alpha) for better text contrast
+            # Central Light Nova
             nova = Image.new("RGBA", (1200, 600), (0,0,0,0))
             ImageDraw.Draw(nova).ellipse([400, 100, 800, 500], fill=(255, 255, 255, 15))
             nova = nova.filter(ImageFilter.GaussianBlur(50))
@@ -163,11 +163,8 @@ class DungeonShip(commands.Cog):
             if fill_w > 10:
                 draw.rounded_rectangle([bx, by, bx+fill_w, by+bar_h], radius=10, fill=(255, 45, 95))
 
-            # 6. FINAL CINEMATIC VIGNETTE
-            vig = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
-            ImageDraw.Draw(vig).rectangle([0,0,1200,600], outline=(30, 0, 5, 240), width=120)
-            vig = vig.filter(ImageFilter.GaussianBlur(70))
-            canvas = Image.alpha_composite(canvas, vig)
+            # 6. FINAL VIGNETTE REMOVED
+            # Removed vignette for clean theme-free display
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
