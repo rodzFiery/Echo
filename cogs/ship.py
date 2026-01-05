@@ -140,24 +140,26 @@ class DungeonShip(commands.Cog):
             # --- 7. FINAL OVERLAY: THE COLOSSAL SCORE (ULTRA VISIBILITY) ---
             final_draw = ImageDraw.Draw(canvas)
             
-            # MASSIVE Loving Crystal Heart Plate (Centrally Focused)
+            # Crystal Heart Plate
             heart_points = [(600, 570), (280, 280), (400, 50), (600, 180), (800, 50), (920, 280)]
             final_draw.polygon(heart_points, fill=(aura_color[0], aura_color[1], aura_color[2], 90))
             final_draw.polygon(heart_points, outline=(255, 255, 255, 150), width=8)
 
+            # DYNAMIC COLOR ENGINE FOR TEXT
             if percent >= 90:
-                text_main, text_stroke = (255, 255, 255), (255, 215, 0)
+                text_main, text_stroke = (255, 255, 255), (255, 215, 0) # Gold
             elif percent >= 70:
                 text_main, text_stroke = (255, 215, 0), (0, 0, 0)
             elif percent < 20:
-                text_main, text_stroke = (0, 255, 255), (0, 50, 150)
+                # DOOMED BLOOD RED TRANSFORMATION
+                text_main, text_stroke = (139, 0, 0), (20, 0, 0) # Blood Red / Deep Black-Red
             else:
-                text_main, text_stroke = (255, 255, 255), (255, 105, 180) 
+                text_main, text_stroke = (255, 255, 255), (255, 105, 180) # Pink Glow
 
             pct_text = f"{percent}%"
-            # COLOSSAL SHADOW FOR ULTIMATE VISIBILITY
+            # SHADOW FOR DEPTH
             final_draw.text((620, 320), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
-            # COLOSSAL FOCAL SCORE
+            # COLOSSAL TEXT
             final_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=35, stroke_fill=text_stroke)
 
             buf = io.BytesIO()
