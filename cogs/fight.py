@@ -265,7 +265,8 @@ class DungeonFight(commands.Cog):
         while p1["hp"] > 0 and p2["hp"] > 0:
             await asyncio.sleep(2.5)
             
-            action = random.choices(["strike", "heal"], weights=[70, 30])[0]
+            # Automated balanced logic (85% strike, 15% heal) - REDUCED HEAL CHANCES
+            action = random.choices(["strike", "heal"], weights=[85, 15])[0]
             
             if action == "strike":
                 dmg = int(random.randint(12, 28) * turn["luck"])
