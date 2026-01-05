@@ -11,6 +11,7 @@ import __main__ # Access the premium list from main.py
 class DungeonAsk(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.module_name = "ask"
         # Paths for persistent storage
         self.DATA_DIR = "/app/data"
         self.HISTORY_FILE = os.path.join(self.DATA_DIR, "ask_history.json")
@@ -43,6 +44,7 @@ class DungeonAsk(commands.Cog):
     # --- IMAGE ENGINE (PREMIUM) ---
     async def create_premium_lobby(self, u1_url, u2_url):
         try:
+            # Renders a high-level visual with BOTH user avatars
             canvas = Image.new("RGBA", (1200, 600), (15, 0, 8, 255))
             draw = ImageDraw.Draw(canvas)
             async with aiohttp.ClientSession() as session:
@@ -80,16 +82,18 @@ class DungeonAsk(commands.Cog):
         if member.id == ctx.author.id:
             return await ctx.send("❌ You cannot ask yourself.")
 
-        # Access the premium list from the main bridge
-        is_premium = ctx.guild.id in __main__.PREMIUM_GUILDS
+        # Access the modular premium dictionary from main.py
+        guild_id = str(ctx.guild.id)
+        is_premium = guild_id in __main__.PREMIUM_GUILDS and self.module_name in __main__.PREMIUM_GUILDS[guild_id]
         
         if is_premium:
+            # Grabs both avatars for the Premium Lobby
             img = await self.create_premium_lobby(ctx.author.display_avatar.url, member.display_avatar.url)
             file = discord.File(img, filename="ask.png")
-            emb = self.fiery_embed("💎 PREMIUM DM REQUEST", f"{ctx.author.mention} vs {member.mention}")
+            emb = self.fiery_embed("💎 PREMIUM SIGNAL SENT", f"**{ctx.author.display_name}** ⚔️ **{member.display_name}**")
             emb.set_image(url="attachment://ask.png")
         else:
-            file, emb = None, self.fiery_embed("🔥 BASIC REQUEST", f"{ctx.author.mention} wants to talk to {member.mention}.\n\n*Upgrade with !askpremium for custom visual lobbies!*")
+            file, emb = None, self.fiery_embed("🔥 CONNECTION REQUEST", f"{ctx.author.mention} is requesting a moment with {member.mention}.\n\n*Unlock the visual VS engine with !premium*")
 
         # Views for interaction
         class InitialView(discord.ui.View):
@@ -97,66 +101,88 @@ class DungeonAsk(commands.Cog):
                 super().__init__(timeout=120)
                 self.cog, self.r, self.t = cog, r, t
 
-            @discord.ui.button(label="Ask to DM", style=discord.ButtonStyle.primary, emoji="📩")
+            @discord.ui.button(label="Open Connection", style=discord.ButtonStyle.primary, emoji="📩")
             async def dm_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
                 if interaction.user.id != self.r.id: return
                 
                 options = [
-                    discord.SelectOption(label="SFW", emoji="🛡️"),
-                    discord.SelectOption(label="NSFW", emoji="🔞"),
-                    discord.SelectOption(label="Casual Chat", emoji="💬")
+                    discord.SelectOption(label="SFW / Professional", value="SFW", emoji="🛡️", description="Keep things clean and polite."),
+                    discord.SelectOption(label="NSFW / Lustful", value="NSFW", emoji="🔞", description="Step into the heat of the dungeon."),
+                    discord.SelectOption(label="Casual Chat", value="Casual", emoji="💬", description="Just a friendly conversation.")
                 ]
-                select = discord.ui.Select(placeholder="Nature of the DM", options=options)
+                select = discord.ui.Select(placeholder="Select the nature of your visit...", options=options)
 
                 async def callback(i: discord.Interaction):
                     intent = select.values[0]
                     
+                    # --- DYNAMIC PERSONA ENGINE (Professional vs Flirty) ---
+                    if intent == "NSFW":
+                        mood_title = "🫦 LUSTFUL INVITATION"
+                        mood_desc = f"{self.t.mention}, {self.r.mention} wants to explore the **NSFW** side of things with you. Do you give in?"
+                        mood_color = 0xe91e63 # Lustful Pink
+                        acc_label = "Surrender"
+                        den_label = "Resist"
+                        den_emoji = "🥀"
+                    else:
+                        mood_title = "📩 FORMAL REQUEST"
+                        mood_desc = f"{self.t.mention}, {self.r.mention} is requesting a **{intent}** conversation."
+                        mood_color = 0xff4500 # Professional Fiery Orange
+                        acc_label = "Accept"
+                        den_label = "Decline"
+                        den_emoji = "🛡️"
+
                     class RecView(discord.ui.View):
                         def __init__(self, cog, r, t, it):
                             super().__init__(timeout=300)
                             self.cog, self.r, self.t, self.it = cog, r, t, it
 
-                        @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
+                        @discord.ui.button(label=acc_label, style=discord.ButtonStyle.success, emoji="🔥")
                         async def acc(self, inner_i, b):
                             if inner_i.user.id != self.t.id: return
                             self.cog.log_ask_event(self.r, self.t, self.it, "Accepted")
-                            await inner_i.response.send_message(f"💖 {self.r.mention}, your request was accepted!")
+                            msg = "The heat is rising... they said yes." if self.it == "NSFW" else "The connection has been established."
+                            await inner_i.response.send_message(f"✅ **{msg}** {self.r.mention}")
 
-                        @discord.ui.button(label="Deny", style=discord.ButtonStyle.danger)
+                        @discord.ui.button(label=den_label, style=discord.ButtonStyle.danger, emoji=den_emoji)
                         async def den(self, inner_i, b):
                             if inner_i.user.id != self.t.id: return
                             self.cog.log_ask_event(self.r, self.t, self.it, "Denied")
-                            await inner_i.response.send_message(f"🥀 {self.r.mention}, your request was rejected.")
+                            msg = "Maybe you aren't ready for this fire yet." if self.it == "NSFW" else "The request was declined."
+                            await inner_i.response.send_message(f"🥀 **{msg}** {self.r.mention}")
 
-                    await i.response.send_message(content=self.t.mention, embed=self.cog.fiery_embed("📩 INCOMING", f"{self.t.mention}, {self.r.mention} wants to DM for: **{intent}**"), view=RecView(self.cog, self.r, self.t, intent))
+                    final_emb = discord.Embed(title=mood_title, description=mood_desc, color=mood_color)
+                    await i.response.send_message(content=self.t.mention, embed=final_emb, view=RecView(self.cog, self.r, self.t, intent))
                 
                 select.callback = callback
                 v = discord.ui.View(); v.add_item(select)
-                await interaction.response.send_message("Define your intent:", view=v, ephemeral=True)
+                await interaction.response.send_message("The dungeon doors are open. Choose your path:", view=v, ephemeral=True)
 
         await ctx.send(file=file, embed=emb, view=InitialView(self, ctx.author, member))
 
     @commands.command(name="askcommands")
     async def askcommands(self, ctx):
         embed = self.fiery_embed("🔥 ASK SYSTEM COMMANDS 🔥", "Available tools:")
-        embed.add_field(name="📩 User", value="`!ask @user` - Create a DM lobby.\n`!invite` - Get bot link.", inline=False)
-        embed.add_field(name="🛡️ Admin", value="`!askpremium` - Buy Premium.", inline=False)
+        embed.add_field(name="📩 User", value="`!ask @user` - Create a professional/flirty lobby.\n`!invite` - Get bot link.", inline=False)
+        embed.add_field(name="🛡️ Admin", value="`!premium` - Open the Fiery Shop.\n`!premiumstatus` - View server unlocks.", inline=False)
         await ctx.send(embed=embed)
 
     @commands.command(name="askpremium")
     @commands.has_permissions(administrator=True)
     async def askpremium(self, ctx):
         pay_email = os.getenv('PAYPAL_EMAIL')
-        paypal_link = f"https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business={pay_email}&amount=2.50&currency_code=USD&item_name=Premium_Server_{ctx.guild.id}&custom={ctx.guild.id}"
+        # Modular PayPal payload: "GUILD_ID|MODULE_NAME"
+        custom_payload = f"{ctx.guild.id}|{self.module_name}"
+        paypal_link = f"https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business={pay_email}&amount=2.50&currency_code=USD&item_name=Premium_Server_{ctx.guild.id}&custom={custom_payload}"
         embed = self.fiery_embed("💎 UPGRADE TO PREMIUM", f"Click [**HERE**]({paypal_link}) to pay $2.50 via PayPal.\n\n**Benefits:**\n• Glowing Visual VS Lobbies\n• Faster Activation")
         await ctx.send(embed=embed)
 
     @commands.command(name="adminask")
     @commands.has_permissions(administrator=True)
     async def adminask(self, ctx):
-        is_premium = ctx.guild.id in __main__.PREMIUM_GUILDS
+        guild_id = str(ctx.guild.id)
+        is_premium = guild_id in __main__.PREMIUM_GUILDS and self.module_name in __main__.PREMIUM_GUILDS[guild_id]
         if not is_premium:
-            return await ctx.send("🚫 **Admin History is a Premium Feature.** Upgrade with `!askpremium`.")
+            return await ctx.send("🚫 **Admin History is a Premium Feature.** Unlock it in the `!premium` shop.")
         
         if not os.path.exists(self.HISTORY_FILE):
             return await ctx.send("No logs found.")
@@ -169,12 +195,15 @@ class DungeonAsk(commands.Cog):
 
     @commands.command(name="askactivate")
     @commands.is_owner()
-    async def askactivate(self, ctx, guild_id: int):
+    async def askactivate(self, ctx, guild_id: str):
         if guild_id not in __main__.PREMIUM_GUILDS:
-            __main__.PREMIUM_GUILDS.append(guild_id)
+            __main__.PREMIUM_GUILDS[guild_id] = []
+        
+        if self.module_name not in __main__.PREMIUM_GUILDS[guild_id]:
+            __main__.PREMIUM_GUILDS[guild_id].append(self.module_name)
             with open(self.PREMIUM_FILE, "w") as f:
                 json.dump(__main__.PREMIUM_GUILDS, f)
-            await ctx.send(f"✅ Guild {guild_id} is now Premium!")
+            await ctx.send(f"✅ Module **{self.module_name}** activated for Guild {guild_id}!")
 
 async def setup(bot):
     await bot.add_cog(DungeonAsk(bot))
