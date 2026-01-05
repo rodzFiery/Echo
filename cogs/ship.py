@@ -103,46 +103,45 @@ class DungeonShip(commands.Cog):
             av1 = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2 = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
-            # --- DYNAMIC NEON COLOR ---
-            if percent >= 90: neon = (255, 0, 100) # Imperial Rose
-            elif percent >= 70: neon = (255, 215, 0) # Gold
-            elif percent >= 50: neon = (0, 255, 200) # Cyan Spark
-            else: neon = (150, 150, 150) # Cold Steel
-
-            # --- CRYSTAL CORE RADIANCE ---
-            glow_layer = Image.new("RGBA", (1200, 700), (0, 0, 0, 0))
-            g_draw = ImageDraw.Draw(glow_layer)
-            g_draw.ellipse([400, 100, 800, 600], fill=(*neon, 50))
-            glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(50))
-            canvas.alpha_composite(glow_layer)
+            if percent >= 90: neon = (255, 0, 100) 
+            elif percent >= 70: neon = (255, 215, 0) 
+            elif percent >= 50: neon = (0, 255, 200) 
+            else: neon = (150, 150, 150) 
 
             # --- TITANIC FONT ENGINE ---
-            # Font sizing scaled to be gargantuan
-            font_size = 450 if percent == 100 else 350 if percent >= 80 else 250
+            # Maximum size font (550pt)
+            font_size = 550 if percent < 100 else 450
             try:
                 font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if os.path.exists("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") else "arial.ttf"
                 font_main = ImageFont.truetype(font_path, font_size)
             except:
                 font_main = ImageFont.load_default()
 
-            # --- THE IMPERIAL SEAL (100% ONLY) ---
-            if percent == 100:
-                seal = Image.new("RGBA", (1200, 700), (0,0,0,0))
-                s_draw = ImageDraw.Draw(seal)
-                # Crown shape polygon
-                points = [(600, 100), (650, 200), (750, 200), (670, 280), (700, 380), (600, 320), (500, 380), (530, 280), (450, 200), (550, 200)]
-                s_draw.polygon(points, fill=(255, 215, 0, 100), outline=(255, 255, 255, 180), width=5)
-                canvas.alpha_composite(seal)
+            # --- CRYSTAL CORE RADIANCE ---
+            glow_layer = Image.new("RGBA", (1200, 700), (0, 0, 0, 0))
+            g_draw = ImageDraw.Draw(glow_layer)
+            g_draw.ellipse([300, 50, 900, 650], fill=(*neon, 40))
+            glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(60))
+            canvas.alpha_composite(glow_layer)
 
-            # --- NEON SCORE PULSE ---
-            score_text = f"{percent}%"
-            # Outer Neon Glow (Blurred Stroke)
-            for i in range(15, 0, -2):
-                alpha = int(150 * (1 - i/15))
-                draw.text((600, 350), score_text, fill=(0,0,0,0), anchor="mm", font=font_main, stroke_width=i, stroke_fill=(*neon, alpha))
+            # --- THE SCORE LAYOUT (CENTRAL PLATE) ---
+            # Dynamic polygon "Plate" behind the massive number
+            overlay = Image.new("RGBA", (1200, 700), (0, 0, 0, 0))
+            o_draw = ImageDraw.Draw(overlay)
             
-            # Focal Score
-            draw.text((600, 350), score_text, fill=(255, 255, 255, 255), anchor="mm", font=font_main, stroke_width=4, stroke_fill=(255,255,255))
+            # Crystal Shape Layout Points
+            heart_points = [(600, 650), (250, 300), (350, 100), (600, 200), (850, 100), (950, 300)]
+            o_draw.polygon(heart_points, fill=(20, 20, 20, 230), outline=(*neon, 255), width=8)
+
+            # --- MASSIVE SCORE PULSE ---
+            score_text = f"{percent}%"
+            # Titanic Shadow for readability
+            o_draw.text((615, 365), score_text, fill=(0, 0, 0, 255), anchor="mm", font=font_main) 
+            # Focal Score with Neon Stroke
+            o_draw.text((600, 350), score_text, fill=(255, 255, 255, 255), anchor="mm", font=font_main, stroke_width=40, stroke_fill=(*neon, 180))
+            o_draw.text((600, 350), score_text, fill=(255, 255, 255, 255), anchor="mm", font=font_main)
+
+            canvas.alpha_composite(overlay)
 
             # --- GLADIATOR FRAMES ---
             draw.rectangle([45, 145, 45+av_size+10, 145+av_size+10], outline=neon, width=15)
