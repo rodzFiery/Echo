@@ -7,7 +7,7 @@ import io
 import aiohttp
 import json
 from datetime import datetime, timezone
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageDraw, ImageOps, ImageFont
 import __main__
 
 class DungeonShip(commands.Cog):
@@ -39,38 +39,46 @@ class DungeonShip(commands.Cog):
 
     async def create_ship_visual(self, u1_url, u2_url, percent):
         try:
-            # Create a pink/red romantic canvas
-            canvas = Image.new("RGBA", (1000, 450), (60, 0, 10, 255))
+            # Create a professional wide canvas
+            canvas = Image.new("RGBA", (1200, 500), (30, 0, 5, 255))
             draw = ImageDraw.Draw(canvas)
 
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     p1_data, p2_data = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
 
-            av_size = 300
-            # Open and resize avatars - NO BORDERS per request
+            av_size = 350
+            # Square avatars - No Borders
             av1 = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2 = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
-            # Paste Avatars
-            canvas.paste(av1, (80, 75), av1)
-            canvas.paste(av2, (620, 75), av2)
+            # Center positioning
+            canvas.paste(av1, (100, 75), av1)
+            canvas.paste(av2, (750, 75), av2)
 
-            # Draw Heart or Symbol in middle
-            middle_x, middle_y = 500, 225
-            heart_color = (255, 50, 50) if percent > 50 else (150, 150, 150)
-            
-            # Simple Heart shape logic
-            draw.ellipse([400, 150, 600, 300], fill=heart_color)
-            
-            # Text for Percentage - Large and Visible
+            # Central UI Elements
+            # Large Percentage Text
             pct_text = f"{percent}%"
-            draw.text((500, 225), pct_text, fill=(255, 255, 255), anchor="mm", size=80, stroke_width=4, stroke_fill=(0,0,0))
+            # Drawing a decorative heart backing
+            heart_color = (255, 40, 100, 255) if percent > 50 else (100, 100, 100, 255)
+            
+            # Draw a stylized "VS" style connection bar
+            draw.rectangle([450, 240, 750, 260], fill=(255, 255, 255, 50))
+            
+            # Main Percentage Render
+            draw.text((600, 250), pct_text, fill=(255, 255, 255), anchor="mm", size=150, stroke_width=6, stroke_fill=(0,0,0))
 
-            # Add Logo if exists
+            # Add the Fiery Logo as a watermark/stamp in the top center
             if os.path.exists("fierylogo.jpg"):
-                logo = Image.open("fierylogo.jpg").convert("RGBA").resize((100, 100))
-                canvas.paste(logo, (450, 20), logo)
+                logo = Image.open("fierylogo.jpg").convert("RGBA").resize((120, 120))
+                canvas.paste(logo, (540, 30), logo)
+
+            # Draw a progress bar at the bottom for extra visual flair
+            bar_width = 800
+            bar_start = (1200 - bar_width) // 2
+            draw.rounded_rectangle([bar_start, 430, bar_start + bar_width, 450], radius=10, fill=(50, 50, 50))
+            current_bar = (percent / 100) * bar_width
+            draw.rounded_rectangle([bar_start, 430, bar_start + current_bar, 450], radius=10, fill=(255, 50, 80))
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
@@ -82,31 +90,31 @@ class DungeonShip(commands.Cog):
     @commands.command(name="ship")
     async def ship(self, ctx, member: discord.Member = None):
         if member is None:
-            return await ctx.send("💘 **THE ORACLE NEEDS A PARTNER!** Mention someone to ship with!")
+            return await ctx.send("💘 **THE ORACLE NEEDS A PARTNER!** Mention someone to challenge the fates!")
         
         if member.id == ctx.author.id:
-            return await ctx.send("🎭 Self-love is important, but pick someone else!")
+            return await ctx.send("🎭 Narcissus? Try shipping with someone else!")
 
         percent = random.randint(0, 100)
         
-        # Determine Comment
-        if percent > 85: comment = "💍 **A MATCH MADE IN THE HEAVENS!**"
-        elif percent > 65: comment = "❤️ **Strong connection detected!**"
-        elif percent > 40: comment = "⚖️ **There is potential here.**"
-        elif percent > 15: comment = "☁️ **Maybe just friends?**"
-        else: comment = "💀 **ABSOLUTE CATASTROPHE.**"
+        # Unique Romantic Titles
+        if percent >= 90: title = "👑 ABSOLUTE DYNASTY"
+        elif percent >= 70: title = "💖 ETERNAL FLAME"
+        elif percent >= 50: title = "⚖️ BALANCED DESTINY"
+        elif percent >= 20: title = "☁️ FADING EMBERS"
+        else: title = "💀 DOOMED ROMANCE"
 
         async with ctx.typing():
             ship_img = await self.create_ship_visual(ctx.author.display_avatar.url, member.display_avatar.url, percent)
             
-            embed = discord.Embed(title="💖 IMPERIAL MATCHMAKER", color=0xFF69B4)
-            embed.description = f"### {ctx.author.mention} x {member.mention}\n{comment}"
+            embed = discord.Embed(title=f"🏹 {title}", color=0xff4500)
+            embed.description = f"### {ctx.author.mention} 💓 {member.mention}"
             
             if ship_img:
                 file = discord.File(ship_img, filename="ship.png")
                 embed.set_image(url="attachment://ship.png")
                 
-            embed.set_footer(text="Glory to the Echo! | Romantic Readings Updated")
+            embed.set_footer(text="Glory to the Echo! | Master Matchmaker", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
             
             if ship_img:
                 await ctx.send(file=file, embed=embed)
