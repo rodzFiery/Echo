@@ -96,52 +96,50 @@ class DungeonShip(commands.Cog):
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     p1_data, p2_data = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
 
+            # --- CANVAS ENGINE ---
             canvas = Image.new("RGBA", (1200, 700), (10, 8, 5, 255))
             draw = ImageDraw.Draw(canvas)
             av_size = 480
 
+            # --- ASSET LOADING ---
             av1 = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2 = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
+            # --- DYNAMIC NEON COLOR ---
             if percent >= 90: neon = (255, 0, 100) 
             elif percent >= 70: neon = (255, 215, 0) 
             elif percent >= 50: neon = (0, 255, 200) 
             else: neon = (150, 150, 150) 
 
+            # --- LOVE GREEN COLUMN (REPLACED CRYSTAL PLATE) ---
+            # Central Ruler Column
+            col_x, col_y, col_w, col_h = 540, 120, 120, 480
+            light_green = (50, 255, 50) # High-Visibility Love Green
+            
+            # Draw Column Frame
+            draw.rectangle([col_x, col_y, col_x + col_w, col_y + col_h], fill=(20, 20, 20), outline=(255, 255, 255), width=5)
+            
+            # Fill Column with Love Green
+            fill_height = (percent / 100) * col_h
+            if percent > 0:
+                draw.rectangle([col_x + 8, (col_y + col_h) - fill_height, col_x + col_w - 8, col_y + col_h - 8], fill=light_green)
+
             # --- TITANIC FONT ENGINE ---
-            # Maximum size font (550pt)
-            font_size = 550 if percent < 100 else 450
+            # Colossal score font sizing
+            font_size = 350 if percent >= 80 else 250
             try:
                 font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if os.path.exists("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") else "arial.ttf"
                 font_main = ImageFont.truetype(font_path, font_size)
             except:
                 font_main = ImageFont.load_default()
 
-            # --- CRYSTAL CORE RADIANCE ---
-            glow_layer = Image.new("RGBA", (1200, 700), (0, 0, 0, 0))
-            g_draw = ImageDraw.Draw(glow_layer)
-            g_draw.ellipse([300, 50, 900, 650], fill=(*neon, 40))
-            glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(60))
-            canvas.alpha_composite(glow_layer)
-
-            # --- THE SCORE LAYOUT (CENTRAL PLATE) ---
-            # Dynamic polygon "Plate" behind the massive number
-            overlay = Image.new("RGBA", (1200, 700), (0, 0, 0, 0))
-            o_draw = ImageDraw.Draw(overlay)
-            
-            # Crystal Shape Layout Points
-            heart_points = [(600, 650), (250, 300), (350, 100), (600, 200), (850, 100), (950, 300)]
-            o_draw.polygon(heart_points, fill=(20, 20, 20, 230), outline=(*neon, 255), width=8)
-
-            # --- MASSIVE SCORE PULSE ---
+            # --- NEON SCORE OVERLAY ---
             score_text = f"{percent}%"
-            # Titanic Shadow for readability
-            o_draw.text((615, 365), score_text, fill=(0, 0, 0, 255), anchor="mm", font=font_main) 
-            # Focal Score with Neon Stroke
-            o_draw.text((600, 350), score_text, fill=(255, 255, 255, 255), anchor="mm", font=font_main, stroke_width=40, stroke_fill=(*neon, 180))
-            o_draw.text((600, 350), score_text, fill=(255, 255, 255, 255), anchor="mm", font=font_main)
-
-            canvas.alpha_composite(overlay)
+            # Titanic Shadow for readability against background
+            draw.text((615, 365), score_text, fill=(0, 0, 0, 255), anchor="mm", font=font_main) 
+            # Focal Score with vibrant pulse stroke
+            draw.text((600, 350), score_text, fill=(255, 255, 255, 255), anchor="mm", font=font_main, stroke_width=30, stroke_fill=(*neon, 150))
+            draw.text((600, 350), score_text, fill=(255, 255, 255, 255), anchor="mm", font=font_main)
 
             # --- GLADIATOR FRAMES ---
             draw.rectangle([45, 145, 45+av_size+10, 145+av_size+10], outline=neon, width=15)
