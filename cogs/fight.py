@@ -265,7 +265,7 @@ class DungeonFight(commands.Cog):
         if member.bot:
             return await ctx.send("🤖 Bots don't feel pain.")
 
-        # For visual consistency in health bars
+        # Verification handled by cog_check
         is_premium = True 
 
         p1 = {"user": ctx.author, "hp": 100, "max": 100, "luck": 1.0}
