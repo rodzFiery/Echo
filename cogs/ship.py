@@ -112,7 +112,7 @@ class DungeonShip(commands.Cog):
             draw.rectangle([48, 58, 52+av_size, 62+av_size], outline=aura_color, width=12)
             draw.rectangle([708, 58, 712+av_size, 62+av_size], outline=aura_color, width=12)
 
-            # Paste Avatars
+            # Paste Avatars (Maximized)
             canvas.paste(av1_raw, (50, 60), av1_raw)
             canvas.paste(av2_raw, (710, 60), av2_raw)
 
@@ -129,14 +129,22 @@ class DungeonShip(commands.Cog):
             if fill_size > 0:
                 draw.rounded_rectangle([col_x + 3, col_y + col_h - 3 - fill_size, col_x + col_w - 3, col_y + col_h - 3], radius=12, fill=(255, 0, 40, 220))
 
-            # --- DYNAMIC TEXT RENDERING ---
-            text_main = (255, 255, 255) if percent < 90 else aura_color
-            text_stroke = (aura_color[0], aura_color[1], aura_color[2])
+            # --- DYNAMIC TEXT RENDERING (FORCED VISIBILITY) ---
+            if percent >= 90:
+                text_main, text_stroke = (255, 255, 255), (255, 0, 0)
+            elif percent >= 70:
+                text_main, text_stroke = (255, 215, 0), (0, 0, 0)
+            else:
+                text_main, text_stroke = (255, 255, 255), (50, 50, 50)
 
-            # THE SCORE RENDERING - Forced Visibility Fix
+            # FIXED % SYMBOL VISIBILITY
             pct_text = f"{percent}%"
-            draw.text((612, 312), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) # Deep Shadow
-            draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=14, stroke_fill=text_stroke)
+            # Explicit layering for visibility - rendering text on a separate layer for clarity
+            text_layer = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
+            t_draw = ImageDraw.Draw(text_layer)
+            t_draw.text((612, 312), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) # Deep Shadow
+            t_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=16, stroke_fill=text_stroke)
+            canvas = Image.alpha_composite(canvas, text_layer)
 
             # Status Icon
             heart_emoji = "❤️" if percent > 50 else "💔"
