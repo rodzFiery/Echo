@@ -88,14 +88,71 @@ bot = MyBot()
 async def invite(ctx):
     await ctx.send(f"Add me: {discord.utils.oauth_url(bot.user.id, permissions=discord.Permissions(administrator=True))}")
 
-# --- NEW: THE ULTIMATE MODULAR DASHBOARD ---
+# --- THE HIGH LEVEL SHOP LOBBY ---
+@bot.command(name="premium")
+@commands.has_permissions(administrator=True)
+async def premium(ctx):
+    # Pricing Configuration (Add your modules and prices here)
+    MODULE_PRICES = {
+        "ask": "2.50",
+        "casino": "3.50"
+    }
+    
+    available_modules = [f[:-3] for f in os.listdir('./cogs') if f.endswith('.py')]
+    
+    embed = discord.Embed(
+        title="🔥 FIERY PREMIUM SHOP", 
+        description="Select a module below to generate your personal PayPal checkout link.",
+        color=0xff4500
+    )
+    embed.set_thumbnail(url=bot.user.display_avatar.url)
+
+    class ShopView(discord.ui.View):
+        def __init__(self):
+            super().__init__(timeout=180)
+            
+            options = []
+            for mod in available_modules:
+                price = MODULE_PRICES.get(mod, "0.00")
+                options.append(discord.SelectOption(
+                    label=f"Unlock {mod.upper()}", 
+                    description=f"Price: ${price} USD", 
+                    value=f"{mod}|{price}",
+                    emoji="💎"
+                ))
+            
+            self.select = discord.ui.Select(placeholder="Choose a feature to purchase...", options=options)
+            self.select.callback = self.select_callback
+            self.add_item(self.select)
+
+        async def select_callback(self, interaction: discord.Interaction):
+            mod_name, price = self.select.values[0].split("|")
+            pay_email = os.getenv('PAYPAL_EMAIL')
+            custom_payload = f"{interaction.guild_id}|{mod_name}"
+            
+            paypal_url = (
+                f"https://www.paypal.com/cgi-bin/webscr?cmd=_xclick"
+                f"&business={pay_email}&amount={price}&currency_code=USD"
+                f"&item_name=Fiery_Module_{mod_name.upper()}_Server_{interaction.guild_id}"
+                f"&custom={custom_payload}"
+            )
+            
+            resp_emb = discord.Embed(title=f"🛒 Checkout: {mod_name.upper()}", color=0x00ff00)
+            resp_emb.description = (
+                f"**Module:** {mod_name.upper()}\n"
+                f"**Total:** ${price} USD\n\n"
+                f"Click [**HERE TO PAY VIA PAYPAL**]({paypal_url})\n\n"
+                "*Activation is automatic immediately after payment completes.*"
+            )
+            await interaction.response.send_message(embed=resp_emb, ephemeral=True)
+
+    await ctx.send(embed=embed, view=ShopView())
+
 @bot.command(name="premiumstatus")
 @commands.has_permissions(administrator=True)
 async def premiumstatus(ctx):
     guild_id = str(ctx.guild.id)
-    # Get all .py files in cogs to see what's available
     available_modules = [f[:-3] for f in os.listdir('./cogs') if f.endswith('.py')]
-    # Get what this server has bought
     owned_modules = PREMIUM_GUILDS.get(guild_id, [])
 
     embed = discord.Embed(title="⚔️ SERVER MODULE DASHBOARD", color=0xff4500)
@@ -109,9 +166,8 @@ async def premiumstatus(ctx):
             status_text += f"✅ **{module.upper()}**: `UNLOCKED`\n"
             unlocked_count += 1
         else:
-            status_text += f"❌ **{module.upper()}**: `LOCKED` (Type `!{module}premium`)\n"
+            status_text += f"❌ **{module.upper()}**: `LOCKED` (Type `!premium` to buy)\n"
     
-    # Visual Progress Bar
     total = len(available_modules)
     percent = (unlocked_count / total) * 100 if total > 0 else 0
     bar = "🟩" * unlocked_count + "⬛" * (total - unlocked_count)
