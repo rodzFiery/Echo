@@ -25,7 +25,7 @@ def get_premium_list():
         with open(PREMIUM_FILE, "r") as f:
             try: 
                 data = json.load(f)
-                # Ensure we return a dictionary even if the file was empty
+                # Management Fix: Ensure we always treat this as a dictionary
                 return data if isinstance(data, dict) else {}
             except: return {}
     return {}
@@ -102,7 +102,6 @@ class MyBot(commands.Bot):
             guild_id_str, module_name = custom_data.split("|")
             
             # --- DYNAMIC DURATION LOGIC ---
-            # Map the payment amounts to days based on your plans
             days_to_add = 30
             if amount >= 15.0: days_to_add = 180
             elif amount >= 7.5: days_to_add = 90
@@ -126,7 +125,6 @@ class MyBot(commands.Bot):
             try:
                 target_guild = self.get_guild(int(guild_id_str))
                 if target_guild:
-                    # Find the best channel to announce the upgrade
                     chan = next((c for c in target_guild.text_channels if c.permissions_for(target_guild.me).send_messages), None)
                     if chan:
                         success_emb = discord.Embed(title=f"💎 {days_to_add}-DAY PREMIUM UNLOCKED", color=0x00ff00)
@@ -182,14 +180,12 @@ async def fiery(ctx):
         logo_file = discord.File("fierylogo.jpg", filename="fiery_main.png")
         embed.set_thumbnail(url="attachment://fiery_main.png")
 
-    # Group commands by module automatically
     for cog_name, cog_object in bot.cogs.items():
         commands_list = cog_object.get_commands()
         if commands_list:
             cmd_text = " ".join([f"`!{c.name}`" for c in commands_list if not c.hidden])
             embed.add_field(name=f"📦 {cog_name.replace('Dungeon', '')} Module", value=cmd_text, inline=False)
 
-    # Core main.py commands
     embed.add_field(name="🛠️ Core System", value="`!premium` `!premiumstatus` `!invite` `!fiery`", inline=False)
     embed.set_footer(text="Type !premium to expand your arsenal.")
     
@@ -210,7 +206,6 @@ async def premium(ctx):
         color=0xff4500
     )
     
-    # Branding logic
     logo_file = None
     if os.path.exists("fierylogo.jpg"):
         logo_file = discord.File("fierylogo.jpg", filename="shop_logo.png")
@@ -220,7 +215,6 @@ async def premium(ctx):
         def __init__(self, module):
             super().__init__(timeout=180)
             self.module = module
-            # Payment Plan Model
             plans = [
                 ("30 Days", "2.50", "🥉 Bronze Tier"),
                 ("60 Days", "5.00", "🥈 Silver Tier"),
@@ -277,15 +271,16 @@ async def premium(ctx):
     else:
         await ctx.send(embed=embed, view=ModuleSelectView())
 
-# --- THE ULTIMATE MODULAR DASHBOARD ---
+# --- THE ULTIMATE MODULAR DASHBOARD (FIXED LOGIC) ---
 @bot.command(name="premiumstatus")
 @commands.has_permissions(administrator=True)
 async def premiumstatus(ctx):
     guild_id = str(ctx.guild.id)
     # Get all .py files in cogs to see what's available
     available_modules = [f[:-3] for f in os.listdir('./cogs') if f.endswith('.py')]
-    # Get what this server has bought
-    owned_modules = PREMIUM_GUILDS.get(guild_id, {})
+    # Get the dictionary for this server
+    # FIX: We must ensure this is treated as a dict
+    guild_data = PREMIUM_GUILDS.get(guild_id, {})
 
     embed = discord.Embed(title="⚔️ SERVER MODULE DASHBOARD", color=0xff4500)
     
@@ -299,9 +294,11 @@ async def premiumstatus(ctx):
     now = datetime.now(timezone.utc).timestamp()
     
     for module in available_modules:
-        expiry = owned_modules.get(module)
-        if expiry and expiry > now:
-            # Show expiry date using Discord Timestamps
+        # FIX: Access the timestamp from the guild_data dictionary
+        expiry = guild_data.get(module) if isinstance(guild_data, dict) else None
+        
+        if expiry and float(expiry) > now:
+            # Show expiry date using Discord Timestamps (Relative :R)
             status_text += f"✅ **{module.upper()}**: `Expires` <t:{int(expiry)}:R>\n"
             unlocked_count += 1
         else:
