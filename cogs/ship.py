@@ -121,28 +121,28 @@ class DungeonShip(commands.Cog):
 
             # Dynamic Percentage Color Selection
             if percent >= 90:
-                text_main = (255, 69, 0)   # Fiery Red-Orange
-                text_stroke = (255, 215, 0) # Gold Stroke
+                text_main = (255, 255, 255)  # Pure White for Visibility
+                text_stroke = (255, 0, 0)    # Fiery Red Stroke
             elif percent >= 70:
-                text_main = (255, 215, 0)  # Pure Gold
+                text_main = (255, 215, 0)    # Pure Gold
                 text_stroke = (0, 0, 0)
             else:
-                text_main = (220, 220, 220) # Imperial Silver
+                text_main = (220, 220, 220)  # Imperial Silver
                 text_stroke = (0, 0, 0)
 
-            # Massive focal Percentage (SHOWING THE LOVE SCORE)
+            # --- GUARANTEED TEXT VISIBILITY ---
             pct_text = f"{percent}%"
-            # Multi-layered text for maximum visibility
-            # This is the random % generated in the !ship command
-            draw.text((608, 308), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) # Absolute Black Shadow
-            draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=6, stroke_fill=text_stroke)
+            # Render Shadow/Outer Glow Layer
+            draw.text((608, 308), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
+            # Render Foreground Score Text
+            draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=10, stroke_fill=text_stroke)
 
             # Status Icon with Dynamic Glow for high scores
             heart_emoji = "❤️" if percent > 50 else "💔"
             if percent >= 75:
                 heart_glow = Image.new("RGBA", (1200, 600), (0,0,0,0))
                 hg_draw = ImageDraw.Draw(heart_glow)
-                hg_draw.text((600, 435), heart_emoji, anchor="mm", font=font_heart, fill=(text_main[0], text_main[1], text_main[2], 150))
+                hg_draw.text((600, 435), heart_emoji, anchor="mm", font=font_heart, fill=(text_stroke[0], text_stroke[1], text_stroke[2], 150))
                 heart_glow = heart_glow.filter(ImageFilter.GaussianBlur(15))
                 canvas = Image.alpha_composite(canvas, heart_glow)
             
@@ -165,9 +165,6 @@ class DungeonShip(commands.Cog):
             if fill_w > 10:
                 draw.rounded_rectangle([bx, by, bx+fill_w, by+bar_h], radius=10, fill=(255, 45, 95))
 
-            # 6. FINAL VIGNETTE REMOVED
-            # Removed vignette for clean theme-free display
-
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
             buf.seek(0)
@@ -185,7 +182,6 @@ class DungeonShip(commands.Cog):
             return await ctx.send("🎭 Narcissus? Try shipping with someone else!")
 
         # --- RANDOM PERCENT GENERATOR ---
-        # This generates the random score between you and the tagged user
         percent = random.randint(0, 100)
         
         if percent >= 90: title = "👑 ABSOLUTE DYNASTY"
