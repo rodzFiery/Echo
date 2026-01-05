@@ -40,20 +40,8 @@ class DungeonShip(commands.Cog):
     async def create_ship_visual(self, u1_url, u2_url, percent):
         try:
             # 1. IMPERIAL ARENA ENGINE (1200x600 for Max Embed Fit)
+            # Background logic removed: Using solid deep arena base
             canvas = Image.new("RGBA", (1200, 600), (40, 0, 5, 255))
-            
-            # Use ship.jpg as the background for the Gladiator theme
-            if os.path.exists("ship.jpg"):
-                bg = Image.open("ship.jpg").convert("RGBA").resize((1200, 600))
-                # Add a warm pink/red romantic tint to the arena
-                tint = Image.new("RGBA", (1200, 600), (255, 20, 147, 45))
-                bg = Image.alpha_composite(bg, tint)
-                canvas.paste(bg, (0, 0))
-            elif os.path.exists("fight.jpg"):
-                bg = Image.open("fight.jpg").convert("RGBA").resize((1200, 600))
-                tint = Image.new("RGBA", (1200, 600), (255, 20, 147, 45))
-                bg = Image.alpha_composite(bg, tint)
-                canvas.paste(bg, (0, 0))
             
             draw = ImageDraw.Draw(canvas)
             
