@@ -43,9 +43,9 @@ class DungeonShip(commands.Cog):
             canvas = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             draw = ImageDraw.Draw(canvas)
 
-            # --- FONT SYSTEM LOADER (COLOSSAL FIX - NO LIMITS) ---
-            # Font size increased to 800+ for massive visibility now that the plate is gone
-            font_size_pct = 850 if percent < 100 else 700 
+            # --- FONT SYSTEM LOADER (COLOSSAL FIX - ABSOLUTELY NO LIMITS) ---
+            # Increased to 900 for dominance
+            font_size_pct = 900 if percent < 100 else 750 
             font_size_heart = 120
             try:
                 font_paths = [
@@ -65,7 +65,7 @@ class DungeonShip(commands.Cog):
                 font_pct = ImageFont.load_default()
                 font_heart = ImageFont.load_default()
             
-            # 2. PARTICLE GENERATOR (Skulls for Doom, Hearts for Glory)
+            # 2. PARTICLE GENERATOR
             particle_count = 100 if percent >= 80 else 50
             for _ in range(particle_count):
                 px, py = random.randint(0, 1200), random.randint(0, 600)
@@ -138,10 +138,12 @@ class DungeonShip(commands.Cog):
             glow = canvas.filter(ImageFilter.GaussianBlur(8))
             canvas = Image.alpha_composite(glow, canvas)
 
-            # --- 7. FINAL OVERLAY: THE COLOSSAL SCORE (BACKGROUND PLATE DELETED) ---
+            # --- 7. FINAL OVERLAY: THE COLOSSAL SCORE (LAYOUT/SHAPE DELETED) ---
             overlay = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             o_draw = ImageDraw.Draw(overlay)
             
+            # [LAYOUT SHAPE DELETED - NUMBERS ARE NOW FREE]
+
             if percent >= 90:
                 text_main, text_stroke = (255, 255, 255), (255, 215, 0)
             elif percent >= 70:
@@ -152,12 +154,11 @@ class DungeonShip(commands.Cog):
                 text_main, text_stroke = (255, 255, 255), (255, 105, 180) 
 
             pct_text = f"{percent}%"
-            # COLOSSAL SHADOW FOR DEPTH
-            o_draw.text((625, 325), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
-            # COLOSSAL FOCAL SCORE - MAXIMUM POP
+            # SHADOW FOR READABILITY
+            o_draw.text((615, 315), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
+            # COLOSSAL FOCAL SCORE
             o_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=60, stroke_fill=text_stroke)
 
-            # Merging top layer last to ensure zero blurring and maximum size
             canvas = Image.alpha_composite(canvas, overlay)
 
             buf = io.BytesIO()
