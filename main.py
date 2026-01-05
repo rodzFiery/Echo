@@ -8,6 +8,13 @@ from dotenv import load_dotenv
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
+# --- ADDITION: Railway Variable Verification ---
+if TOKEN is None:
+    print("ERROR: DISCORD_TOKEN not found in the environment.")
+    print("If you are on Railway, check the 'Variables' tab.")
+    exit(1)
+# -----------------------------------------------
+
 # 2. Define Bot Intents (Required for modern Discord bots)
 intents = discord.Intents.default()
 intents.message_content = True  # Allows bot to read messages if needed
@@ -25,6 +32,10 @@ class MyBot(commands.Bot):
     # This function acts as the bridge to load all other .py files
     async def setup_hook(self):
         print("--- Connecting to Cogs ---")
+        # Ensure the cogs directory exists so the bridge doesn't crash
+        if not os.path.exists('./cogs'):
+            os.makedirs('./cogs')
+            
         for filename in os.listdir('./cogs'):
             if filename.endswith('.py'):
                 try:
@@ -37,6 +48,11 @@ class MyBot(commands.Bot):
     async def on_ready(self):
         print(f'Logged in as {self.user} (ID: {self.user.id})')
         print('Ready for Top.gg integration.')
+
+    # --- ADDITION: Connection Event ---
+    async def on_connect(self):
+        print(f"Bridge successfully pulled the token from the environment.")
+    # ----------------------------------
 
 # 4. Execution logic
 bot = MyBot()
