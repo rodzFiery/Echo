@@ -109,7 +109,7 @@ class DungeonShip(commands.Cog):
                 text_main = (220, 220, 220) # Imperial Silver
                 text_stroke = (0, 0, 0)
 
-            # Massive focal Percentage
+            # Massive focal Percentage (CENTERED BETWEEN AVATARS)
             pct_text = f"{percent}%"
             # Multi-layered text for maximum visibility (VERY BIG AT THE MIDDLE)
             draw.text((608, 308), pct_text, fill=(0, 0, 0, 200), anchor="mm", size=230) # Shadow
