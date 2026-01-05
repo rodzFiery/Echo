@@ -134,21 +134,23 @@ class DungeonFight(commands.Cog):
         
         main_msg = await ctx.send(files=files, embed=embed)
 
-        # AUTOMATED TURN SYSTEM
+        # --- AUTOMATED COMBAT LOOP ---
         while p1["hp"] > 0 and p2["hp"] > 0:
-            # Random balancing (70% strike, 30% heal)
+            await asyncio.sleep(2.5) # Pacing between turns
+            
+            # Automated balanced logic (70% strike, 30% heal)
             action = random.choices(["strike", "heal"], weights=[70, 30])[0]
             
             if action == "strike":
                 dmg = int(random.randint(12, 28) * turn["luck"])
                 other["hp"] = max(0, other["hp"] - dmg)
-                battle_log = f"**{turn['user'].display_name}** {self.get_funny_msg('strike')} **{other['user'].display_name}** for **{dmg} damage!**"
+                battle_log = f"💥 **{turn['user'].display_name}** {self.get_funny_msg('strike')} **{other['user'].display_name}** for **{dmg} damage!**"
             else:
                 amt = random.randint(10, 22)
                 turn["hp"] = min(turn["max"], turn["hp"] + amt)
-                battle_log = f"**{turn['user'].display_name}** {self.get_funny_msg('heal')} (+{amt} HP)"
+                battle_log = f"🧪 **{turn['user'].display_name}** {self.get_funny_msg('heal')} (+{amt} HP)"
 
-            # Refresh Embed
+            # Refreshing the combat display
             embed = discord.Embed(title="⚔️ ARENA OF GLORY", color=0x2f3136)
             embed.set_image(url="attachment://arena.png")
             if os.path.exists("fierylogo.jpg"):
@@ -162,17 +164,17 @@ class DungeonFight(commands.Cog):
             embed.add_field(name=f"👤 {p1['user'].display_name}", value=p1_status, inline=True)
             embed.add_field(name=f"👤 {p2['user'].display_name}", value=p2_status, inline=True)
             embed.add_field(name="📜 Battle Logs", value=f"*{battle_log}*", inline=False)
-            embed.set_footer(text=f"Round Active... | Attacking: {turn['user'].display_name}")
+            embed.set_footer(text=f"Turn: {turn['user'].display_name}")
 
-            # Spectator Cheering Button
-            view = discord.ui.View(timeout=3)
+            # Spectator View (Allows others to influence luck)
+            view = discord.ui.View(timeout=1)
             cheer_btn = discord.ui.Button(label="Cheering!", style=discord.ButtonStyle.secondary, emoji="🙌")
             
             async def cheer_callback(interaction):
                 if interaction.user.id in [p1["user"].id, p2["user"].id]:
-                    return await interaction.response.send_message("You're busy fighting!", ephemeral=True)
+                    return await interaction.response.send_message("Concentrate on the fight!", ephemeral=True)
                 turn["luck"] += 0.05
-                await interaction.response.send_message(f"📣 {interaction.user.display_name} cheers for {turn['user'].display_name}!", ephemeral=False)
+                await interaction.response.send_message(f"📣 {interaction.user.display_name} cheered! {turn['user'].display_name} feels luckier!", ephemeral=False)
 
             cheer_btn.callback = cheer_callback
             view.add_item(cheer_btn)
@@ -182,9 +184,8 @@ class DungeonFight(commands.Cog):
             if other["hp"] <= 0:
                 break
 
-            # Switch turns and delay for realism
+            # Swap turns
             turn, other = other, turn
-            await asyncio.sleep(2.5)
 
         # Winner Announcement
         winner = turn if turn["hp"] > 0 else other
