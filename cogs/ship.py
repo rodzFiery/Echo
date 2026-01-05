@@ -96,52 +96,59 @@ class DungeonShip(commands.Cog):
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     p1_data, p2_data = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
 
-            # --- CANVAS ENGINE ---
+            # 1. BASE CANVAS
             canvas = Image.new("RGBA", (1200, 700), (10, 8, 5, 255))
             draw = ImageDraw.Draw(canvas)
             av_size = 480
 
-            # --- ASSET LOADING ---
+            # 2. ASSETS
             av1 = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2 = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
-            # --- DYNAMIC NEON COLOR ---
+            # 3. COLOR SYSTEM
             if percent >= 90: neon = (255, 0, 100) 
             elif percent >= 70: neon = (255, 215, 0) 
             elif percent >= 50: neon = (0, 255, 200) 
             else: neon = (150, 150, 150) 
 
-            # --- LOVE GREEN COLUMN (REPLACED CRYSTAL PLATE) ---
-            # Central Ruler Column
-            col_x, col_y, col_w, col_h = 540, 120, 120, 480
-            light_green = (50, 255, 50) # High-Visibility Love Green
-            
-            # Draw Column Frame
-            draw.rectangle([col_x, col_y, col_x + col_w, col_y + col_h], fill=(20, 20, 20), outline=(255, 255, 255), width=5)
-            
-            # Fill Column with Love Green
+            # 4. LOVE GREEN COLUMN (CENTRAL RULER)
+            col_x, col_y, col_w, col_h = 560, 120, 80, 480
+            draw.rectangle([col_x, col_y, col_x + col_w, col_y + col_h], fill=(20, 20, 20), outline=(255, 255, 255, 100), width=3)
             fill_height = (percent / 100) * col_h
             if percent > 0:
-                draw.rectangle([col_x + 8, (col_y + col_h) - fill_height, col_x + col_w - 8, col_y + col_h - 8], fill=light_green)
+                draw.rectangle([col_x + 5, (col_y + col_h) - fill_height, col_x + col_w - 5, col_y + col_h - 5], fill=(50, 255, 50, 200))
 
-            # --- TITANIC FONT ENGINE ---
-            # Colossal score font sizing
-            font_size = 350 if percent >= 80 else 250
+            # 5. TITANIC FONT WORKAROUND
+            # Set colossal size - 450pt is massive on 1200 width
+            font_size = 550 if percent < 100 else 450
             try:
-                font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if os.path.exists("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") else "arial.ttf"
-                font_main = ImageFont.truetype(font_path, font_size)
+                font_paths = ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "arial.ttf", "C:\\Windows\\Fonts\\arialbd.ttf"]
+                font_file = next((f for f in font_paths if os.path.exists(f)), None)
+                if font_file:
+                    font_main = ImageFont.truetype(font_file, font_size)
+                else:
+                    font_main = ImageFont.load_default()
             except:
                 font_main = ImageFont.load_default()
 
-            # --- NEON SCORE OVERLAY ---
+            # 6. SCORE OVERLAY LAYER (ENSURES MAX VISIBILITY)
+            score_layer = Image.new("RGBA", (1200, 700), (0, 0, 0, 0))
+            s_draw = ImageDraw.Draw(score_layer)
             score_text = f"{percent}%"
-            # Titanic Shadow for readability against background
-            draw.text((615, 365), score_text, fill=(0, 0, 0, 255), anchor="mm", font=font_main) 
-            # Focal Score with vibrant pulse stroke
-            draw.text((600, 350), score_text, fill=(255, 255, 255, 255), anchor="mm", font=font_main, stroke_width=30, stroke_fill=(*neon, 150))
-            draw.text((600, 350), score_text, fill=(255, 255, 255, 255), anchor="mm", font=font_main)
 
-            # --- GLADIATOR FRAMES ---
+            # WORKAROUND: Double Shadow + Extreme Stroke
+            # Layer 1: Massive Black Outer Shadow (Shifted)
+            s_draw.text((615, 365), score_text, fill=(0, 0, 0, 255), anchor="mm", font=font_main)
+            
+            # Layer 2: Heavy Neon Glow Stroke (Width 50)
+            s_draw.text((600, 350), score_text, fill=(0, 0, 0, 0), anchor="mm", font=font_main, stroke_width=50, stroke_fill=(*neon, 180))
+            
+            # Layer 3: Pure White High-Contrast Focal Text
+            s_draw.text((600, 350), score_text, fill=(255, 255, 255, 255), anchor="mm", font=font_main, stroke_width=5, stroke_fill=(0,0,0))
+
+            canvas.alpha_composite(score_layer)
+
+            # 7. GLADIATOR FRAMES
             draw.rectangle([45, 145, 45+av_size+10, 145+av_size+10], outline=neon, width=15)
             draw.rectangle([715, 145, 715+av_size+10, 145+av_size+10], outline=neon, width=15)
 
