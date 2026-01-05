@@ -1,202 +1,373 @@
 import discord
-from discord.ext import commands
-import random
-import asyncio
 import os
-import io
-import aiohttp
-from datetime import datetime, timezone
-from PIL import Image, ImageDraw, ImageOps
-import __main__
+import asyncio
+import json
+from discord.ext import commands
+from dotenv import load_dotenv
+from aiohttp import web
+from datetime import datetime, timedelta, timezone
 
-class DungeonFight(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-        self.module_name = "fight"
+# 1. SETUP & SECRETS
+load_dotenv()
+TOKEN = os.getenv('DISCORD_TOKEN')
+PAYPAL_EMAIL = os.getenv('PAYPAL_EMAIL')
+PORT = int(os.getenv("PORT", 8080))
 
-    def get_health_bar(self, hp, max_hp, is_premium):
-        if not is_premium:
-            # Standard ASCII Bar
-            filled = int((hp / max_hp) * 10)
-            return f"[{'█' * filled}{'░' * (10 - filled)}] {hp}/{max_hp}"
+# 2. PERSISTENT STORAGE (Railway Volume)
+DATA_DIR = "/app/data"
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
+
+PREMIUM_FILE = os.path.join(DATA_DIR, "premium_guilds.json")
+
+def get_premium_list():
+    if os.path.exists(PREMIUM_FILE):
+        with open(PREMIUM_FILE, "r") as f:
+            try: 
+                data = json.load(f)
+                # Management Fix: Ensure we always treat this as a dictionary
+                return data if isinstance(data, dict) else {}
+            except: return {}
+    return {}
+
+# Shared global variable for the bot instance
+PREMIUM_GUILDS = get_premium_list()
+
+# 3. INITIALIZATION
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
+
+class MyBot(commands.Bot):
+    def __init__(self):
+        super().__init__(command_prefix="!", intents=intents, help_command=None)
+
+    async def setup_hook(self):
+        print("--- Loading Modules ---")
+        # Automatically load everything inside the /cogs folder
+        for filename in os.listdir('./cogs'):
+            if filename.endswith('.py'):
+                await self.load_extension(f'cogs.{filename[:-3]}')
+                print(f'✅ Module Loaded: {filename}')
         
-        # Premium Gradient Visual logic
-        pct = (hp / max_hp) * 100
-        if pct > 75: bar_emoji = "🟩🟩🟩🟩"
-        elif pct > 50: bar_emoji = "🟩🟩🟨🟨"
-        elif pct > 25: bar_emoji = "🟨🟨🟧🟧"
-        else: bar_emoji = "🟧🟧🟥🟥"
-        
-        return f"{bar_emoji} **{pct:.0f}%** ({hp} HP)"
+        # Start the Webhook Server
+        self.loop.create_task(self.start_webhook_server())
+        # Start the Expiry Checker (Runs every hour)
+        self.loop.create_task(self.check_subscriptions_expiry())
 
-    def get_funny_msg(self, action_type):
-        msgs = {
-            "strike": [
-                "swung a wet noodle at",
-                "delivered a legendary slap to",
-                "poked the eye of",
-                "threw a heavy dictionary at",
-                "used a gamer move on"
-            ],
-            "heal": [
-                "ate a suspicious mushroom.",
-                "drank a glowing potion that tastes like blueberry.",
-                "took a quick nap mid-battle.",
-                "used a band-aid on a broken heart.",
-                "screamed 'I REFUSE TO DIE' and felt better."
+    async def check_subscriptions_expiry(self):
+        """Background task to remove expired monthly subscriptions"""
+        while True:
+            await asyncio.sleep(3600) # Wait 1 hour
+            now = datetime.now(timezone.utc).timestamp()
+            changed = False
+            
+            global PREMIUM_GUILDS
+            for guild_id in list(PREMIUM_GUILDS.keys()):
+                # Filter out modules where the timestamp is in the past
+                if not isinstance(PREMIUM_GUILDS[guild_id], dict):
+                    continue
+                    
+                original_count = len(PREMIUM_GUILDS[guild_id])
+                PREMIUM_GUILDS[guild_id] = {
+                    mod: expiry for mod, expiry in PREMIUM_GUILDS[guild_id].items() 
+                    if expiry > now
+                }
+                if len(PREMIUM_GUILDS[guild_id]) != original_count:
+                    changed = True
+            
+            if changed:
+                with open(PREMIUM_FILE, "w") as f:
+                    json.dump(PREMIUM_GUILDS, f)
+                print("🧹 Cleaned up expired subscriptions.")
+
+    async def start_webhook_server(self):
+        app = web.Application()
+        app.router.add_post('/paypal-webhook', self.handle_paypal_webhook)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, '0.0.0.0', PORT)
+        await site.start()
+        print(f"📡 Webhook Server active on port {PORT}")
+
+    async def handle_paypal_webhook(self, request):
+        data = await request.post()
+        # Custom now sends "GUILD_ID|MODULE_NAME"
+        custom_data = data.get('custom', "")
+        payment_status = data.get('payment_status')
+        amount_str = data.get('mc_gross', "0.00")
+        amount = float(amount_str) # Grab the payment amount from PayPal
+
+        if payment_status == 'Completed' and "|" in custom_data:
+            guild_id_str, module_name = custom_data.split("|")
+            
+            # --- DYNAMIC DURATION LOGIC ---
+            days_to_add = 30
+            if amount >= 15.0: days_to_add = 180
+            elif amount >= 7.5: days_to_add = 90
+            elif amount >= 5.0: days_to_add = 60
+            
+            expiry_date = datetime.now(timezone.utc) + timedelta(days=days_to_add)
+            expiry_timestamp = expiry_date.timestamp()
+
+            global PREMIUM_GUILDS
+            if guild_id_str not in PREMIUM_GUILDS:
+                PREMIUM_GUILDS[guild_id_str] = {} 
+            
+            # Store the module with its specific expiry time
+            PREMIUM_GUILDS[guild_id_str][module_name] = expiry_timestamp
+            
+            with open(PREMIUM_FILE, "w") as f:
+                json.dump(PREMIUM_GUILDS, f)
+            print(f"💎 {days_to_add} DAYS ACTIVATED: {module_name} for {guild_id_str}")
+
+            # --- AUTOMATED SUCCESS BROADCAST TO CUSTOMER SERVER ---
+            try:
+                target_guild = self.get_guild(int(guild_id_str))
+                if target_guild:
+                    chan = next((c for c in target_guild.text_channels if c.permissions_for(target_guild.me).send_messages), None)
+                    if chan:
+                        success_emb = discord.Embed(title=f"💎 {days_to_add}-DAY PREMIUM UNLOCKED", color=0x00ff00)
+                        success_emb.description = f"The **{module_name.upper()}** module has been activated! Enjoy your new high-level features.\n\n**Expiry:** <t:{int(expiry_timestamp)}:F>"
+                        if os.path.exists("fierylogo.jpg"):
+                            file = discord.File("fierylogo.jpg", filename="logo.png")
+                            success_emb.set_thumbnail(url="attachment://logo.png")
+                            await chan.send(file=file, embed=success_emb)
+                        else:
+                            await chan.send(embed=success_emb)
+            except Exception as e:
+                print(f"Broadcast Error: {e}")
+
+            # --- SALES LOG TO YOUR DEVELOPER SERVER ---
+            try:
+                dev_channel = self.get_channel(1457706030199996570)
+                if dev_channel:
+                    log_emb = discord.Embed(title="💰 NEW SALE DETECTED", color=0x00ff00)
+                    log_emb.add_field(name="Module", value=module_name.upper(), inline=True)
+                    log_emb.add_field(name="Tier", value=f"{days_to_add} Days", inline=True)
+                    log_emb.add_field(name="Amount", value=f"${amount} USD", inline=True)
+                    log_emb.add_field(name="Server ID", value=guild_id_str, inline=False)
+                    log_emb.set_footer(text=f"Time: {discord.utils.utcnow().strftime('%Y-%m-%d %H:%M')}")
+                    if os.path.exists("fierylogo.jpg"):
+                        f_log = discord.File("fierylogo.jpg", filename="logo_log.png")
+                        log_emb.set_thumbnail(url="attachment://logo_log.png")
+                        await dev_channel.send(file=f_log, embed=log_emb)
+                    else:
+                        await dev_channel.send(embed=log_emb)
+            except Exception as e:
+                print(f"Failed to log sale: {e}")
+
+        return web.Response(text="OK")
+
+    async def on_ready(self):
+        print(f'🔥 Bot Online: {self.user}')
+        await self.change_presence(activity=discord.Game(name="!echo | !fight"))
+
+bot = MyBot()
+
+@bot.command()
+async def invite(ctx):
+    await ctx.send(f"Add me: {discord.utils.oauth_url(bot.user.id, permissions=discord.Permissions(administrator=True))}")
+
+# --- MASTER COMMAND DIRECTORY ---
+@bot.command(name="echo")
+async def fiery(ctx):
+    embed = discord.Embed(title="⚔️ ECHO COMMAND DIRECTORY", color=0xff4500)
+    embed.description = "Explore the full potential of your server with our modules."
+    
+    logo_file = None
+    if os.path.exists("fierylogo.jpg"):
+        logo_file = discord.File("fierylogo.jpg", filename="fiery_main.png")
+        embed.set_thumbnail(url="attachment://fiery_main.png")
+
+    for cog_name, cog_object in bot.cogs.items():
+        commands_list = cog_object.get_commands()
+        if commands_list:
+            cmd_text = " ".join([f"`!{c.name}`" for c in commands_list if not c.hidden])
+            embed.add_field(name=f"📦 {cog_name.replace('Dungeon', '')} Module", value=cmd_text, inline=False)
+
+    embed.add_field(name="🛠️ Core System", value="`!premium` `!premiumstatus` `!invite` `!echo`", inline=False)
+    embed.set_footer(text="Type !premium to expand your arsenal.")
+    
+    if logo_file:
+        await ctx.send(file=logo_file, embed=embed)
+    else:
+        await ctx.send(embed=embed)
+
+# --- THE HIGH LEVEL SHOP LOBBY ---
+@bot.command(name="premium")
+@commands.has_permissions(administrator=True)
+async def premium(ctx):
+    available_modules = [f[:-3] for f in os.listdir('./cogs') if f.endswith('.py')]
+    
+    embed = discord.Embed(
+        title="🔥 ECHO MODULE SHOP", 
+        description="Select the module you wish to upgrade to view our **Payment Tiers**.",
+        color=0xff4500
+    )
+    
+    logo_file = None
+    if os.path.exists("fierylogo.jpg"):
+        logo_file = discord.File("fierylogo.jpg", filename="shop_logo.png")
+        embed.set_thumbnail(url="attachment://shop_logo.png")
+
+    class TierView(discord.ui.View):
+        def __init__(self, module):
+            super().__init__(timeout=180)
+            self.module = module
+            plans = [
+                ("30 Days", "2.50", "🥉 Bronze Tier"),
+                ("60 Days", "5.00", "🥈 Silver Tier"),
+                ("90 Days", "7.50", "🥇 Gold Tier"),
+                ("180 Days", "15.00", "💎 Diamond Tier")
             ]
-        }
-        return random.choice(msgs[action_type])
-
-    # --- IMAGE ENGINE FOR ARENA VISUALS ---
-    async def create_arena_visual(self, u1_url, u2_url):
-        try:
-            # maximized realistic arena canvas
-            canvas = Image.new("RGBA", (1200, 600), (20, 20, 20, 255))
-            draw = ImageDraw.Draw(canvas)
+            options = []
+            for label, price, emoji_name in plans:
+                options.append(discord.SelectOption(
+                    label=f"{label} - ${price}", 
+                    value=price, 
+                    emoji=emoji_name.split()[0], 
+                    description=f"Unlock {module.upper()} for {label}"
+                ))
             
-            async with aiohttp.ClientSession() as session:
-                async with session.get(u1_url) as r1, session.get(u2_url) as r2:
-                    p1, p2 = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
+            self.select = discord.ui.Select(placeholder="Choose your duration tier...", options=options)
+            self.select.callback = self.tier_callback
+            self.add_item(self.select)
+
+        async def tier_callback(self, interaction: discord.Interaction):
+            price = self.select.values[0]
+            pay_email = os.getenv('PAYPAL_EMAIL')
+            custom_payload = f"{interaction.guild_id}|{self.module}"
             
-            av_size = 450 # Max size for avatars
-            av1_raw = Image.open(p1).convert("RGBA").resize((av_size, av_size))
-            av2_raw = Image.open(p2).convert("RGBA").resize((av_size, av_size))
-
-            # Borderless circular clipping
-            mask = Image.new("L", (av_size, av_size), 0)
-            ImageDraw.Draw(mask).ellipse((0, 0, av_size, av_size), fill=255)
+            paypal_url = (
+                f"https://www.paypal.com/cgi-bin/webscr?cmd=_xclick"
+                f"&business={pay_email}&amount={price}&currency_code=USD"
+                f"&item_name=Fiery_{self.module.upper()}_Access&custom={custom_payload}"
+            )
             
-            av1 = ImageOps.fit(av1_raw, mask.size, centering=(0.5, 0.5))
-            av1.putalpha(mask)
-            av2 = ImageOps.fit(av2_raw, mask.size, centering=(0.5, 0.5))
-            av2.putalpha(mask)
+            final_emb = discord.Embed(title="🛒 SECURE CHECKOUT", color=0x00ff00)
+            final_emb.description = (
+                f"**Module:** {self.module.upper()}\n"
+                f"**Price:** ${price} USD\n\n"
+                f"Click [**HERE TO PAY VIA PAYPAL**]({paypal_url})\n\n"
+                "*Activation is immediate after payment completes.*"
+            )
+            await interaction.response.send_message(embed=final_emb, ephemeral=True)
 
-            # Paste Avatars
-            canvas.paste(av1, (50, 75), av1)
-            canvas.paste(av2, (700, 75), av2)
+    class ModuleSelectView(discord.ui.View):
+        def __init__(self):
+            super().__init__(timeout=180)
+            options = [discord.SelectOption(label=m.upper(), value=m, emoji="📦") for m in available_modules]
+            self.select = discord.ui.Select(placeholder="Select a module to view plans...", options=options)
+            self.select.callback = self.module_callback
+            self.add_item(self.select)
 
-            # Draw Central Crossed Axes Symbol
-            draw.line([530, 230, 670, 370], fill=(200, 200, 200, 255), width=15) # Axis 1
-            draw.line([670, 230, 530, 370], fill=(200, 200, 200, 255), width=15) # Axis 2
-            
-            buf = io.BytesIO()
-            canvas.save(buf, format="PNG")
-            buf.seek(0)
-            return buf
-        except:
-            return None
+        async def module_callback(self, interaction: discord.Interaction):
+            selected_mod = self.select.values[0]
+            await interaction.response.send_message(f"✨ Viewing plans for **{selected_mod.upper()}**:", view=TierView(selected_mod), ephemeral=True)
 
-    @commands.command(name="fight")
-    async def fight(self, ctx, member: discord.Member = None):
-        if member is None:
-            return await ctx.send("❌ Mention someone to challenge them to a duel!")
+    if logo_file:
+        await ctx.send(file=logo_file, embed=embed, view=ModuleSelectView())
+    else:
+        await ctx.send(embed=embed, view=ModuleSelectView())
+
+# --- THE ULTIMATE MODULAR DASHBOARD (FIXED LOGIC) ---
+@bot.command(name="premiumstatus")
+@commands.has_permissions(administrator=True)
+async def premiumstatus(ctx):
+    guild_id = str(ctx.guild.id)
+    # Get all .py files in cogs to see what's available
+    available_modules = [f[:-3] for f in os.listdir('./cogs') if f.endswith('.py')]
+    # Get the dictionary for this server
+    # FIX: We must ensure this is treated as a dict
+    guild_data = PREMIUM_GUILDS.get(guild_id, {})
+
+    embed = discord.Embed(title="⚔️ SERVER MODULE DASHBOARD", color=0xff4500)
+    
+    logo_file = None
+    if os.path.exists("fierylogo.jpg"):
+        logo_file = discord.File("fierylogo.jpg", filename="status_logo.png")
+        embed.set_thumbnail(url="attachment://status_logo.png")
+    
+    status_text = ""
+    unlocked_count = 0
+    now = datetime.now(timezone.utc).timestamp()
+    
+    for module in available_modules:
+        # FIX: Access the timestamp from the guild_data dictionary
+        expiry = guild_data.get(module) if isinstance(guild_data, dict) else None
         
-        if member.id == ctx.author.id:
-            return await ctx.send("You can't fight yourself. That's just called a workout.")
+        if expiry and float(expiry) > now:
+            # Show expiry date using Discord Timestamps (Relative :R)
+            status_text += f"✅ **{module.upper()}**: `Expires` <t:{int(expiry)}:R>\n"
+            unlocked_count += 1
+        else:
+            status_text += f"❌ **{module.upper()}**: `LOCKED` (Type `!premium` to buy)\n"
+    
+    # Visual Progress Bar
+    total = len(available_modules)
+    percent = (unlocked_count / total) * 100 if total > 0 else 0
+    bar = "🟩" * unlocked_count + "⬛" * (total - unlocked_count)
+    
+    embed.add_field(name="Subscription Status", value=status_text, inline=False)
+    embed.add_field(name="Unlock Progress", value=f"{bar} **{percent:.0f}%**", inline=False)
+    embed.set_footer(text=f"Server ID: {guild_id} | Support your developer 🔥")
+    
+    if logo_file:
+        await ctx.send(file=logo_file, embed=embed)
+    else:
+        await ctx.send(embed=embed)
 
-        if member.bot:
-            return await ctx.send("Bots don't feel pain. You'd lose instantly.")
+# --- NEW: DEVELOPER GLOBAL MODULE TOGGLES ---
+@bot.command(name="echoon")
+async def fieryon(ctx):
+    # Restrict to your developer server ID
+    if ctx.guild.id != 1457658274496118786:
+        return
+    
+    if not ctx.author.guild_permissions.administrator:
+        return
 
-        # --- SUBSCRIPTION CHECK ---
-        guild_id = str(ctx.guild.id)
-        is_premium = False
-        if guild_id in __main__.PREMIUM_GUILDS:
-            guild_data = __main__.PREMIUM_GUILDS[guild_id]
-            if isinstance(guild_data, dict):
-                expiry = guild_data.get(self.module_name)
-                if expiry and expiry > datetime.now(timezone.utc).timestamp():
-                    is_premium = True
+    guild_id_str = str(ctx.guild.id)
+    available_modules = [f[:-3] for f in os.listdir('./cogs') if f.endswith('.py')]
+    
+    # Set expiry to 10 years in the future for dev server
+    dev_expiry = (datetime.now(timezone.utc) + timedelta(days=3650)).timestamp()
 
-        # Initial Stats (Added Luck key)
-        p1 = {"user": ctx.author, "hp": 100, "max": 100, "luck": 1.0}
-        p2 = {"user": member, "hp": 100, "max": 100, "luck": 1.0}
-        turn = p1
-        other = p2
-        battle_log = "The arena is silent... awaiting the first strike."
+    global PREMIUM_GUILDS
+    if guild_id_str not in PREMIUM_GUILDS:
+        PREMIUM_GUILDS[guild_id_str] = {}
 
-        embed = discord.Embed(title="⚔️ DUEL INITIATED", color=0xff4500)
-        embed.description = f"{p1['user'].mention} vs {p2['user'].mention}\n\n*Fight for honor!*"
-        
-        # Thumbnail Logic
-        logo_file = None
-        if os.path.exists("fierylogo.jpg"):
-            logo_file = discord.File("fierylogo.jpg", filename="logo.png")
-            embed.set_thumbnail(url="attachment://logo.png")
+    for module in available_modules:
+        PREMIUM_GUILDS[guild_id_str][module] = dev_expiry
+    
+    with open(PREMIUM_FILE, "w") as f:
+        json.dump(PREMIUM_GUILDS, f)
+    
+    await ctx.send("🛠️ **DEVELOPER MODE:** All modules activated for this server.")
 
-        # Arena Image Generation
-        arena_img = await self.create_arena_visual(p1['user'].display_avatar.url, p2['user'].display_avatar.url)
-        arena_file = discord.File(arena_img, filename="arena.png")
-        embed.set_image(url="attachment://arena.png")
-        
-        files = [arena_file]
-        if logo_file: files.append(logo_file)
-        
-        main_msg = await ctx.send(files=files, embed=embed)
+@bot.command(name="echooff")
+async def fieryoff(ctx):
+    # Restrict to your developer server ID
+    if ctx.guild.id != 1457658274496118786:
+        return
+    
+    if not ctx.author.guild_permissions.administrator:
+        return
 
-        # --- AUTOMATED COMBAT LOOP ---
-        while p1["hp"] > 0 and p2["hp"] > 0:
-            await asyncio.sleep(2.5) # Pacing between turns
-            
-            # Automated balanced logic (70% strike, 30% heal)
-            action = random.choices(["strike", "heal"], weights=[70, 30])[0]
-            
-            if action == "strike":
-                dmg = int(random.randint(12, 28) * turn["luck"])
-                other["hp"] = max(0, other["hp"] - dmg)
-                battle_log = f"💥 **{turn['user'].display_name}** {self.get_funny_msg('strike')} **{other['user'].display_name}** for **{dmg} damage!**"
-            else:
-                amt = random.randint(10, 22)
-                turn["hp"] = min(turn["max"], turn["hp"] + amt)
-                battle_log = f"🧪 **{turn['user'].display_name}** {self.get_funny_msg('heal')} (+{amt} HP)"
+    guild_id_str = str(ctx.guild.id)
+    
+    global PREMIUM_GUILDS
+    if guild_id_str in PREMIUM_GUILDS:
+        PREMIUM_GUILDS[guild_id_str] = {}
+        with open(PREMIUM_FILE, "w") as f:
+            json.dump(PREMIUM_GUILDS, f)
+    
+    await ctx.send("🛠️ **DEVELOPER MODE:** All modules deactivated for this server.")
 
-            # Refreshing the combat display
-            embed = discord.Embed(title="⚔️ ARENA OF GLORY", color=0x2f3136)
-            embed.set_image(url="attachment://arena.png")
-            if os.path.exists("fierylogo.jpg"):
-                embed.set_thumbnail(url="attachment://logo.png")
-            
-            p1_status = f"{self.get_health_bar(p1['hp'], p1['max'], is_premium)}"
-            if p1['luck'] > 1.0: p1_status += " ✨ *LUCKY*"
-            p2_status = f"{self.get_health_bar(p2['hp'], p2['max'], is_premium)}"
-            if p2['luck'] > 1.0: p2_status += " ✨ *LUCKY*"
+async def main():
+    async with bot:
+        await bot.start(TOKEN)
 
-            embed.add_field(name=f"👤 {p1['user'].display_name}", value=p1_status, inline=True)
-            embed.add_field(name=f"👤 {p2['user'].display_name}", value=p2_status, inline=True)
-            embed.add_field(name="📜 Battle Logs", value=f"*{battle_log}*", inline=False)
-            embed.set_footer(text=f"Turn: {turn['user'].display_name}")
-
-            # Spectator View (Allows others to influence luck)
-            view = discord.ui.View(timeout=1)
-            cheer_btn = discord.ui.Button(label="Cheering!", style=discord.ButtonStyle.secondary, emoji="🙌")
-            
-            async def cheer_callback(interaction):
-                if interaction.user.id in [p1["user"].id, p2["user"].id]:
-                    return await interaction.response.send_message("Concentrate on the fight!", ephemeral=True)
-                turn["luck"] += 0.05
-                await interaction.response.send_message(f"📣 {interaction.user.display_name} cheered! {turn['user'].display_name} feels luckier!", ephemeral=False)
-
-            cheer_btn.callback = cheer_callback
-            view.add_item(cheer_btn)
-
-            await main_msg.edit(embed=embed, view=view)
-
-            if other["hp"] <= 0:
-                break
-
-            # Swap turns
-            turn, other = other, turn
-
-        # Winner Announcement
-        winner = turn if turn["hp"] > 0 else other
-        win_emb = discord.Embed(title="🏆 THE CHAMPION EMERGES", color=0x00ff00)
-        win_emb.description = f"**{winner['user'].display_name}** stands victorious in the arena!\n\n*The crowd goes wild!*"
-        win_emb.set_image(url="attachment://arena.png")
-        
-        if os.path.exists("fierylogo.jpg"):
-            win_emb.set_thumbnail(url="attachment://logo.png")
-        
-        await ctx.send(embed=win_emb)
-
-async def setup(bot):
-    await bot.add_cog(DungeonFight(bot))
+if __name__ == "__main__":
+    asyncio.run(main())
