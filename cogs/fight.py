@@ -124,10 +124,11 @@ class DungeonFight(commands.Cog):
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     p1_data, p2_data = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
             
-            av_size = 450 
+            av_size = 380 
             av1_raw = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2_raw = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
+            # PROFESSIONAL AVATAR FITTING: Circle masks with gold borders
             mask = Image.new("L", (av_size, av_size), 0)
             ImageDraw.Draw(mask).ellipse([0, 0, av_size, av_size], fill=255)
 
@@ -143,18 +144,23 @@ class DungeonFight(commands.Cog):
             lighting = Image.new("RGBA", (1200, 600), (0,0,0,0))
             ImageDraw.Draw(lighting).polygon([(0,0), (1200,0), (600,600)], fill=(255, 69, 0, 30)) 
 
-            canvas.paste(av1, (50, 60), av1)
-            canvas.paste(av2, (700, 60), av2)
+            # Paste Avatars with Gold Frame Ellipses
+            p1_pos, p2_pos = (85, 80), (735, 80)
+            draw.ellipse([p1_pos[0]-10, p1_pos[1]-10, p1_pos[0]+av_size+10, p1_pos[1]+av_size+10], outline=(212, 175, 55), width=12)
+            draw.ellipse([p2_pos[0]-10, p2_pos[1]-10, p2_pos[0]+av_size+10, p2_pos[1]+av_size+10], outline=(212, 175, 55), width=12)
+            
+            canvas.paste(av1, p1_pos, av1)
+            canvas.paste(av2, p2_pos, av2)
             canvas = Image.alpha_composite(canvas, lighting)
             draw = ImageDraw.Draw(canvas)
 
             # Status Icons (Trophy/RIP) Logic
             if p2_hp <= 0:
-                draw.text((275, 400), "🏆", font=None, size=80, anchor="mm")
-                draw.text((925, 400), "🪦", font=None, size=80, anchor="mm")
+                draw.text((275, 420), "🏆", font=None, size=80, anchor="mm")
+                draw.text((925, 420), "🪦", font=None, size=80, anchor="mm")
             elif p1_hp <= 0:
-                draw.text((275, 400), "🪦", font=None, size=80, anchor="mm")
-                draw.text((925, 400), "🏆", font=None, size=80, anchor="mm")
+                draw.text((275, 420), "🪦", font=None, size=80, anchor="mm")
+                draw.text((925, 420), "🏆", font=None, size=80, anchor="mm")
 
             draw.text((600, 80), "ARENA FIGHT!", fill=(255, 255, 255), anchor="mm", stroke_width=2, stroke_fill=(0,0,0))
             draw.text((600, 280), "VS", fill=(255, 255, 255), anchor="mm", stroke_width=3, stroke_fill=(0,0,0))
