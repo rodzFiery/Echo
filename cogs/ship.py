@@ -138,14 +138,14 @@ class DungeonShip(commands.Cog):
             canvas = Image.alpha_composite(glow, canvas)
 
             # --- 7. FINAL OVERLAY: THE COLOSSAL SCORE (FIXED VISIBILITY) ---
-            # Create a dedicated layer for the plate and text that sits ABOVE everything
+            # We create a final overlay and merge it LAST to prevent blurring
             overlay = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             o_draw = ImageDraw.Draw(overlay)
             
-            # Crystal Heart Plate (Centrally Focused)
+            # Crystal Heart Plate
             heart_points = [(600, 570), (280, 280), (400, 50), (600, 180), (800, 50), (920, 280)]
-            o_draw.polygon(heart_points, fill=(aura_color[0], aura_color[1], aura_color[2], 230)) # Increased Opacity to 230
-            o_draw.polygon(heart_points, outline=(255, 255, 255, 255), width=10) # Thicker Border
+            o_draw.polygon(heart_points, fill=(aura_color[0], aura_color[1], aura_color[2], 240)) # Stronger Fill
+            o_draw.polygon(heart_points, outline=(255, 255, 255, 255), width=12)
 
             if percent >= 90:
                 text_main, text_stroke = (255, 255, 255), (255, 215, 0)
@@ -157,12 +157,12 @@ class DungeonShip(commands.Cog):
                 text_main, text_stroke = (255, 255, 255), (255, 105, 180) 
 
             pct_text = f"{percent}%"
-            # COLOSSAL SHADOW
-            o_draw.text((620, 320), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
-            # COLOSSAL FOCAL SCORE
-            o_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=35, stroke_fill=text_stroke)
+            # COLOSSAL SHADOW (Drawn first on overlay)
+            o_draw.text((625, 325), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
+            # COLOSSAL FOCAL SCORE (Drawn on top)
+            o_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=40, stroke_fill=text_stroke)
 
-            # Merge the overlay onto the final canvas
+            # Final Composite
             canvas = Image.alpha_composite(canvas, overlay)
 
             buf = io.BytesIO()
