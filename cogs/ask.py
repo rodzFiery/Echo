@@ -205,5 +205,30 @@ class DungeonAsk(commands.Cog):
                 json.dump(__main__.PREMIUM_GUILDS, f)
             await ctx.send(f"✅ Module **{self.module_name}** activated for Guild {guild_id}!")
 
+    # --- NEW: DEV TEST TOGGLES ---
+    @commands.command(name="askon")
+    @commands.is_owner()
+    async def askon(self, ctx):
+        """Force turn ON premium for this server (Dev Only)"""
+        guild_id = str(ctx.guild.id)
+        if guild_id not in __main__.PREMIUM_GUILDS:
+            __main__.PREMIUM_GUILDS[guild_id] = []
+        if self.module_name not in __main__.PREMIUM_GUILDS[guild_id]:
+            __main__.PREMIUM_GUILDS[guild_id].append(self.module_name)
+            with open(self.PREMIUM_FILE, "w") as f:
+                json.dump(__main__.PREMIUM_GUILDS, f)
+        await ctx.send("🛠️ **DEV MODE:** Premium visuals enabled for this server.")
+
+    @commands.command(name="askoff")
+    @commands.is_owner()
+    async def askoff(self, ctx):
+        """Force turn OFF premium for this server (Dev Only)"""
+        guild_id = str(ctx.guild.id)
+        if guild_id in __main__.PREMIUM_GUILDS and self.module_name in __main__.PREMIUM_GUILDS[guild_id]:
+            __main__.PREMIUM_GUILDS[guild_id].remove(self.module_name)
+            with open(self.PREMIUM_FILE, "w") as f:
+                json.dump(__main__.PREMIUM_GUILDS, f)
+        await ctx.send("🛠️ **DEV MODE:** Premium visuals disabled for this server.")
+
 async def setup(bot):
     await bot.add_cog(DungeonAsk(bot))
