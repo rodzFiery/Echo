@@ -92,7 +92,7 @@ class MyBot(commands.Bot):
 
     async def handle_paypal_webhook(self, request):
         data = await request.post()
-        # Custom now sends "GUILD_ID|MODULE_NAME"
+        # Custom sends "GUILD_ID|MODULE_NAME"
         custom_data = data.get('custom', "")
         payment_status = data.get('payment_status')
         amount_str = data.get('mc_gross', "0.00")
@@ -101,11 +101,12 @@ class MyBot(commands.Bot):
         if payment_status == 'Completed' and "|" in custom_data:
             guild_id_str, module_name = custom_data.split("|")
             
-            # --- DYNAMIC DURATION LOGIC ---
+            # --- DYNAMIC DURATION LOGIC (UPDATED PRICES) ---
             days_to_add = 30
-            if amount >= 15.0: days_to_add = 180
-            elif amount >= 7.5: days_to_add = 90
-            elif amount >= 5.0: days_to_add = 60
+            if amount >= 12.0: days_to_add = 180
+            elif amount >= 6.0: days_to_add = 90
+            elif amount >= 4.0: days_to_add = 60
+            elif amount >= 2.0: days_to_add = 30
             
             expiry_date = datetime.now(timezone.utc) + timedelta(days=days_to_add)
             expiry_timestamp = expiry_date.timestamp()
@@ -216,10 +217,10 @@ async def premium(ctx):
             super().__init__(timeout=180)
             self.module = module
             plans = [
-                ("30 Days", "2.50", "🥉 Bronze Tier"),
-                ("60 Days", "5.00", "🥈 Silver Tier"),
-                ("90 Days", "7.50", "🥇 Gold Tier"),
-                ("180 Days", "15.00", "💎 Diamond Tier")
+                ("30 Days", "2.00", "🥉 Bronze Tier"),
+                ("60 Days", "4.00", "🥈 Silver Tier"),
+                ("90 Days", "6.00", "🥇 Gold Tier"),
+                ("180 Days", "12.00", "💎 Diamond Tier")
             ]
             options = []
             for label, price, emoji_name in plans:
@@ -250,7 +251,7 @@ async def premium(ctx):
                 f"**Module:** {self.module.upper()}\n"
                 f"**Price:** ${price} USD\n\n"
                 f"Click [**HERE TO PAY VIA PAYPAL**]({paypal_url})\n\n"
-                "*Activation is immediate after payment completes.*"
+                f"**Immediate activation** after successful payment."
             )
             await interaction.response.send_message(embed=final_emb, ephemeral=True)
 
@@ -279,7 +280,6 @@ async def premiumstatus(ctx):
     # Get all .py files in cogs to see what's available
     available_modules = [f[:-3] for f in os.listdir('./cogs') if f.endswith('.py')]
     # Get the dictionary for this server
-    # FIX: We must ensure this is treated as a dict
     guild_data = PREMIUM_GUILDS.get(guild_id, {})
 
     embed = discord.Embed(title="⚔️ SERVER MODULE DASHBOARD", color=0xff4500)
@@ -294,7 +294,6 @@ async def premiumstatus(ctx):
     now = datetime.now(timezone.utc).timestamp()
     
     for module in available_modules:
-        # FIX: Access the timestamp from the guild_data dictionary
         expiry = guild_data.get(module) if isinstance(guild_data, dict) else None
         
         if expiry and float(expiry) > now:
