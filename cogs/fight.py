@@ -17,6 +17,8 @@ class DungeonFight(commands.Cog):
         # Persistent Data Storage
         self.stats_file = "/app/data/fight_stats.json"
         self._load_stats()
+        # Battle log history tracking
+        self.battle_histories = {}
 
     def _load_stats(self):
         try:
@@ -225,7 +227,9 @@ class DungeonFight(commands.Cog):
         p1 = {"user": ctx.author, "hp": 100, "max": 100, "luck": 1.0}
         p2 = {"user": member, "hp": 100, "max": 100, "luck": 1.0}
         turn, other = p1, p2
-        battle_log = "🏛️ **THE GATES OPEN!** The crowd roars as the fight begins."
+        # Setup history for the duel
+        history = ["🏛️ **THE GATES OPEN!** The crowd roars as the fight begins."]
+        self.battle_histories[ctx.channel.id] = history
 
         arena_img = await self.create_arena_visual(p1['user'].display_avatar.url, p2['user'].display_avatar.url, p1['hp'], p2['hp'])
         arena_file = discord.File(arena_img, filename="arena.png")
@@ -240,13 +244,19 @@ class DungeonFight(commands.Cog):
             if action == "strike":
                 dmg = int(random.randint(12, 28) * turn["luck"])
                 other["hp"] = max(0, other["hp"] - dmg)
-                battle_log = f"🗡️ **{turn['user'].display_name}** {self.get_funny_msg('strike')} **{other['user'].display_name}**, dealing **-{dmg}** damage!"
+                msg = f"🗡️ **{turn['user'].display_name}** {self.get_funny_msg('strike')} **{other['user'].display_name}**, dealing **-{dmg}** damage!"
                 emb_color = 0xFF4500 if dmg > 20 else 0x8B0000
             else:
                 amt = random.randint(10, 22)
                 turn["hp"] = min(turn["max"], turn["hp"] + amt)
-                battle_log = f"🏺 **{turn['user'].display_name}** {self.get_funny_msg('heal')} (+{amt} HP)"
+                msg = f"🏺 **{turn['user'].display_name}** {self.get_funny_msg('heal')} (+{amt} HP)"
                 emb_color = 0x50C878
+
+            # Update history list to keep last 4
+            history.append(msg)
+            if len(history) > 4:
+                history.pop(0)
+            battle_log = "\n".join([f"> *{m}*" for m in history])
 
             arena_img = await self.create_arena_visual(p1['user'].display_avatar.url, p2['user'].display_avatar.url, p1['hp'], p2['hp'])
             arena_file = discord.File(arena_img, filename="arena.png")
@@ -255,7 +265,7 @@ class DungeonFight(commands.Cog):
             embed.set_image(url="attachment://arena.png")
             embed.add_field(name=f"🔵 {p1['user'].display_name}", value=self.get_health_bar(p1['hp'], p1['max'], is_premium), inline=False)
             embed.add_field(name=f"🔴 {p2['user'].display_name}", value=self.get_health_bar(p2['hp'], p2['max'], is_premium), inline=False)
-            embed.add_field(name="📜 BATTLE LOG", value=f"> *{battle_log}*", inline=False)
+            embed.add_field(name="📜 BATTLE LOG", value=battle_log, inline=False)
             embed.set_footer(text=f"🚩 Turn: {turn['user'].display_name.upper()} | Glory to the Echo!")
 
             await main_msg.edit(attachments=[arena_file], embed=embed)
