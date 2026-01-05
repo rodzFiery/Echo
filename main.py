@@ -36,7 +36,6 @@ class MyBot(commands.Bot):
 
     async def setup_hook(self):
         print("--- Initializing Systems ---")
-        # Persistent Premium Loading
         global PREMIUM_GUILDS
         if os.path.exists("premium_guilds.json"):
             with open("premium_guilds.json", "r") as f:
@@ -47,7 +46,7 @@ class MyBot(commands.Bot):
 
     async def on_ready(self):
         print(f'Logged in as {self.user} (ID: {self.user.id})')
-        await self.change_presence(activity=discord.Game(name="!ask | !invite"))
+        await self.change_presence(activity=discord.Game(name="!askcommands | !ask"))
         print('Bot is online and ready for Top.gg.')
 
     async def on_connect(self):
@@ -88,28 +87,22 @@ async def create_premium_lobby(u1_url, u2_url):
         canvas_width, canvas_height = 1200, 600
         canvas = Image.new("RGBA", (canvas_width, canvas_height), (15, 0, 8, 255))
         draw = ImageDraw.Draw(canvas)
-
         async with aiohttp.ClientSession() as session:
             async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                 p1_data = io.BytesIO(await r1.read())
                 p2_data = io.BytesIO(await r2.read())
-
         av_size = 350
         av1 = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
         av2 = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
-
         def draw_glow(draw_obj, pos, size, color):
             for i in range(15, 0, -1):
                 alpha = int(255 * (1 - i/15))
                 draw_obj.rectangle([pos[0]-i, pos[1]-i, pos[0]+size+i, pos[1]+size+i], outline=(*color, alpha), width=2)
-
         draw_glow(draw, (100, 120), av_size, (255, 20, 147)) 
         draw_glow(draw, (750, 120), av_size, (255, 0, 0))   
-
         canvas.paste(av1, (100, 120), av1)
         canvas.paste(av2, (750, 120), av2)
         draw.text((550, 250), "VS", fill=(255, 0, 0))
-
         buf = io.BytesIO()
         canvas.save(buf, format="PNG")
         buf.seek(0)
@@ -118,9 +111,12 @@ async def create_premium_lobby(u1_url, u2_url):
         print(f"Visual Error: {e}")
         return None
 
-# 5. CORE COMMANDS (ASK & PREMIUM GATE)
+# 5. CORE COMMANDS
 @bot.command(name="ask")
-async def ask(ctx, member: discord.Member):
+async def ask(ctx, member: discord.Member = None):
+    if member is None:
+        return await ctx.send(embed=fiery_embed("⚠️ COMMAND ERROR", "You must mention a user!\nExample: `!ask @User`"))
+    
     if member.id == ctx.author.id:
         return await ctx.send("❌ You cannot ask yourself.")
 
@@ -137,80 +133,61 @@ async def ask(ctx, member: discord.Member):
 
     class InitialView(discord.ui.View):
         def __init__(self, req, tar):
-            super().__init__(timeout=120)
-            self.req, self.tar = req, tar
-
+            super().__init__(timeout=120); self.req, self.tar = req, tar
         @discord.ui.button(label="Ask to DM", style=discord.ButtonStyle.primary, emoji="📩")
         async def dm_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
             if interaction.user.id != self.req.id: return
-            
-            options = [
-                discord.SelectOption(label="SFW", emoji="🛡️"),
-                discord.SelectOption(label="NSFW", emoji="🔞"),
-                discord.SelectOption(label="Flirting", emoji="🫦"),
-                discord.SelectOption(label="Casual Chat", emoji="💬")
-            ]
+            options = [discord.SelectOption(label="SFW", emoji="🛡️"), discord.SelectOption(label="NSFW", emoji="🔞"), discord.SelectOption(label="Flirting", emoji="🫦"), discord.SelectOption(label="Casual Chat", emoji="💬")]
             select = discord.ui.Select(placeholder="Nature of the DM", options=options)
-
             async def select_callback(sel_inter: discord.Interaction):
                 intent = select.values[0]
                 final_emb = fiery_embed("📩 INCOMING DM REQUEST", f"{self.tar.mention}, {self.req.mention} wants to connect for: **{intent}**")
-                
                 class RecipientView(discord.ui.View):
                     def __init__(self, r, t, it):
                         super().__init__(timeout=300); self.r, self.t, self.it = r, t, it
-                    
                     @discord.ui.button(label="Accept", style=discord.ButtonStyle.success, emoji="🫦")
                     async def acc(self, i, b):
                         if i.user.id != self.t.id: return
                         log_ask_event(self.r, self.t, self.it, "Accepted")
                         await i.response.send_message(embed=fiery_embed("💖 ACCEPTED", f"{self.r.mention}, your request was accepted!"))
-                    
                     @discord.ui.button(label="Deny", style=discord.ButtonStyle.danger, emoji="🥀")
                     async def den(self, i, b):
                         if i.user.id != self.t.id: return
                         log_ask_event(self.r, self.t, self.it, "Denied")
                         await i.response.send_message(embed=fiery_embed("🥀 DENIED", f"{self.r.mention}, your request was rejected."))
-                
                 await sel_inter.response.send_message(content=self.tar.mention, embed=final_emb, view=RecipientView(self.req, self.tar, intent))
-            
             select.callback = select_callback
             v = discord.ui.View(); v.add_item(select)
             await interaction.response.send_message("Define your intent:", view=v, ephemeral=True)
-
     await ctx.send(file=file, embed=embed, view=InitialView(ctx.author, member))
 
-# 6. ADMIN & PAYMENT COMMANDS
+@bot.command(name="askcommands")
+async def askcommands(ctx):
+    embed = fiery_embed("🔥 THE DUNGEON: COMMAND LIST 🔥", "Available tools:")
+    embed.add_field(name="📩 User", value="`!ask @user` - DM lobby.\n`!invite` - Bot link.\n`!stats` - Reach metrics.", inline=False)
+    embed.add_field(name="🛡️ Admin", value="`!adminask` - Audit logs (Premium).\n`!askpremium` - Buy Premium license.", inline=False)
+    embed.add_field(name="💎 Premium", value="• Visual VS lobbies.\n• Permanent audit logs.", inline=False)
+    embed.set_footer(text="Harness the flames respectfully.")
+    embed.set_thumbnail(url=bot.user.display_avatar.url)
+    await ctx.send(embed=embed)
+
 @bot.command(name="adminask")
 @commands.has_permissions(administrator=True)
 async def adminask(ctx):
     if ctx.guild.id not in PREMIUM_GUILDS:
         return await ctx.send("🚫 **Admin History is a Premium Feature.** Type `!askpremium` to upgrade.")
-    
     embed = fiery_embed("📊 ASK HISTORY PANEL", "Select a timeframe to view the logs.")
-    
     class HistoryView(discord.ui.View):
-        @discord.ui.select(placeholder="Choose Timeframe", options=[
-            discord.SelectOption(label="Since Ever", value="0"),
-            discord.SelectOption(label="Last 1 Month", value="30"),
-            discord.SelectOption(label="Last 3 Months", value="90"),
-            discord.SelectOption(label="Last 6 Months", value="180")
-        ])
+        @discord.ui.select(placeholder="Choose Timeframe", options=[discord.SelectOption(label="Since Ever", value="0"), discord.SelectOption(label="Last 1 Month", value="30"), discord.SelectOption(label="Last 3 Months", value="90"), discord.SelectOption(label="Last 6 Months", value="180")])
         async def select_time(self, interaction: discord.Interaction, select: discord.ui.Select):
             days = int(select.values[0])
-            if not os.path.exists(HISTORY_FILE):
-                return await interaction.response.send_message("No logs found.", ephemeral=True)
-            
-            with open(HISTORY_FILE, "r") as f:
-                logs = json.load(f)
-            
+            if not os.path.exists(HISTORY_FILE): return await interaction.response.send_message("No logs found.", ephemeral=True)
+            with open(HISTORY_FILE, "r") as f: logs = json.load(f)
             now = datetime.now(timezone.utc)
             filtered = [e for e in logs if days == 0 or (now - datetime.fromisoformat(e['timestamp'])).days <= days]
-            
             res = "\n".join([f"• {e['requester']} ➡️ {e['target']} [{e['status']}]" for e in filtered[-10:]])
             report = fiery_embed(f"History: {select.values[0]} Days", f"Total: {len(filtered)}\n\nRecent:\n{res if res else 'None'}")
             await interaction.response.send_message(embed=report, ephemeral=True)
-
     await ctx.send(embed=embed, view=HistoryView())
 
 @bot.command(name="askpremium")
@@ -223,17 +200,15 @@ async def askpremium(ctx):
 @bot.command(name="askactivate")
 @commands.is_owner()
 async def askactivate(ctx, guild_id: int):
-    """Owner-only command to manually activate premium after checking PayPal."""
     if guild_id not in PREMIUM_GUILDS:
         PREMIUM_GUILDS.append(guild_id)
-        with open("premium_guilds.json", "w") as f:
-            json.dump(PREMIUM_GUILDS, f)
+        with open("premium_guilds.json", "w") as f: json.dump(PREMIUM_GUILDS, f)
         await ctx.send(f"✅ Guild {guild_id} is now Premium!")
 
 @bot.command()
 async def invite(ctx):
     link = discord.utils.oauth_url(bot.user.id, permissions=discord.Permissions(administrator=True))
-    await ctx.send(f"Add me to your server: {link}")
+    await ctx.send(f"Add me: {link}")
 
 @bot.command()
 async def stats(ctx):
@@ -241,13 +216,9 @@ async def stats(ctx):
     embed.add_field(name="Servers", value=str(len(bot.guilds)))
     await ctx.send(embed=embed)
 
-# 7. EXECUTION
 async def main():
-    async with bot:
-        await bot.start(TOKEN)
+    async with bot: await bot.start(TOKEN)
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Bot offline.")
+    try: asyncio.run(main())
+    except KeyboardInterrupt: print("Bot offline.")
