@@ -19,7 +19,6 @@ class DungeonShip(commands.Cog):
         self.db_path = "/app/data/ship_data.db" if os.path.exists("/app/data") else "ship_data.db"
         self._init_db()
         
-        # GLADIATOR & ARENA THEMED MESSAGES
         self.arena_lexicon = {
             "sad": [
                 "The Arena is silent. {u1} and {u2} have no tactical synergy.",
@@ -97,48 +96,59 @@ class DungeonShip(commands.Cog):
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     p1_data, p2_data = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
 
-            # Canvas (Arena Sand/Dark theme)
-            canvas = Image.new("RGBA", (1200, 700), (20, 15, 10, 255))
+            # --- CANVAS ENGINE ---
+            canvas = Image.new("RGBA", (1200, 700), (10, 8, 5, 255))
             draw = ImageDraw.Draw(canvas)
-            av_size = 420
-            
-            # Load Avatars
+            av_size = 440
+
+            # --- ASSET LOADING ---
             av1 = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2 = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
-            # Draw Arena Aura (Glow behind avatars)
-            aura_color = (255, 69, 0, 80) if percent > 50 else (100, 100, 100, 80)
-            draw.ellipse([30, 130, 30+av_size+40, 130+av_size+40], fill=aura_color)
-            draw.ellipse([730, 130, 730+av_size+40, 130+av_size+40], fill=aura_color)
-
-            # Central "Heat of Battle" Meter
-            col_x, col_y, col_w, col_h = 540, 120, 120, 480
-            # Border
-            draw.rectangle([col_x, col_y, col_x+col_w, col_y+col_h], fill=(30,30,30), outline=(218, 165, 32), width=8)
+            # --- CRYSTAL CORE RADIANCE ---
+            # Create a glow layer for the central column
+            glow_layer = Image.new("RGBA", (1200, 700), (0, 0, 0, 0))
+            g_draw = ImageDraw.Draw(glow_layer)
             
-            # Fill (Fire gradient logic)
-            fill_h = (percent / 100) * (col_h - 16)
-            if percent > 0:
-                fill_color = (255, 215, 0) if percent < 80 else (255, 0, 0)
-                draw.rectangle([col_x+8, (col_y+col_h-8)-fill_h, col_x+col_w-8, col_y+col_h-8], fill=fill_color)
+            # Dynamic Glow Color based on sync
+            core_color = (255, 50, 50) if percent > 80 else (218, 165, 32) if percent > 40 else (100, 100, 255)
+            
+            # Draw the glowing orb behind the score
+            g_draw.ellipse([450, 150, 750, 550], fill=(*core_color, 60))
+            glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(30))
+            canvas.alpha_composite(glow_layer)
 
-            # Paste Avatars
+            # --- CENTRAL CRYSTAL COLUMN (THE NEVER SEEN BEFORE DESIGN) ---
+            col_x, col_y, col_w, col_h = 520, 80, 160, 540
+            # Beveled Frame
+            draw.rectangle([col_x, col_y, col_x+col_w, col_y+col_h], fill=(20, 20, 20), outline=(255, 255, 255, 100), width=3)
+            
+            # Internal "Energy" Fill
+            fill_h = (percent / 100) * (col_h - 10)
+            if percent > 0:
+                # Gradient-style rect
+                draw.rectangle([col_x+5, (col_y+col_h-5)-fill_h, col_x+col_w-5, col_y+col_h-5], fill=(*core_color, 200))
+
+            # --- SCORE OVERLAY (ON THE COLUMN) ---
+            try:
+                # Using massive font for impact
+                font_large = ImageFont.truetype("arial.ttf", 110)
+            except:
+                font_large = ImageFont.load_default()
+
+            score_text = f"{percent}%"
+            # Draw shadow for the text inside the column
+            draw.text((603, 353), score_text, fill=(0, 0, 0, 255), anchor="mm", font=font_large)
+            # Draw the main score directly over the "Heat Meter"
+            draw.text((600, 350), score_text, fill=(255, 255, 255, 255), anchor="mm", font=font_large, stroke_width=4, stroke_fill=(core_color))
+
+            # --- GLADIATOR PASTE ---
+            # Subtle outer glow for avatars
+            draw.rectangle([40, 140, 40+av_size+20, 140+av_size+20], outline=(*core_color, 150), width=15)
+            draw.rectangle([740, 140, 740+av_size+20, 140+av_size+20], outline=(*core_color, 150), width=15)
+
             canvas.paste(av1, (50, 150), av1)
             canvas.paste(av2, (750, 150), av2)
-
-            # Gladiator Frame (Golden trim)
-            draw.rectangle([45, 145, 50+av_size+5, 150+av_size+5], outline=(218, 165, 32), width=10)
-            draw.rectangle([745, 145, 750+av_size+5, 150+av_size+5], outline=(218, 165, 32), width=10)
-
-            # Final Score Text
-            try:
-                # Attempt to use a bold font if available
-                font = ImageFont.truetype("arial.ttf", 90)
-            except:
-                font = ImageFont.load_default()
-            
-            score_text = f"{percent}%"
-            draw.text((545, 30), score_text, fill=(255, 255, 255), font=font, stroke_width=5, stroke_fill=(0,0,0))
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
@@ -212,8 +222,7 @@ class DungeonShip(commands.Cog):
             conn.execute("UPDATE ship_users SET spouse_id = NULL, marriage_date = NULL WHERE user_id = ?", (ctx.author.id,))
             conn.execute("UPDATE ship_users SET spouse_id = NULL, marriage_date = NULL WHERE user_id = ?", (u['spouse_id'],))
         
-        await ctx.send("🏚️ **CONTRACT SEVERED.** The Arena reclaiming your individual status.")
+        await ctx.send("🏚️ **CONTRACT SEVERED.** The Arena reclaims your individual status.")
 
 async def setup(bot):
     await bot.add_cog(DungeonShip(bot))
-    print("✅ Module Loaded: arena_ship.py")
