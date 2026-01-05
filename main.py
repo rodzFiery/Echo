@@ -170,9 +170,9 @@ async def invite(ctx):
     await ctx.send(f"Add me: {discord.utils.oauth_url(bot.user.id, permissions=discord.Permissions(administrator=True))}")
 
 # --- MASTER COMMAND DIRECTORY ---
-@bot.command(name="fiery")
+@bot.command(name="echo")
 async def fiery(ctx):
-    embed = discord.Embed(title="⚔️ FIERY COMMAND DIRECTORY", color=0xff4500)
+    embed = discord.Embed(title="⚔️ ECHO COMMAND DIRECTORY", color=0xff4500)
     embed.description = "Explore the full potential of your server with our modules."
     
     logo_file = None
@@ -186,7 +186,7 @@ async def fiery(ctx):
             cmd_text = " ".join([f"`!{c.name}`" for c in commands_list if not c.hidden])
             embed.add_field(name=f"📦 {cog_name.replace('Dungeon', '')} Module", value=cmd_text, inline=False)
 
-    embed.add_field(name="🛠️ Core System", value="`!premium` `!premiumstatus` `!invite` `!fiery`", inline=False)
+    embed.add_field(name="🛠️ Core System", value="`!premium` `!premiumstatus` `!invite` `!echo`", inline=False)
     embed.set_footer(text="Type !premium to expand your arsenal.")
     
     if logo_file:
@@ -201,7 +201,7 @@ async def premium(ctx):
     available_modules = [f[:-3] for f in os.listdir('./cogs') if f.endswith('.py')]
     
     embed = discord.Embed(
-        title="🔥 FIERY MODULE SHOP", 
+        title="🔥 ECHO MODULE SHOP", 
         description="Select the module you wish to upgrade to view our **Payment Tiers**.",
         color=0xff4500
     )
@@ -319,7 +319,7 @@ async def premiumstatus(ctx):
         await ctx.send(embed=embed)
 
 # --- NEW: DEVELOPER GLOBAL MODULE TOGGLES ---
-@bot.command(name="fieryon")
+@bot.command(name="echoon")
 async def fieryon(ctx):
     # Restrict to your developer server ID
     if ctx.guild.id != 1457658274496118786:
@@ -346,7 +346,7 @@ async def fieryon(ctx):
     
     await ctx.send("🛠️ **DEVELOPER MODE:** All modules activated for this server.")
 
-@bot.command(name="fieryoff")
+@bot.command(name="echooff")
 async def fieryoff(ctx):
     # Restrict to your developer server ID
     if ctx.guild.id != 1457658274496118786:
