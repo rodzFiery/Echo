@@ -197,7 +197,8 @@ class DungeonShip(commands.Cog):
 
             results_text = ""
             for i, (member, score) in enumerate(top_5, 1):
-                indicator = "🔥" if score > 80 else "💖" if score > 50 else "✨"
+                # Using the logic from !ship titles for consistency
+                indicator = "👑" if score >= 90 else "🔥" if score >= 70 else "💖" if score >= 50 else "✨"
                 results_text += f"**{i}. {member.display_name}** — {score}% {indicator}\n"
 
             embed.add_field(name="🏛️ TOP POTENTIAL MATCHES", value=results_text, inline=False)
