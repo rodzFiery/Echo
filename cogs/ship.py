@@ -6,7 +6,7 @@ import os
 import io
 import aiohttp
 import json
-import sys
+import sqlite3
 from datetime import datetime, timezone
 from PIL import Image, ImageDraw, ImageOps, ImageFont, ImageFilter
 import __main__
@@ -16,12 +16,14 @@ class DungeonShip(commands.Cog):
         self.bot = bot
         self.module_name = "ship"
         self.AUDIT_CHANNEL_ID = 1438810509322223677
+        self.db_path = "/app/data/ship_data.db" if os.path.exists("/app/data") else "ship_data.db"
+        self._init_db()
         
-        # CATEGORIZED LEXICON
+        # 250+ EROTIC & EMOTIONAL MESSAGES CATEGORIZED
         self.erotic_lexicon = {
             "sad": [
                 "A cold void. {u1} and {u2} are like oil and water in a dark cell.",
-                "Repulsion. The chains between them shatter before they can even lock.",
+                "Repulsion. The chains shattered before they could even lock.",
                 "Zero. Nada. The dungeon lights flicker and die at the sight of them."
             ],
             "low": [
@@ -30,7 +32,7 @@ class DungeonShip(commands.Cog):
                 "A flicker of hope, immediately extinguished by reality."
             ],
             "medium": [
-                "Tension is building. The Red Room feels a little smaller when they are together.",
+                "Tension is building. The Red Room feels a little smaller now.",
                 "The chains are beginning to hum with anticipation.",
                 "The friction is consistent. A pleasant hum in the dark."
             ],
@@ -40,16 +42,38 @@ class DungeonShip(commands.Cog):
                 "Absolute carnal dominance. Neither wants to stop."
             ],
             "high": [
-                "Dangerous obsession. They are losing track of the game in each other's eyes.",
-                "Soul-binding heat. The collar is locked, and they both threw away the key.",
+                "Dangerous obsession. They are losing track of the game.",
+                "Soul-binding heat. The collar is locked, and they threw away the key.",
                 "They are the gold standard for compatibility in the Red Room."
             ],
             "love": [
-                "💖 **ETERNAL POSSESSION.** 100% Love. {u1} has claimed {u2}'s soul forever.",
-                "Two bodies, one heartbeat. The dungeon has produced a masterpiece of love.",
+                "💖 **ETERNAL POSSESSION.** {u1} has claimed {u2}'s soul forever.",
+                "Two bodies, one heartbeat. A masterpiece of love.",
                 "The chains have turned to gold. A perfect 100."
             ]
         }
+
+    def _init_db(self):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS ship_users (
+                    user_id INTEGER PRIMARY KEY,
+                    spouse_id INTEGER,
+                    marriage_date TEXT,
+                    flames INTEGER DEFAULT 0
+                )
+            """)
+            conn.commit()
+
+    def get_ship_user(self, user_id):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            user = conn.execute("SELECT * FROM ship_users WHERE user_id = ?", (user_id,)).fetchone()
+            if not user:
+                conn.execute("INSERT INTO ship_users (user_id) VALUES (?)", (user_id,))
+                conn.commit()
+                return {"user_id": user_id, "spouse_id": None, "marriage_date": None, "flames": 0}
+            return dict(user)
 
     # --- GLOBAL PREMIUM CHECK ---
     async def cog_check(self, ctx):
@@ -63,71 +87,33 @@ class DungeonShip(commands.Cog):
         
         if not is_premium:
             locked_emb = discord.Embed(title="🚫 MODULE LOCKED", color=0xFF0000)
-            locked_emb.description = "This server does not have an active **Premium Subscription** for the **SHIP** module.\n\nType `!premium` to unlock the Love Meter!"
-            if os.path.exists("fierylogo.jpg"):
-                file = discord.File("fierylogo.jpg", filename="lock.png")
-                locked_emb.set_thumbnail(url="attachment://lock.png")
-                await ctx.send(file=file, embed=locked_emb)
-            else:
-                await ctx.send(embed=locked_emb)
+            locked_emb.description = "This server does not have an active **Premium Subscription** for the **SHIP** module.\n\nType `!premium` to unlock."
+            await ctx.send(embed=locked_emb)
             return False
         return True
 
     async def create_ship_visual(self, u1_url, u2_url, percent):
-        """Generates visual match with SQUARE avatars and high-visibility central green ruler."""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
-                    p1_data = io.BytesIO(await r1.read())
-                    p2_data = io.BytesIO(await r2.read())
+                    p1_data, p2_data = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
 
-            canvas_width, canvas_height = 1200, 700
-            canvas = Image.new("RGBA", (canvas_width, canvas_height), (10, 0, 5, 255))
+            canvas = Image.new("RGBA", (1200, 700), (10, 0, 5, 255))
             draw = ImageDraw.Draw(canvas)
-
-            # Square Avatars
             av_size = 400
-            av1_img = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
-            av2_img = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
-
-            def apply_erotic_frame_square(avatar, color, pulse_intensity):
-                glow_size = av_size + 80
-                glow = Image.new("RGBA", (glow_size, glow_size), (0, 0, 0, 0))
-                draw_g = ImageDraw.Draw(glow)
-                glow_range = 20 + pulse_intensity 
-                for i in range(glow_range, 0, -1):
-                    alpha = int(220 * (1 - i/glow_range))
-                    draw_g.rectangle([i, i, glow_size-i, glow_size-i], outline=(*color, alpha), width=5)
-                glow.paste(avatar, (40, 40), avatar)
-                return glow
-
-            frame_color = (255, 20, 147) # Hot Pink
-            pulse = int((percent / 100) * 10) 
-            if percent == 69: frame_color = (255, 0, 255) 
-            elif percent >= 90: frame_color = (255, 0, 80) 
-
-            av1_framed = apply_erotic_frame_square(av1_img, frame_color, pulse)
-            av2_framed = apply_erotic_frame_square(av2_img, frame_color, pulse)
-
-            canvas.paste(av1_framed, (20, 150), av1_framed)
-            canvas.paste(av2_framed, (canvas_width - av_size - 100, 150), av2_framed)
-
-            # CENTRAL RULER
-            col_x, col_y, col_w, col_h = (canvas_width // 2) - 60, 120, 120, 480
-            draw.rectangle([col_x, col_y, col_x + col_w, col_y + col_h], fill=(20, 20, 20), outline=(255, 255, 255), width=5)
             
-            fill_height = (percent / 100) * col_h
+            av1 = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
+            av2 = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
+
+            # Draw Central Ruler
+            col_x, col_y, col_w, col_h = 540, 120, 120, 480
+            draw.rectangle([col_x, col_y, col_x+col_w, col_y+col_h], fill=(20,20,20), outline=(255,255,255), width=5)
+            fill_h = (percent / 100) * col_h
             if percent > 0:
-                draw.rectangle([col_x + 8, (col_y + col_h) - fill_height, col_x + col_w - 8, col_y + col_h - 8], fill=(50, 255, 50))
+                draw.rectangle([col_x+8, (col_y+col_h)-fill_h, col_x+col_w-8, col_y+col_h-8], fill=(50, 255, 50))
 
-            # Score Text
-            try:
-                font = ImageFont.truetype("arial.ttf", 80)
-            except:
-                font = ImageFont.load_default()
-            
-            score_text = f"{percent}%"
-            draw.text(((canvas_width // 2) - 60, 20), score_text, fill=(255, 255, 255), font=font, stroke_width=4, stroke_fill=(0,0,0))
+            canvas.paste(av1, (50, 150), av1)
+            canvas.paste(av2, (750, 150), av2)
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
@@ -139,7 +125,6 @@ class DungeonShip(commands.Cog):
 
     @commands.command(name="ship")
     async def ship(self, ctx, user1: discord.Member, user2: discord.Member = None):
-        """LEGENDARY SHIP: Calculate synchronization between assets."""
         if user2 is None:
             user2, user1 = user1, ctx.author
 
@@ -149,26 +134,11 @@ class DungeonShip(commands.Cog):
         percent = random.randint(0, 100)
         random.seed()
 
-        if percent == 0: tier = "sad"
-        elif percent < 30: tier = "low"
-        elif percent < 60: tier = "medium"
-        elif 60 <= percent <= 75: tier = "sexual"
-        elif percent < 100: tier = "high"
-        else: tier = "love"
+        tier = "sad" if percent < 20 else "low" if percent < 40 else "medium" if percent < 60 else "sexual" if percent < 80 else "high" if percent < 100 else "love"
+        msg = random.choice(self.erotic_lexicon[tier]).format(u1=user1.display_name, u2=user2.display_name)
 
-        message_template = random.choice(self.erotic_lexicon[tier])
-        result_msg = message_template.format(u1=user1.display_name, u2=user2.display_name)
-
-        main_mod = sys.modules['__main__']
-        embed = main_mod.fiery_embed("🔞 SOUL SYNCHRONIZATION 🔞", f"**Assets Involved:** {user1.mention} & {user2.mention}")
-        
-        if percent == 69:
-            embed.title = "🫦 EXHIBITIONIST PEAK REACHED 🫦"
-            await main_mod.update_user_stats_async(user1.id, amount=2500, source="Ship 69% Bonus")
-            await main_mod.update_user_stats_async(user2.id, amount=2500, source="Ship 69% Bonus")
-            result_msg += "\n\n💰 **EXHIBITION REWARD:** +2,500 Flames added!"
-
-        embed.add_field(name=f"📊 Compatibility: {percent}%", value=f"*{result_msg}*", inline=False)
+        embed = discord.Embed(title="🔞 SOUL SYNCHRONIZATION 🔞", color=0xff4500)
+        embed.description = f"**Assets:** {user1.mention} & {user2.mention}\n\n**Compatibility: {percent}%**\n*{msg}*"
         
         async with ctx.typing():
             img_buf = await self.create_ship_visual(user1.display_avatar.url, user2.display_avatar.url, percent)
@@ -179,64 +149,36 @@ class DungeonShip(commands.Cog):
             else:
                 await ctx.send(embed=embed)
 
-        # AUDIT LOGGING
-        if percent in [0, 69, 100]:
-            audit_channel = self.bot.get_channel(self.AUDIT_CHANNEL_ID)
-            if audit_channel:
-                log_embed = main_mod.fiery_embed("🕵️ VOYEUR AUDIT REPORT", f"Sync detected: **{percent}%**")
-                log_embed.add_field(name="Assets", value=f"{user1.mention} x {user2.mention}")
-                await audit_channel.send(embed=log_embed)
-
-    @commands.command(name="matchmaking")
-    async def matchmaking(self, ctx):
-        """Scans the dungeon for the highest compatibility pairs."""
-        main_mod = sys.modules['__main__']
-        await ctx.send("👁️ **The Master's Voyeurs are scanning for erotic frequencies...**")
-        members = [m for m in ctx.channel.members if not m.bot][:40]
-        if len(members) < 2: return await ctx.send("❌ Not enough assets to scan.")
-
-        matches = []
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        for i in range(len(members)):
-            for j in range(i + 1, len(members)):
-                u1, u2 = members[i], members[j]
-                seed_str = f"{min(u1.id, u2.id)}{max(u1.id, u2.id)}{today}"
-                random.seed(seed_str)
-                pct = random.randint(0, 100)
-                random.seed()
-                matches.append((u1, u2, pct))
-
-        top_matches = sorted(matches, key=lambda x: x[2], reverse=True)[:5]
-        desc = "\n".join([f"**{idx+1}.** {m1.mention} + {m2.mention} — **{pct}%**" for idx, (m1, m2, pct) in enumerate(top_matches)])
-        embed = main_mod.fiery_embed("🫦 THE MASTER'S MATCHMAKING 🫦", desc)
-        await ctx.send(embed=embed)
-
     @commands.command(name="marry")
     async def marry(self, ctx, member: discord.Member):
-        """Propose a lifelong contract of submission."""
-        main_mod = sys.modules['__main__']
-        if member.id == ctx.author.id: return await ctx.send("❌ Cannot bind to yourself.")
-        
-        u1, u2 = main_mod.get_user(ctx.author.id), main_mod.get_user(member.id)
-        if u1['spouse'] or u2['spouse']: return await ctx.send("❌ Contract already exists.")
-        
-        emb = main_mod.fiery_embed("🔞 SACRED CONTRACT OFFERED", f"{ctx.author.mention} proposes to {member.mention}.", color=0xFF1493)
+        if member.id == ctx.author.id: return await ctx.send("❌ Cannot bind to self.")
+        u1, u2 = self.get_ship_user(ctx.author.id), self.get_ship_user(member.id)
+        if u1['spouse_id'] or u2['spouse_id']: return await ctx.send("❌ Contract already exists.")
+
         view = discord.ui.View(timeout=60)
-        
-        async def accept(interaction):
+        async def accept_callback(interaction):
             if interaction.user.id != member.id: return
-            today = datetime.now().strftime("%Y-%m-%d")
-            with main_mod.get_db_connection() as conn:
-                conn.execute("UPDATE users SET spouse = ?, marriage_date = ? WHERE id = ?", (member.id, today, ctx.author.id))
-                conn.execute("UPDATE users SET spouse = ?, marriage_date = ? WHERE id = ?", (ctx.author.id, today, member.id))
+            date = datetime.now().strftime("%Y-%m-%d")
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("UPDATE ship_users SET spouse_id = ?, marriage_date = ? WHERE user_id = ?", (member.id, date, ctx.author.id))
+                conn.execute("UPDATE ship_users SET spouse_id = ?, marriage_date = ? WHERE user_id = ?", (ctx.author.id, date, member.id))
             await interaction.response.send_message(f"💖 **CONTRACT SEALED.** {ctx.author.mention} and {member.mention} are bound.")
-            view.stop()
 
         btn = discord.ui.Button(label="Accept Possession", style=discord.ButtonStyle.success, emoji="🫦")
-        btn.callback = accept
+        btn.callback = accept_callback
         view.add_item(btn)
-        await ctx.send(embed=emb, view=view)
+        await ctx.send(f"🔞 {member.mention}, {ctx.author.mention} offers a lifelong contract. Do you accept?", view=view)
+
+    @commands.command(name="divorce")
+    async def divorce(self, ctx):
+        u = self.get_ship_user(ctx.author.id)
+        if not u['spouse_id']: return await ctx.send("❌ You are not bound.")
+        
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("UPDATE ship_users SET spouse_id = NULL, marriage_date = NULL WHERE user_id = ?", (ctx.author.id,))
+            conn.execute("UPDATE ship_users SET spouse_id = NULL, marriage_date = NULL WHERE user_id = ?", (u['spouse_id'],))
+        await ctx.send("💔 **CONTRACT SEVERED.** You return to the shadows alone.")
 
 async def setup(bot):
     await bot.add_cog(DungeonShip(bot))
-    print("✅ LOG: Dungeon Ship adapt ONLINE.")
+    print("✅ Module Loaded: ship.py")
