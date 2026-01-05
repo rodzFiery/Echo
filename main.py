@@ -63,6 +63,7 @@ class MyBot(commands.Bot):
         # Custom now sends "GUILD_ID|MODULE_NAME"
         custom_data = data.get('custom', "")
         payment_status = data.get('payment_status')
+        amount = data.get('mc_gross', "0.00") # Grab the payment amount from PayPal
 
         if payment_status == 'Completed' and "|" in custom_data:
             guild_id_str, module_name = custom_data.split("|")
@@ -76,6 +77,20 @@ class MyBot(commands.Bot):
                 with open(PREMIUM_FILE, "w") as f:
                     json.dump(PREMIUM_GUILDS, f)
                 print(f"💎 MODULE ACTIVATED: {module_name} for {guild_id_str}")
+
+                # --- NEW: SALES LOG TO YOUR DEVELOPER SERVER ---
+                try:
+                    dev_channel = self.get_channel(1457706030199996570)
+                    if dev_channel:
+                        log_emb = discord.Embed(title="💰 NEW SALE DETECTED", color=0x00ff00)
+                        log_emb.add_field(name="Module", value=module_name.upper(), inline=True)
+                        log_emb.add_field(name="Amount", value=f"${amount} USD", inline=True)
+                        log_emb.add_field(name="Server ID", value=guild_id_str, inline=False)
+                        log_emb.set_footer(text=f"Time: {discord.utils.utcnow().strftime('%Y-%m-%d %H:%M')}")
+                        await dev_channel.send(embed=log_emb)
+                except Exception as e:
+                    print(f"Failed to log sale: {e}")
+
         return web.Response(text="OK")
 
     async def on_ready(self):
