@@ -24,7 +24,7 @@ def get_premium_list():
         with open(PREMIUM_FILE, "r") as f:
             try: return json.load(f) # Now returns a dictionary for modularity
             except: return {}
-    return {}
+    return []
 
 # Shared global variable for the bot instance
 PREMIUM_GUILDS = get_premium_list()
@@ -78,6 +78,24 @@ class MyBot(commands.Bot):
                     json.dump(PREMIUM_GUILDS, f)
                 print(f"💎 MODULE ACTIVATED: {module_name} for {guild_id_str}")
 
+                # --- NEW: AUTOMATED SUCCESS BROADCAST TO CUSTOMER SERVER ---
+                try:
+                    target_guild = self.get_guild(int(guild_id_str))
+                    if target_guild:
+                        # Find the best channel to announce the upgrade
+                        chan = next((c for c in target_guild.text_channels if c.permissions_for(target_guild.me).send_messages), None)
+                        if chan:
+                            success_emb = discord.Embed(title="💎 PREMIUM UNLOCKED", color=0x00ff00)
+                            success_emb.description = f"The **{module_name.upper()}** module has been activated! Enjoy your new high-level features."
+                            if os.path.exists("fierylogo.jpg"):
+                                file = discord.File("fierylogo.jpg", filename="logo.png")
+                                success_emb.set_thumbnail(url="attachment://logo.png")
+                                await chan.send(file=file, embed=success_emb)
+                            else:
+                                await chan.send(embed=success_emb)
+                except Exception as e:
+                    print(f"Broadcast Error: {e}")
+
                 # --- NEW: SALES LOG TO YOUR DEVELOPER SERVER ---
                 try:
                     dev_channel = self.get_channel(1457706030199996570)
@@ -87,7 +105,12 @@ class MyBot(commands.Bot):
                         log_emb.add_field(name="Amount", value=f"${amount} USD", inline=True)
                         log_emb.add_field(name="Server ID", value=guild_id_str, inline=False)
                         log_emb.set_footer(text=f"Time: {discord.utils.utcnow().strftime('%Y-%m-%d %H:%M')}")
-                        await dev_channel.send(embed=log_emb)
+                        if os.path.exists("fierylogo.jpg"):
+                            f_log = discord.File("fierylogo.jpg", filename="logo_log.png")
+                            log_emb.set_thumbnail(url="attachment://logo_log.png")
+                            await dev_channel.send(file=f_log, embed=log_emb)
+                        else:
+                            await dev_channel.send(embed=log_emb)
                 except Exception as e:
                     print(f"Failed to log sale: {e}")
 
@@ -121,7 +144,12 @@ async def premium(ctx):
         description="Select a module to unlock its premium features for this server.",
         color=0xff4500
     )
-    embed.set_thumbnail(url=bot.user.display_avatar.url)
+    
+    # Branding logic
+    logo_file = None
+    if os.path.exists("fierylogo.jpg"):
+        logo_file = discord.File("fierylogo.jpg", filename="shop_logo.png")
+        embed.set_thumbnail(url="attachment://shop_logo.png")
 
     class ShopView(discord.ui.View):
         def __init__(self):
@@ -164,7 +192,10 @@ async def premium(ctx):
             )
             await interaction.response.send_message(embed=checkout_emb, ephemeral=True)
 
-    await ctx.send(embed=embed, view=ShopView())
+    if logo_file:
+        await ctx.send(file=logo_file, embed=embed, view=ShopView())
+    else:
+        await ctx.send(embed=embed, view=ShopView())
 
 # --- NEW: THE ULTIMATE MODULAR DASHBOARD ---
 @bot.command(name="premiumstatus")
@@ -177,7 +208,11 @@ async def premiumstatus(ctx):
     owned_modules = PREMIUM_GUILDS.get(guild_id, [])
 
     embed = discord.Embed(title="⚔️ SERVER MODULE DASHBOARD", color=0xff4500)
-    embed.set_thumbnail(url=bot.user.display_avatar.url)
+    
+    logo_file = None
+    if os.path.exists("fierylogo.jpg"):
+        logo_file = discord.File("fierylogo.jpg", filename="status_logo.png")
+        embed.set_thumbnail(url="attachment://status_logo.png")
     
     status_text = ""
     unlocked_count = 0
@@ -198,7 +233,10 @@ async def premiumstatus(ctx):
     embed.add_field(name="Unlock Progress", value=f"{bar} **{percent:.0f}%**", inline=False)
     embed.set_footer(text=f"Server ID: {guild_id} | Support your developer 🔥")
     
-    await ctx.send(embed=embed)
+    if logo_file:
+        await ctx.send(file=logo_file, embed=embed)
+    else:
+        await ctx.send(embed=embed)
 
 async def main():
     async with bot:
