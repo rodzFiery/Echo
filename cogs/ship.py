@@ -81,10 +81,25 @@ class DungeonShip(commands.Cog):
             av1_raw = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2_raw = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
-            # 3. GLADIATOR AURA & PEDESTALS
+            # 3. DYNAMIC COLOR ENGINE (0 to 100% Transition)
+            # Calculations for smooth color shifting
+            if percent <= 50:
+                # Neutral Silver to Deep Red
+                ratio = percent / 50
+                r = int(120 + (135 * ratio))
+                g = int(120 - (120 * ratio))
+                b = int(140 - (100 * ratio))
+            else:
+                # Deep Red to Imperial Gold
+                ratio = (percent - 50) / 50
+                r = 255
+                g = int(50 * (1 - ratio) + 215 * ratio)
+                b = int(100 * (1 - ratio))
+            
+            aura_color = (r, g, b)
+            
             aura = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             a_draw = ImageDraw.Draw(aura)
-            aura_color = (255, 215, 0) if percent > 75 else (255, 50, 100) if percent > 40 else (120, 120, 140)
             
             # UI Pedestals
             a_draw.rectangle([40, 50, 40+av_size+10, 60+av_size+10], fill=(0, 0, 0, 180))
@@ -97,7 +112,6 @@ class DungeonShip(commands.Cog):
             canvas = Image.alpha_composite(canvas, aura)
 
             # --- AVATAR CARD BORDERS ---
-            # Draws a thick border around the avatars matching the aura color
             draw.rectangle([48, 58, 52+av_size, 62+av_size], outline=aura_color, width=12)
             draw.rectangle([708, 58, 712+av_size, 62+av_size], outline=aura_color, width=12)
 
@@ -118,13 +132,9 @@ class DungeonShip(commands.Cog):
             if fill_size > 0:
                 draw.rounded_rectangle([col_x + 3, col_y + col_h - 3 - fill_size, col_x + col_w - 3, col_y + col_h - 3], radius=12, fill=(255, 0, 40, 220))
 
-            # --- DYNAMIC TEXT RENDERING (FORCED VISIBILITY) ---
-            if percent >= 90:
-                text_main, text_stroke = (255, 255, 255), (255, 0, 0)
-            elif percent >= 70:
-                text_main, text_stroke = (255, 215, 0), (0, 0, 0)
-            else:
-                text_main, text_stroke = (255, 255, 255), (50, 50, 50)
+            # --- DYNAMIC TEXT RENDERING ---
+            text_main = (255, 255, 255) if percent < 90 else aura_color
+            text_stroke = (aura_color[0], aura_color[1], aura_color[2])
 
             pct_text = f"{percent}%"
             # Explicit layering for visibility
@@ -152,8 +162,7 @@ class DungeonShip(commands.Cog):
                 draw.rounded_rectangle([bx, by, bx+fill_w, by+bar_h], radius=10, fill=(255, 45, 95))
 
             # --- 6. IMPERIAL GLOW FILTER ---
-            # Creates a soft radiance over the entire composition
-            glow = canvas.filter(ImageFilter.GaussianBlur(10))
+            glow = canvas.filter(ImageFilter.GaussianBlur(8))
             canvas = Image.alpha_composite(glow, canvas)
 
             buf = io.BytesIO()
