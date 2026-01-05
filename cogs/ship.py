@@ -39,9 +39,9 @@ class DungeonShip(commands.Cog):
 
     async def create_ship_visual(self, u1_url, u2_url, percent):
         try:
-            # 1. IMPERIAL ARENA ENGINE (1200x600 for Max Embed Fit)
-            # Background logic removed: Using solid deep arena base
-            canvas = Image.new("RGBA", (1200, 600), (40, 0, 5, 255))
+            # 1. TRANSPARENT ENGINE (1200x600 for Max Embed Fit)
+            # Removed background color and theme for a clean look
+            canvas = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             
             draw = ImageDraw.Draw(canvas)
 
@@ -79,7 +79,8 @@ class DungeonShip(commands.Cog):
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     p1_data, p2_data = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
 
-            av_size = 380
+            # --- INCREASED AVATAR SIZE (MAXIMIZED) ---
+            av_size = 480
             av1_raw = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2_raw = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
@@ -88,29 +89,29 @@ class DungeonShip(commands.Cog):
             a_draw = ImageDraw.Draw(aura)
             aura_color = (255, 215, 0) if percent > 75 else (255, 50, 100) if percent > 40 else (120, 120, 140)
             
-            # UI Pedestals (Square backgrounds for avatars)
-            a_draw.rectangle([90, 100, 100+av_size+10, 110+av_size+10], fill=(0, 0, 0, 180))
-            a_draw.rectangle([740, 100, 750+av_size+10, 110+av_size+10], fill=(0, 0, 0, 180))
+            # UI Pedestals (Adjusted for larger avatars)
+            a_draw.rectangle([40, 50, 40+av_size+10, 60+av_size+10], fill=(0, 0, 0, 180))
+            a_draw.rectangle([700, 50, 710+av_size+10, 60+av_size+10], fill=(0, 0, 0, 180))
             
             # Platform Glows
-            a_draw.ellipse([70, 90, 110+av_size+30, 130+av_size+30], fill=(aura_color[0], aura_color[1], aura_color[2], 80))
-            a_draw.ellipse([720, 90, 760+av_size+30, 130+av_size+30], fill=(aura_color[0], aura_color[1], aura_color[2], 80))
+            a_draw.ellipse([20, 40, 60+av_size+30, 80+av_size+30], fill=(aura_color[0], aura_color[1], aura_color[2], 80))
+            a_draw.ellipse([680, 40, 720+av_size+30, 80+av_size+30], fill=(aura_color[0], aura_color[1], aura_color[2], 80))
             aura = aura.filter(ImageFilter.GaussianBlur(35))
             canvas = Image.alpha_composite(canvas, aura)
 
-            # Paste Avatars
-            canvas.paste(av1_raw, (100, 110), av1_raw)
-            canvas.paste(av2_raw, (750, 110), av2_raw)
+            # Paste Avatars (Maximized)
+            canvas.paste(av1_raw, (50, 60), av1_raw)
+            canvas.paste(av2_raw, (710, 60), av2_raw)
 
             # 4. THE IMPERIAL BOND (Center)
-            # Central Light Nova - Increased transparency (lowered Alpha) for better text contrast
+            # Central Light Nova
             nova = Image.new("RGBA", (1200, 600), (0,0,0,0))
             ImageDraw.Draw(nova).ellipse([400, 100, 800, 500], fill=(255, 255, 255, 15))
             nova = nova.filter(ImageFilter.GaussianBlur(50))
             canvas = Image.alpha_composite(canvas, nova)
 
             # --- VERTICAL LOVE COLUMN (CENTERED) ---
-            col_x, col_y, col_w, col_h = 585, 110, 30, 380
+            col_x, col_y, col_w, col_h = 585, 60, 30, 480
             # Column Background
             draw.rounded_rectangle([col_x, col_y, col_x + col_w, col_y + col_h], radius=15, fill=(20, 0, 0, 180), outline=(255, 255, 255, 60), width=2)
             # Love Fill (Bottom-up)
@@ -129,12 +130,12 @@ class DungeonShip(commands.Cog):
                 text_main = (220, 220, 220) # Imperial Silver
                 text_stroke = (0, 0, 0)
 
-            # --- RENDER PERCENTAGE (THE FIX) ---
+            # Massive focal Percentage (SHOWING THE LOVE SCORE)
             pct_text = f"{percent}%"
-            # Draw a dark glow first to force text visibility
-            draw.text((608, 308), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
-            # Draw the actual text with a heavy stroke
-            draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=8, stroke_fill=text_stroke)
+            # Multi-layered text for maximum visibility
+            # This is the random % generated in the !ship command
+            draw.text((608, 308), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) # Absolute Black Shadow
+            draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=6, stroke_fill=text_stroke)
 
             # Status Icon with Dynamic Glow for high scores
             heart_emoji = "❤️" if percent > 50 else "💔"
@@ -145,7 +146,7 @@ class DungeonShip(commands.Cog):
                 heart_glow = heart_glow.filter(ImageFilter.GaussianBlur(15))
                 canvas = Image.alpha_composite(canvas, heart_glow)
             
-            draw.text((600, 435), heart_emoji, anchor="mm", font=font_heart, fill=text_main if percent >= 75 else None)
+            draw.text((600, 435), heart_emoji, anchor="mm", font=font_heart, fill=text_main if percent >= 75 else (255, 255, 255, 255))
 
             # Fiery Logo Placement
             if os.path.exists("fierylogo.jpg"):
@@ -156,19 +157,16 @@ class DungeonShip(commands.Cog):
                 canvas.paste(logo, (532, 35), logo)
 
             # 5. DYNAMIC LOVE BAR (Imperial Shield Style)
-            bar_w, bar_h = 900, 35
-            bx, by = (1200-bar_w)//2, 530
+            bar_w, bar_h = 1000, 40
+            bx, by = (1200-bar_w)//2, 545
             draw.rounded_rectangle([bx-8, by-8, bx+bar_w+8, by+bar_h+8], radius=15, fill=(0, 0, 0, 180)) 
             
             fill_w = (percent / 100) * bar_w
             if fill_w > 10:
                 draw.rounded_rectangle([bx, by, bx+fill_w, by+bar_h], radius=10, fill=(255, 45, 95))
 
-            # 6. FINAL CINEMATIC VIGNETTE
-            vig = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
-            ImageDraw.Draw(vig).rectangle([0,0,1200,600], outline=(30, 0, 5, 240), width=120)
-            vig = vig.filter(ImageFilter.GaussianBlur(70))
-            canvas = Image.alpha_composite(canvas, vig)
+            # 6. FINAL VIGNETTE REMOVED
+            # Removed vignette for clean theme-free display
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
@@ -186,6 +184,8 @@ class DungeonShip(commands.Cog):
         if member.id == ctx.author.id:
             return await ctx.send("🎭 Narcissus? Try shipping with someone else!")
 
+        # --- RANDOM PERCENT GENERATOR ---
+        # This generates the random score between you and the tagged user
         percent = random.randint(0, 100)
         
         if percent >= 90: title = "👑 ABSOLUTE DYNASTY"
