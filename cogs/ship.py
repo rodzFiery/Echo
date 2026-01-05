@@ -44,7 +44,7 @@ class DungeonShip(commands.Cog):
             draw = ImageDraw.Draw(canvas)
 
             # --- FONT SYSTEM LOADER (TITANIC SCALING) ---
-            font_size_pct = 350 if percent < 100 else 280 
+            font_size_pct = 320 if percent < 100 else 250 
             font_size_heart = 120
             try:
                 font_paths = [
@@ -64,7 +64,7 @@ class DungeonShip(commands.Cog):
                 font_pct = ImageFont.load_default()
                 font_heart = ImageFont.load_default()
             
-            # 2. PARTICLE GENERATOR
+            # 2. PARTICLE GENERATOR (Skulls for Doom, Hearts for Glory)
             for _ in range(50):
                 px, py = random.randint(0, 1200), random.randint(0, 600)
                 p_size = random.randint(5, 18)
@@ -110,7 +110,7 @@ class DungeonShip(commands.Cog):
             canvas.paste(av1_raw, (50, 60), av1_raw)
             canvas.paste(av2_raw, (710, 60), av2_raw)
 
-            # 4. IMPERIAL BOND
+            # 4. IMPERIAL BOND (Center Bloom)
             nova = Image.new("RGBA", (1200, 600), (0,0,0,0))
             ImageDraw.Draw(nova).ellipse([400, 100, 800, 500], fill=(255, 255, 255, 15))
             nova = nova.filter(ImageFilter.GaussianBlur(50))
@@ -123,13 +123,25 @@ class DungeonShip(commands.Cog):
             if fill_size > 0:
                 draw.rounded_rectangle([col_x + 3, col_y + col_h - 3 - fill_size, col_x + col_w - 3, col_y + col_h - 3], radius=12, fill=(255, 0, 40, 220))
 
+            # Logo
+            if os.path.exists("fierylogo.jpg"):
+                logo = Image.open("fierylogo.jpg").convert("RGBA").resize((135, 135))
+                mask = Image.new("L", (135, 135), 0)
+                ImageDraw.Draw(mask).ellipse([0, 0, 135, 135], fill=255)
+                logo.putalpha(mask)
+                canvas.paste(logo, (532, 35), logo)
+
             # --- 6. IMPERIAL GLOW FILTER ---
             glow = canvas.filter(ImageFilter.GaussianBlur(8))
             canvas = Image.alpha_composite(glow, canvas)
 
             # --- 7. FINAL OVERLAY: THE TITANIC SCORE ---
             final_draw = ImageDraw.Draw(canvas)
-            final_draw.rounded_rectangle([350, 150, 850, 450], radius=40, fill=(0, 0, 0, 200))
+            
+            # REFINED: Loving Crystal Heart Plate (Instead of ugly black square)
+            heart_points = [(600, 480), (380, 250), (450, 140), (600, 220), (750, 140), (820, 250)]
+            final_draw.polygon(heart_points, fill=(aura_color[0], aura_color[1], aura_color[2], 60))
+            final_draw.polygon(heart_points, outline=(255, 255, 255, 100), width=5)
 
             if percent >= 90:
                 text_main, text_stroke = (255, 255, 255), (255, 215, 0)
@@ -138,11 +150,12 @@ class DungeonShip(commands.Cog):
             elif percent < 20:
                 text_main, text_stroke = (0, 255, 255), (0, 50, 150)
             else:
-                text_main, text_stroke = (255, 255, 255), (50, 50, 50)
+                text_main, text_stroke = (255, 255, 255), (255, 105, 180) # Pink Glow for mid-range
 
             pct_text = f"{percent}%"
-            final_draw.text((615, 315), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
-            final_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=25, stroke_fill=text_stroke)
+            # Titanic Rendering for massive visibility
+            final_draw.text((610, 310), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
+            final_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=20, stroke_fill=text_stroke)
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
@@ -195,22 +208,28 @@ class DungeonShip(commands.Cog):
         """Scans the arena for top 5 romantic tension candidates."""
         async with ctx.typing():
             potential_members = [m for m in ctx.guild.members if not m.bot and m.id != ctx.author.id]
-            if len(potential_members) < 5:
-                return await ctx.send("❌ Not enough gladiators in the arena!")
-            sample = random.sample(potential_members, min(len(potential_members), 15))
+            if not potential_members:
+                return await ctx.send("❌ No gladiators found in this arena!")
+            
+            sample_size = min(len(potential_members), 15)
+            sample = random.sample(potential_members, sample_size)
             matches = [(m, random.randint(1, 100)) for m in sample]
             matches.sort(key=lambda x: x[1], reverse=True)
             top_5 = matches[:5]
+
             embed = discord.Embed(title="🔥 ARENA MATCHMAKER", description=f"Gladiator {ctx.author.mention}, the fates have spoken:", color=0xFF4500)
             if os.path.exists("fierylogo.jpg"):
                 logo_file = discord.File("fierylogo.jpg", filename="logo.png")
                 embed.set_thumbnail(url="attachment://logo.png")
+            
             results_text = ""
             for i, (member, score) in enumerate(top_5, 1):
-                indicator = "💖" if score >= 90 else "🔥" if score >= 70 else "💖" if score >= 50 else "✨"
+                indicator = "💖" if score >= 90 else "🔥" if score >= 70 else "⚖️" if score >= 50 else "✨"
                 results_text += f"**{i}. {member.display_name}** — {score}% {indicator}\n"
+            
             embed.add_field(name="🏛️ TOP POTENTIAL MATCHES", value=results_text, inline=False)
             embed.set_footer(text="Glory to the Echo! | Try !ship with them.", icon_url=ctx.author.display_avatar.url)
+            
             await ctx.send(file=logo_file if os.path.exists("fierylogo.jpg") else None, embed=embed)
 
 async def setup(bot):
