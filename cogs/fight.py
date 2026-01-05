@@ -148,14 +148,10 @@ class DungeonFight(commands.Cog):
             av1_raw = Image.open(p1).convert("RGBA").resize((av_size, av_size))
             av2_raw = Image.open(p2).convert("RGBA").resize((av_size, av_size))
 
-            # REFINED VANISHING MASK: High visibility center with soft feathered edges
+            # FIXED MASK: Circular with slight feathering for the arena feel
             mask = Image.new("L", (av_size, av_size), 0)
             mask_draw = ImageDraw.Draw(mask)
-            
-            # Feathered radial logic: 100% opaque in center, fades out at the circle edge
-            for i in range(av_size // 2):
-                alpha = int(255 * (1 - (i / (av_size // 2))**6)) # High power keeps center solid
-                mask_draw.ellipse([i, i, av_size-i, av_size-i], outline=255-alpha, fill=255-alpha)
+            mask_draw.ellipse([0, 0, av_size, av_size], fill=255)
 
             av1 = ImageOps.fit(av1_raw, mask.size, centering=(0.5, 0.5))
             av1.putalpha(mask)
@@ -165,18 +161,21 @@ class DungeonFight(commands.Cog):
             # Atmospheric Lighting Overlay (Fiery Imperial Glow)
             lighting = Image.new("RGBA", (1200, 600), (0,0,0,0))
             light_draw = ImageDraw.Draw(lighting)
-            # Add fiery red/orange beam
             light_draw.polygon([(0,0), (1200,0), (600,600)], fill=(255, 69, 0, 40)) 
+
+            # UI Platforms Logic (Image Style)
+            draw.rectangle([50, 480, 500, 520], fill=(52, 152, 219, 200)) # Challenger Blue
+            draw.rectangle([700, 480, 1150, 520], fill=(231, 76, 60, 200)) # Opponent Red
 
             # Cinematic Placement
             canvas.paste(av1, (50, 75), av1)
             canvas.paste(av2, (700, 75), av2)
             canvas = Image.alpha_composite(canvas, lighting)
 
-            # Central Gladiator Symbol (Crossed Blades Style)
-            gold_color = (255, 215, 0, 220)
-            draw.line([540, 240, 660, 360], fill=gold_color, width=15) 
-            draw.line([660, 240, 540, 360], fill=gold_color, width=15) 
+            # Central Arena UI (Text Overlay)
+            draw = ImageDraw.Draw(canvas)
+            draw.text((600, 100), "ARENA FIGHT!", fill=(255, 255, 255), anchor="mm")
+            draw.text((600, 300), "VS", fill=(255, 255, 255), anchor="mm")
             
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
