@@ -66,9 +66,9 @@ class DungeonFight(commands.Cog):
 
     def get_health_bar(self, hp, max_hp, is_premium):
         pct = (hp / max_hp) * 100
-        # Color Logic: Green > Yellow > Red
-        if pct > 60: bar_color = "🟢"
-        elif pct > 25: bar_color = "🟡"
+        # Color Logic: Green (100-55%) > Yellow (54-25%) > Red (24-0%)
+        if pct >= 55: bar_color = "🟢"
+        elif pct >= 25: bar_color = "🟡"
         else: bar_color = "🔴"
         
         # Dynamic Segmented Bar (10 segments)
@@ -247,7 +247,7 @@ class DungeonFight(commands.Cog):
         self._update_winner(ctx.guild.id, winner["user"].id, loser["user"].id)
 
         win_data = self.stats["global"].get(str(winner["user"].id), {"wins": 0, "fights": 0, "streak": 0})
-        win_card_buf = await self.create_winner_card(winner["user"].display_avatar.url, winner["user"].display_name, win_data["wins"], win_data["fights"], win_data["streak"])
+        win_card_buf = await self.create_winner_card(winner["user"].display_avatar.url, winner["user'].display_name, win_data["wins"], win_data["fights"], win_data["streak"])
         if win_card_buf:
             await ctx.send(file=discord.File(win_card_buf, filename="winner_card.png"), embed=discord.Embed(title="🏆 THE ETERNAL CHAMPION", color=0xFFD700).set_image(url="attachment://winner_card.png"))
 
