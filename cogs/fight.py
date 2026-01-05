@@ -90,13 +90,13 @@ class DungeonFight(commands.Cog):
     @commands.command(name="fight")
     async def fight(self, ctx, member: discord.Member = None):
         if member is None:
-            return await ctx.send("❌ Mention someone to challenge them to a duel!")
+            return await ctx.send("❌ **THE ARENA DEMANDS A TRIBUTE!** Mention someone to challenge them!")
         
         if member.id == ctx.author.id:
-            return await ctx.send("You can't fight yourself. That's just called a workout.")
+            return await ctx.send("💢 You can't fight yourself. Stop punching the air.")
 
         if member.bot:
-            return await ctx.send("Bots don't feel pain. You'd lose instantly.")
+            return await ctx.send("🤖 Bots don't feel pain. You'd lose instantly to the machine.")
 
         # --- SUBSCRIPTION CHECK ---
         guild_id = str(ctx.guild.id)
@@ -113,10 +113,10 @@ class DungeonFight(commands.Cog):
         p2 = {"user": member, "hp": 100, "max": 100, "luck": 1.0}
         turn = p1
         other = p2
-        battle_log = "The arena is silent... awaiting the first strike."
+        battle_log = "🌋 **THE ARENA RADIATES HEAT!** The crowd is waiting for the first drop of blood."
 
-        embed = discord.Embed(title="⚔️ DUEL INITIATED", color=0xff4500)
-        embed.description = f"{p1['user'].mention} vs {p2['user'].mention}\n\n*Fight for honor!*"
+        embed = discord.Embed(title="⚔️ ECHO ARENA: THE DUEL BEGINS", color=0xff4500)
+        embed.description = f"🔥 **{p1['user'].mention}** HAS CHALLENGED **{p2['user'].mention}**\n\n*\"In the echo of battle, only one will stand!\"*"
         
         # Thumbnail Logic
         logo_file = None
@@ -151,30 +151,30 @@ class DungeonFight(commands.Cog):
                 battle_log = f"🧪 **{turn['user'].display_name}** {self.get_funny_msg('heal')} (+{amt} HP)"
 
             # Refreshing the combat display
-            embed = discord.Embed(title="⚔️ ARENA OF GLORY", color=0x2f3136)
+            embed = discord.Embed(title="🌋 ECHO ARENA: BATTLE RAGING", color=0xff4500)
             embed.set_image(url="attachment://arena.png")
             if os.path.exists("fierylogo.jpg"):
                 embed.set_thumbnail(url="attachment://logo.png")
             
             p1_status = f"{self.get_health_bar(p1['hp'], p1['max'], is_premium)}"
-            if p1['luck'] > 1.0: p1_status += " ✨ *LUCKY*"
+            if p1['luck'] > 1.0: p1_status += " ✨ **BLESSED**"
             p2_status = f"{self.get_health_bar(p2['hp'], p2['max'], is_premium)}"
-            if p2['luck'] > 1.0: p2_status += " ✨ *LUCKY*"
+            if p2['luck'] > 1.0: p2_status += " ✨ **BLESSED**"
 
-            embed.add_field(name=f"👤 {p1['user'].display_name}", value=p1_status, inline=True)
-            embed.add_field(name=f"👤 {p2['user'].display_name}", value=p2_status, inline=True)
-            embed.add_field(name="📜 Battle Logs", value=f"*{battle_log}*", inline=False)
-            embed.set_footer(text=f"Turn: {turn['user'].display_name}")
+            embed.add_field(name=f"🛡️ {p1['user'].display_name}", value=p1_status, inline=True)
+            embed.add_field(name=f"🛡️ {p2['user'].display_name}", value=p2_status, inline=True)
+            embed.add_field(name="📜 COMBAT LOG", value=f"> *{battle_log}*", inline=False)
+            embed.set_footer(text=f"🔥 Turn: {turn['user'].display_name.upper()} | CRUSH THEM!")
 
             # Spectator View (Allows others to influence luck)
             view = discord.ui.View(timeout=1)
-            cheer_btn = discord.ui.Button(label="Cheering!", style=discord.ButtonStyle.secondary, emoji="🙌")
+            cheer_btn = discord.ui.Button(label="CHEER!", style=discord.ButtonStyle.danger, emoji="🙌")
             
             async def cheer_callback(interaction):
                 if interaction.user.id in [p1["user"].id, p2["user"].id]:
-                    return await interaction.response.send_message("Concentrate on the fight!", ephemeral=True)
+                    return await interaction.response.send_message("💢 You're too busy fighting! Focus!", ephemeral=True)
                 turn["luck"] += 0.05
-                await interaction.response.send_message(f"📣 {interaction.user.display_name} cheered! {turn['user'].display_name} feels luckier!", ephemeral=False)
+                await interaction.response.send_message(f"📣 **{interaction.user.display_name}** roars from the stands! **{turn['user'].display_name}** is fueled by the Echo!", ephemeral=False)
 
             cheer_btn.callback = cheer_callback
             view.add_item(cheer_btn)
@@ -189,8 +189,8 @@ class DungeonFight(commands.Cog):
 
         # Winner Announcement
         winner = turn if turn["hp"] > 0 else other
-        win_emb = discord.Embed(title="🏆 THE CHAMPION EMERGES", color=0x00ff00)
-        win_emb.description = f"**{winner['user'].display_name}** stands victorious in the arena!\n\n*The crowd goes wild!*"
+        win_emb = discord.Embed(title="🏆 THE ECHO CHAMPION EMERGES", color=0x00ff00)
+        win_emb.description = f"🎊 **{winner['user'].display_name.upper()}** HAS CLAIMED VICTORY!\n\n*The losing soul fades into the arena echoes...*"
         win_emb.set_image(url="attachment://arena.png")
         
         if os.path.exists("fierylogo.jpg"):
