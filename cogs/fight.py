@@ -65,19 +65,20 @@ class DungeonFight(commands.Cog):
         self._save_stats()
 
     def get_health_bar(self, hp, max_hp, is_premium):
-        if not is_premium:
-            # Standard ASCII Bar
-            filled = int((hp / max_hp) * 10)
-            return f"[{'█' * filled}{'░' * (10 - filled)}] {hp}/{max_hp}"
-        
-        # Premium Gradient Visual logic
         pct = (hp / max_hp) * 100
-        if pct > 75: bar_emoji = "🟩🟩🟩🟩"
-        elif pct > 50: bar_emoji = "🟩🟩🟨🟨"
-        elif pct > 25: bar_emoji = "🟨🟨🟧🟧"
-        else: bar_emoji = "🟧🟧🟥🟥"
+        # Legendary Fiery Imperial Bar
+        filled = int((hp / max_hp) * 8)
+        bar = "🔥" * filled + "💀" * (8 - filled)
         
-        return f"{bar_emoji} **{pct:.0f}%** ({hp} HP)"
+        if not is_premium:
+            return f"🛡️ {bar} **{hp} HP**"
+        
+        # Premium Imperial Visual logic
+        if pct > 70: heart = "❤️‍🔥"
+        elif pct > 30: heart = "🩸"
+        else: heart = "🥀"
+        
+        return f"{heart} {bar} **{pct:.0f}%**"
 
     def get_funny_msg(self, action_type):
         msgs = {
@@ -159,10 +160,11 @@ class DungeonFight(commands.Cog):
             av2 = ImageOps.fit(av2_raw, mask.size, centering=(0.5, 0.5))
             av2.putalpha(mask)
 
-            # Atmospheric Lighting Overlay (Sunlight Beam - Lowered intensity)
+            # Atmospheric Lighting Overlay (Fiery Imperial Glow)
             lighting = Image.new("RGBA", (1200, 600), (0,0,0,0))
             light_draw = ImageDraw.Draw(lighting)
-            light_draw.polygon([(0,0), (600,0), (0,600)], fill=(255, 255, 220, 20)) 
+            # Add fiery red/orange beam
+            light_draw.polygon([(0,0), (1200,0), (600,600)], fill=(255, 69, 0, 40)) 
 
             # Cinematic Placement
             canvas.paste(av1, (50, 75), av1)
@@ -290,12 +292,14 @@ class DungeonFight(commands.Cog):
                 dmg = int(random.randint(12, 28) * turn["luck"])
                 other["hp"] = max(0, other["hp"] - dmg)
                 battle_log = f"🗡️ **{turn['user'].display_name}** {self.get_funny_msg('strike')} **{other['user'].display_name}** for **{dmg} damage!**"
+                emb_color = 0xFF4500 if dmg > 20 else 0x8B0000 # Fiery flash for big hits
             else:
                 amt = random.randint(10, 22)
                 turn["hp"] = min(turn["max"], turn["hp"] + amt)
                 battle_log = f"🏺 **{turn['user'].display_name}** {self.get_funny_msg('heal')} (+{amt} HP)"
+                emb_color = 0x50C878 # Golden/Green for healing
 
-            embed = discord.Embed(title="🏟️ THE COLOSSEUM RADIATES GLORY", color=0x8B0000)
+            embed = discord.Embed(title="🏟️ THE COLOSSEUM RADIATES GLORY", color=emb_color)
             embed.set_image(url="attachment://arena.png")
             if os.path.exists("fierylogo.jpg"):
                 embed.set_thumbnail(url="attachment://logo.png")
@@ -305,10 +309,11 @@ class DungeonFight(commands.Cog):
             p2_status = f"{self.get_health_bar(p2['hp'], p2['max'], is_premium)}"
             if p2['luck'] > 1.0: p2_status += " 🦅 **IMPERIAL FAVOR**"
 
-            embed.add_field(name=f"🛡️ {p1['user'].display_name}", value=p1_status, inline=True)
-            embed.add_field(name=f"🛡️ {p2['user'].display_name}", value=p2_status, inline=True)
+            # Layout Update: Grouped Status for a cleaner Arena feel
+            embed.add_field(name=f"🔱 {p1['user'].display_name}", value=p1_status, inline=True)
+            embed.add_field(name=f"🔱 {p2['user'].display_name}", value=p2_status, inline=True)
             embed.add_field(name="📜 THE CHRONICLES", value=f"> *{battle_log}*", inline=False)
-            embed.set_footer(text=f"🔱 Current Turn: {turn['user'].display_name.upper()}")
+            embed.set_footer(text=f"🚩 Turn: {turn['user'].display_name.upper()} | Glory to the Echo!")
 
             view = discord.ui.View(timeout=1)
             cheer_btn = discord.ui.Button(label="AVE!", style=discord.ButtonStyle.danger, emoji="🙌")
