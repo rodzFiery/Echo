@@ -40,7 +40,6 @@ class DungeonShip(commands.Cog):
     async def create_ship_visual(self, u1_url, u2_url, percent):
         try:
             # 1. IMPERIAL ARENA ENGINE (1200x600 for Max Embed Fit)
-            # Background logic removed: Using solid deep arena base
             canvas = Image.new("RGBA", (1200, 600), (40, 0, 5, 255))
             
             draw = ImageDraw.Draw(canvas)
@@ -106,7 +105,7 @@ class DungeonShip(commands.Cog):
                 text_main = (220, 220, 220) # Imperial Silver
                 text_stroke = (0, 0, 0)
 
-            # Massive focal Percentage (CENTERED BETWEEN AVATARS)
+            # Massive focal Percentage (SHOWING THE LOVE SCORE)
             pct_text = f"{percent}%"
             # Multi-layered text for maximum visibility (VERY BIG AT THE MIDDLE)
             draw.text((608, 308), pct_text, fill=(0, 0, 0, 200), anchor="mm", size=230) # Shadow
