@@ -344,5 +344,63 @@ class DungeonFight(commands.Cog):
         else:
             await ctx.send(embed=embed)
 
+    @commands.command(name="fighttop")
+    async def fighttop(self, ctx):
+        gid = str(ctx.guild.id)
+        
+        # Identify the #1 Global Gladiator
+        all_global = sorted(self.stats["global"].items(), key=lambda x: x[1]["wins"], reverse=True)
+        if not all_global:
+            return await ctx.send("❌ The Arena is empty. No legends found.")
+            
+        top_uid, g_data = all_global[0]
+        top_user = self.bot.get_user(int(top_uid)) or await self.bot.fetch_user(int(top_uid))
+        
+        # Local stats for this specific champion
+        l_data = self.stats["servers"].get(gid, {}).get(top_uid, {"wins": 0, "fights": 0, "streak": 0, "victims": {}})
+        
+        # Calculate Local Rank for this user
+        all_local = sorted(self.stats["servers"].get(gid, {}).items(), key=lambda x: x[1]["wins"], reverse=True)
+        local_pos = next((i + 1 for i, (uid, data) in enumerate(all_local) if uid == top_uid), "N/A")
+
+        embed = discord.Embed(
+            title="🔱 THE APEX GLADIATOR: GLOBAL LEADER",
+            description=f"### Witness the power of {top_user.mention}!",
+            color=0xFF4500
+        )
+        
+        # Assets
+        logo_file = None
+        if os.path.exists("fierylogo.jpg"):
+            logo_file = discord.File("fierylogo.jpg", filename="logo.png")
+            embed.set_thumbnail(url="attachment://logo.png")
+            
+        embed.set_image(url=top_user.display_avatar.url)
+        
+        # Global Block
+        embed.add_field(
+            name="🌍 GLOBAL STANDING",
+            value=f"**Rank:** #1\n**Total Conquests:** {g_data['wins']}\n**Total Battles:** {g_data['fights']}",
+            inline=True
+        )
+        
+        # Local Block
+        embed.add_field(
+            name="🏰 SERVER LEGION",
+            value=f"**Rank:** #{local_pos}\n**Server Wins:** {l_data['wins']}\n**Current Streak:** {l_data['streak']} 🔥",
+            inline=True
+        )
+        
+        # Kill Count
+        total_kills = sum(g_data["victims"].values())
+        embed.add_field(name="💀 TOTAL EXECUTIONS", value=f"**{total_kills} Kills**", inline=False)
+
+        embed.set_footer(text="Glory to the Echo! | Supreme Leaderboard", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
+
+        if logo_file:
+            await ctx.send(file=logo_file, embed=embed)
+        else:
+            await ctx.send(embed=embed)
+
 async def setup(bot):
     await bot.add_cog(DungeonFight(bot))
