@@ -40,6 +40,7 @@ class DungeonShip(commands.Cog):
     async def create_ship_visual(self, u1_url, u2_url, percent):
         try:
             # 1. IMPERIAL ARENA ENGINE (1200x600 for Max Embed Fit)
+            # Background logic removed: Using solid deep arena base
             canvas = Image.new("RGBA", (1200, 600), (40, 0, 5, 255))
             
             draw = ImageDraw.Draw(canvas)
