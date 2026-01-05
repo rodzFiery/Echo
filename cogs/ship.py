@@ -7,7 +7,7 @@ import sys
 import os
 import sqlite3
 from datetime import datetime, timezone
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageOps, ImageFont, ImageFilter
 import __main__
 
 class ArenaShip(commands.Cog):
@@ -23,12 +23,16 @@ class ArenaShip(commands.Cog):
             "sad": ["The Arena is silent. {u1} and {u2} have no synergy.", "Zero heat. The Emperor is bored."],
             "low": ["Recruits in training. {u1} and {u2} barely spark.", "Lukewarm synergy in the pits."],
             "medium": ["The crowd stirs. A spark forms between {u1} and {u2}.", "Arena tension is rising."],
-            "sexual": ["🔥 **PIT FRICTION.**Primal desire detected.", "69% Sync - The perfect exhibition."],
+            "sexual": ["🔥 **PIT FRICTION.** Primal desire detected.", "69% Sync - The perfect exhibition."],
             "high": ["Legendary Duo. Conquered the pits together.", "Blood-Bound obsession."],
             "love": ["👑 **IMPERIAL DYNASTY.** Souls merged forever.", "The Great Flame burns eternal."]
         }
 
     def _init_db(self):
+        # Ensure directory exists for the database
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir)
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("CREATE TABLE IF NOT EXISTS ship_users (user_id INTEGER PRIMARY KEY, spouse_id INTEGER, marriage_date TEXT)")
 
@@ -46,17 +50,22 @@ class ArenaShip(commands.Cog):
         """Web-style UI: Rounded Cards + Integrated Bar"""
         async with aiohttp.ClientSession() as session:
             async with session.get(u1_url) as r1, session.get(u2_url) as r2:
-                img1 = Image.open(io.BytesIO(await r1.read())).convert("RGBA")
-                img2 = Image.open(io.BytesIO(await r2.read())).convert("RGBA")
+                if r1.status != 200 or r2.status != 200:
+                    return None
+                img1_data = io.BytesIO(await r1.read())
+                img2_data = io.BytesIO(await r2.read())
+                img1 = Image.open(img1_data).convert("RGBA")
+                img2 = Image.open(img2_data).convert("RGBA")
 
-        # 1. Setup Canvas (1000x450 for that sleek card look)
+        # 1. Setup Canvas (1000x450)
         canvas = Image.new("RGBA", (1000, 450), (30, 31, 34, 255)) 
         draw = ImageDraw.Draw(canvas)
         
         # 2. Process Avatars (Rounded Corners)
         av_size = 400
         mask = Image.new("L", (av_size, av_size), 0)
-        ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=40, fill=255)
+        mask_draw = ImageDraw.Draw(mask)
+        mask_draw.rounded_rectangle([0, 0, av_size, av_size], radius=40, fill=255)
         
         img1 = ImageOps.fit(img1, (av_size, av_size)).convert("RGBA")
         img2 = ImageOps.fit(img2, (av_size, av_size)).convert("RGBA")
@@ -66,22 +75,29 @@ class ArenaShip(commands.Cog):
         # 3. Dynamic Heat Color
         bar_color = (255, 45, 85) if percent > 60 else (255, 215, 0) if percent > 30 else (150, 150, 150)
 
-        # 4. The Center Meter (Web Design Style)
+        # 4. The Center Meter
         meter_x, meter_y, meter_w, meter_h = 450, 50, 100, 350
-        # Background of bar
         draw.rectangle([meter_x, meter_y, meter_x + meter_w, meter_y + meter_h], fill=(15, 15, 15))
-        # Fill of bar
         fill_h = (percent / 100) * meter_h
         draw.rectangle([meter_x, (meter_y + meter_h) - fill_h, meter_x + meter_w, meter_y + meter_h], fill=bar_color)
 
-        # 5. Titanic Typography (Centered on the bar)
-        try:
-            font = ImageFont.truetype("arial.ttf", 65)
-        except:
+        # 5. Font Handling (The Fix)
+        font_paths = [
+            "arial.ttf", 
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+        ]
+        font = None
+        for path in font_paths:
+            try:
+                font = ImageFont.truetype(path, 65)
+                break
+            except:
+                continue
+        if font is None:
             font = ImageFont.load_default()
 
         score_txt = f"{percent}%"
-        # Draw text with high contrast directly in the center
         draw.text((500, 225), score_txt, fill=(255, 255, 255), anchor="mm", font=font, stroke_width=4, stroke_fill=(0,0,0))
 
         # 6. Final Paste
@@ -107,12 +123,19 @@ class ArenaShip(commands.Cog):
         desc = random.choice(self.lexicon[tier]).format(u1=u1.display_name, u2=u2.display_name)
 
         async with ctx.typing():
-            img = await self.generate_web_ui(u1.display_avatar.url, u2.display_avatar.url, pct)
-            embed = discord.Embed(title="❤️ Shipped off & off!", description=f"**{u1.mention} & {u2.mention}**\n*{desc}*", color=0xFF2D55)
-            file = discord.File(img, filename="ship.png")
-            embed.set_image(url="attachment://ship.png")
-            embed.set_footer(text="Lies? Reroll tomorrow for a better score! 🫦")
-            await ctx.send(file=file, embed=embed)
+            try:
+                img = await self.generate_web_ui(u1.display_avatar.url, u2.display_avatar.url, pct)
+                if img is None:
+                    return await ctx.send("❌ Error fetching avatars.")
+                
+                embed = discord.Embed(title="❤️ Shipped off & off!", description=f"**{u1.mention} & {u2.mention}**\n*{desc}*", color=0xFF2D55)
+                file = discord.File(fp=img, filename="ship.png")
+                embed.set_image(url="attachment://ship.png")
+                embed.set_footer(text="Lies? Reroll tomorrow for a better score! 🫦")
+                await ctx.send(file=file, embed=embed)
+            except Exception as e:
+                print(f"Error in ship command: {e}")
+                await ctx.send("❌ An internal error occurred while generating the image.")
 
 async def setup(bot):
     await bot.add_cog(ArenaShip(bot))
