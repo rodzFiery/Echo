@@ -15,7 +15,7 @@ from aiohttp import web # New import for the webhook server
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 TOPGG_TOKEN = os.getenv('TOPGG_TOKEN')
-PAYPAL_EMAIL = 'PAYPAL_EMAIL'
+PAYPAL_EMAIL = os.getenv('PAYPAL_EMAIL')
 PORT = int(os.getenv("PORT", 8080)) # Railway provides a port
 
 if TOKEN is None:
