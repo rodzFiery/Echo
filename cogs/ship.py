@@ -133,7 +133,7 @@ class DungeonShip(commands.Cog):
             # Massive focal Percentage (SHOWING THE LOVE SCORE)
             pct_text = f"{percent}%"
             # Multi-layered text for maximum visibility
-            draw.text((608, 308), pct_text, fill=(0, 0, 0, 200), anchor="mm", font=font_pct) # Shadow
+            draw.text((608, 308), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) # Absolute Black Shadow
             draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=6, stroke_fill=text_stroke)
 
             # Status Icon with Dynamic Glow for high scores
@@ -145,7 +145,7 @@ class DungeonShip(commands.Cog):
                 heart_glow = heart_glow.filter(ImageFilter.GaussianBlur(15))
                 canvas = Image.alpha_composite(canvas, heart_glow)
             
-            draw.text((600, 435), heart_emoji, anchor="mm", font=font_heart, fill=text_main if percent >= 75 else None)
+            draw.text((600, 435), heart_emoji, anchor="mm", font=font_heart, fill=text_main if percent >= 75 else (255, 255, 255, 255))
 
             # Fiery Logo Placement
             if os.path.exists("fierylogo.jpg"):
