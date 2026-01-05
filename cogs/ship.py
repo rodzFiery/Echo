@@ -40,12 +40,10 @@ class DungeonShip(commands.Cog):
     async def create_ship_visual(self, u1_url, u2_url, percent):
         try:
             # 1. TRANSPARENT ENGINE (1200x600 for Max Embed Fit)
-            # Full transparency (0,0,0,0) to let the glow effects shine
             canvas = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
-            
             draw = ImageDraw.Draw(canvas)
 
-            # --- FONT SYSTEM LOADER & DYNAMIC SCALING ---
+            # --- FONT SYSTEM LOADER ---
             font_size_pct = 230 if percent < 100 else 180 
             font_size_heart = 100
             try:
@@ -66,22 +64,25 @@ class DungeonShip(commands.Cog):
                 font_pct = ImageFont.load_default()
                 font_heart = ImageFont.load_default()
             
-            # 2. LOVE PARTICLE GENERATOR (Heart-shaped sparkles)
+            # 2. PARTICLE GENERATOR
             for _ in range(50):
                 px, py = random.randint(0, 1200), random.randint(0, 600)
                 p_size = random.randint(5, 18)
-                draw.polygon([(px, py), (px+p_size, py-p_size), (px+p_size*2, py)], fill=(255, 105, 180, 160))
+                # If score is low, use Skulls, otherwise use Heart-sparkles
+                if percent < 20:
+                    draw.text((px, py), "💀", fill=(0, 255, 255, 100), font=font_heart)
+                else:
+                    draw.polygon([(px, py), (px+p_size, py-p_size), (px+p_size*2, py)], fill=(255, 105, 180, 160))
 
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     p1_data, p2_data = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
 
-            # --- INCREASED AVATAR SIZE (MAXIMIZED) ---
             av_size = 480
             av1_raw = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2_raw = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
-            # 3. DYNAMIC COLOR ENGINE (0 to 100% Transition)
+            # 3. DYNAMIC COLOR ENGINE
             if percent <= 50:
                 ratio = percent / 50
                 r = int(120 + (135 * ratio))
@@ -92,67 +93,42 @@ class DungeonShip(commands.Cog):
                 r = 255
                 g = int(50 * (1 - ratio) + 215 * ratio)
                 b = int(100 * (1 - ratio))
-            
             aura_color = (r, g, b)
             
             aura = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             a_draw = ImageDraw.Draw(aura)
-            
-            # UI Pedestals
             a_draw.rectangle([40, 50, 40+av_size+10, 60+av_size+10], fill=(0, 0, 0, 180))
             a_draw.rectangle([700, 50, 710+av_size+10, 60+av_size+10], fill=(0, 0, 0, 180))
-            
-            # Platform Glows
             a_draw.ellipse([20, 40, 60+av_size+30, 80+av_size+30], fill=(aura_color[0], aura_color[1], aura_color[2], 80))
             a_draw.ellipse([680, 40, 720+av_size+30, 80+av_size+30], fill=(aura_color[0], aura_color[1], aura_color[2], 80))
             aura = aura.filter(ImageFilter.GaussianBlur(35))
             canvas = Image.alpha_composite(canvas, aura)
 
-            # --- AVATAR CARD BORDERS ---
+            # Borders
             draw.rectangle([48, 58, 52+av_size, 62+av_size], outline=aura_color, width=12)
             draw.rectangle([708, 58, 712+av_size, 62+av_size], outline=aura_color, width=12)
 
-            # Paste Avatars (Maximized)
             canvas.paste(av1_raw, (50, 60), av1_raw)
             canvas.paste(av2_raw, (710, 60), av2_raw)
 
-            # 4. THE IMPERIAL BOND (Center)
+            # 4. IMPERIAL BOND
             nova = Image.new("RGBA", (1200, 600), (0,0,0,0))
             ImageDraw.Draw(nova).ellipse([400, 100, 800, 500], fill=(255, 255, 255, 15))
             nova = nova.filter(ImageFilter.GaussianBlur(50))
             canvas = Image.alpha_composite(canvas, nova)
 
-            # --- VERTICAL LOVE COLUMN ---
+            # Love Column
             col_x, col_y, col_w, col_h = 585, 60, 30, 480
             draw.rounded_rectangle([col_x, col_y, col_x + col_w, col_y + col_h], radius=15, fill=(20, 0, 0, 180), outline=(255, 255, 255, 60), width=2)
             fill_size = int((percent / 100) * (col_h - 6))
             if fill_size > 0:
                 draw.rounded_rectangle([col_x + 3, col_y + col_h - 3 - fill_size, col_x + col_w - 3, col_y + col_h - 3], radius=12, fill=(255, 0, 40, 220))
 
-            # --- DYNAMIC TEXT RENDERING (FORCED VISIBILITY) ---
-            if percent >= 90:
-                text_main, text_stroke = (255, 255, 255), (255, 0, 0)
-            elif percent >= 70:
-                text_main, text_stroke = (255, 215, 0), (0, 0, 0)
-            elif percent < 20:
-                text_main, text_stroke = (0, 255, 255), (0, 50, 150) # Neon "Doom" Blue
-            else:
-                text_main, text_stroke = (255, 255, 255), (50, 50, 50)
-
-            # FIXED % SYMBOL VISIBILITY
-            pct_text = f"{percent}%"
-            # Explicit layering for visibility - rendering text on a separate layer for clarity
-            text_layer = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
-            t_draw = ImageDraw.Draw(text_layer)
-            t_draw.text((612, 312), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) # Deep Shadow
-            t_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=16, stroke_fill=text_stroke)
-            canvas = Image.alpha_composite(canvas, text_layer)
-
             # Status Icon
             heart_emoji = "❤️" if percent > 50 else "💔"
             draw.text((600, 435), heart_emoji, anchor="mm", font=font_heart)
 
-            # Fiery Logo
+            # Logo
             if os.path.exists("fierylogo.jpg"):
                 logo = Image.open("fierylogo.jpg").convert("RGBA").resize((135, 135))
                 mask = Image.new("L", (135, 135), 0)
@@ -160,7 +136,7 @@ class DungeonShip(commands.Cog):
                 logo.putalpha(mask)
                 canvas.paste(logo, (532, 35), logo)
 
-            # 5. DYNAMIC LOVE BAR
+            # Love Bar
             bar_w, bar_h = 1000, 40
             bx, by = (1200-bar_w)//2, 545
             draw.rounded_rectangle([bx-8, by-8, bx+bar_w+8, by+bar_h+8], radius=15, fill=(0, 0, 0, 180)) 
@@ -171,6 +147,22 @@ class DungeonShip(commands.Cog):
             # --- 6. IMPERIAL GLOW FILTER ---
             glow = canvas.filter(ImageFilter.GaussianBlur(8))
             canvas = Image.alpha_composite(glow, canvas)
+
+            # --- 7. FINAL OVERLAY: THE SCORE FIX ---
+            # We draw this AFTER the glow to ensure it is 100% visible on top
+            final_draw = ImageDraw.Draw(canvas)
+            if percent >= 90:
+                text_main, text_stroke = (255, 255, 255), (255, 0, 0)
+            elif percent >= 70:
+                text_main, text_stroke = (255, 215, 0), (0, 0, 0)
+            elif percent < 20:
+                text_main, text_stroke = (0, 255, 255), (0, 50, 150)
+            else:
+                text_main, text_stroke = (255, 255, 255), (50, 50, 50)
+
+            pct_text = f"{percent}%"
+            final_draw.text((612, 312), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) # Shadow
+            final_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=18, stroke_fill=text_stroke)
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
@@ -188,8 +180,6 @@ class DungeonShip(commands.Cog):
             return await ctx.send("🎭 Narcissus? Try shipping with someone else!")
 
         percent = random.randint(0, 100)
-        
-        # 15 Random Fate Messages with Emojis
         fate_messages = [
             "✨ A match made in the celestial heavens!", "🏛️ The arena floor trembles at this bond.",
             "🔥 Two souls forged in the fires of destiny.", "👑 A romance the Emperors would envy.",
@@ -210,19 +200,13 @@ class DungeonShip(commands.Cog):
 
         async with ctx.typing():
             ship_img = await self.create_ship_visual(ctx.author.display_avatar.url, member.display_avatar.url, percent)
-            
-            # Dynamic color logic for the embed color
             embed_color = 0xFFD700 if percent >= 90 else 0xFF4500 if percent >= 50 else 0x00FFFF if percent < 20 else 0x808080
-            
             embed = discord.Embed(title=f"🏹 {title}", color=embed_color)
             embed.description = f"### {ctx.author.mention} 💓 {member.mention}\n\n> *{chosen_msg}*"
-            
             if ship_img:
                 file = discord.File(ship_img, filename="ship.png")
                 embed.set_image(url="attachment://ship.png")
-            
             embed.set_footer(text="Glory to the Echo! | Master Matchmaker", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
-            
             if ship_img:
                 await ctx.send(file=file, embed=embed)
             else:
@@ -230,7 +214,6 @@ class DungeonShip(commands.Cog):
 
     @commands.command(name="matchme")
     async def matchme(self, ctx):
-        """Scans the arena for top 5 romantic tension candidates."""
         async with ctx.typing():
             potential_members = [m for m in ctx.guild.members if not m.bot and m.id != ctx.author.id]
             if len(potential_members) < 5:
