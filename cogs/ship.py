@@ -46,23 +46,23 @@ class DungeonShip(commands.Cog):
             if os.path.exists("ship.jpg"):
                 bg = Image.open("ship.jpg").convert("RGBA").resize((1200, 600))
                 # Add a warm pink/red romantic tint to the arena
-                tint = Image.new("RGBA", (1200, 600), (255, 20, 147, 40))
+                tint = Image.new("RGBA", (1200, 600), (255, 20, 147, 45))
                 bg = Image.alpha_composite(bg, tint)
                 canvas.paste(bg, (0, 0))
             elif os.path.exists("fight.jpg"):
                 bg = Image.open("fight.jpg").convert("RGBA").resize((1200, 600))
-                tint = Image.new("RGBA", (1200, 600), (255, 20, 147, 40))
+                tint = Image.new("RGBA", (1200, 600), (255, 20, 147, 45))
                 bg = Image.alpha_composite(bg, tint)
                 canvas.paste(bg, (0, 0))
             
             draw = ImageDraw.Draw(canvas)
             
             # 2. LOVE PARTICLE GENERATOR (Heart-shaped sparkles)
-            for _ in range(40):
+            for _ in range(50):
                 px, py = random.randint(0, 1200), random.randint(0, 600)
-                p_size = random.randint(5, 15)
-                # Drawing tiny heart-like triangles as sparkles
-                draw.polygon([(px, py), (px+p_size, py-p_size), (px+p_size*2, py)], fill=(255, 105, 180, 150))
+                p_size = random.randint(5, 18)
+                # Drawing heart-like triangles as sparkles
+                draw.polygon([(px, py), (px+p_size, py-p_size), (px+p_size*2, py)], fill=(255, 105, 180, 160))
 
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
@@ -72,17 +72,19 @@ class DungeonShip(commands.Cog):
             av1_raw = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2_raw = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
-            # 3. GLADIATOR AURA (Behind Avatars)
+            # 3. GLADIATOR AURA & PEDESTALS
             aura = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             a_draw = ImageDraw.Draw(aura)
-            # Gold/Crimson theme for the Arena
-            aura_color = (255, 215, 0) if percent > 75 else (255, 50, 100) if percent > 40 else (100, 100, 100)
+            aura_color = (255, 215, 0) if percent > 75 else (255, 50, 100) if percent > 40 else (120, 120, 140)
             
-            # Left Platform Glow
-            a_draw.ellipse([80, 100, 100+av_size+20, 120+av_size+20], fill=(aura_color[0], aura_color[1], aura_color[2], 100))
-            # Right Platform Glow
-            a_draw.ellipse([730, 100, 750+av_size+20, 120+av_size+20], fill=(aura_color[0], aura_color[1], aura_color[2], 100))
-            aura = aura.filter(ImageFilter.GaussianBlur(30))
+            # UI Pedestals (Square backgrounds for avatars)
+            a_draw.rectangle([90, 100, 100+av_size+10, 110+av_size+10], fill=(0, 0, 0, 180))
+            a_draw.rectangle([740, 100, 750+av_size+10, 110+av_size+10], fill=(0, 0, 0, 180))
+            
+            # Platform Glows
+            a_draw.ellipse([70, 90, 110+av_size+30, 130+av_size+30], fill=(aura_color[0], aura_color[1], aura_color[2], 80))
+            a_draw.ellipse([720, 90, 760+av_size+30, 130+av_size+30], fill=(aura_color[0], aura_color[1], aura_color[2], 80))
+            aura = aura.filter(ImageFilter.GaussianBlur(35))
             canvas = Image.alpha_composite(canvas, aura)
 
             # Paste Avatars
@@ -90,37 +92,43 @@ class DungeonShip(commands.Cog):
             canvas.paste(av2_raw, (750, 110), av2_raw)
 
             # 4. THE IMPERIAL BOND (Center)
-            # Massive High-Visibility Percentage
-            pct_text = f"{percent}%"
-            # Multi-layered "Gladiator Gold" Text Effect
-            draw.text((606, 306), pct_text, fill=(0, 0, 0, 180), anchor="mm", size=220) # Deep shadow
-            draw.text((600, 300), pct_text, fill=(255, 215, 0), anchor="mm", size=220, stroke_width=5, stroke_fill=(0,0,0))
+            # Central Light Nova
+            nova = Image.new("RGBA", (1200, 600), (0,0,0,0))
+            ImageDraw.Draw(nova).ellipse([400, 100, 800, 500], fill=(255, 255, 255, 30))
+            nova = nova.filter(ImageFilter.GaussianBlur(50))
+            canvas = Image.alpha_composite(canvas, nova)
 
-            # Centered Heart Icon
+            # Massive focal Percentage
+            pct_text = f"{percent}%"
+            # Multi-layered text for maximum visibility
+            draw.text((608, 308), pct_text, fill=(0, 0, 0, 200), anchor="mm", size=230) # Shadow
+            draw.text((600, 300), pct_text, fill=(255, 215, 0), anchor="mm", size=230, stroke_width=6, stroke_fill=(20, 0, 0))
+
+            # Status Icon
             heart_emoji = "❤️" if percent > 50 else "💔"
-            draw.text((600, 420), heart_emoji, anchor="mm", size=80)
+            draw.text((600, 435), heart_emoji, anchor="mm", size=100)
 
             # Fiery Logo Placement
             if os.path.exists("fierylogo.jpg"):
-                logo = Image.open("fierylogo.jpg").convert("RGBA").resize((130, 130))
-                mask = Image.new("L", (130, 130), 0)
-                ImageDraw.Draw(mask).ellipse([0, 0, 130, 130], fill=255)
+                logo = Image.open("fierylogo.jpg").convert("RGBA").resize((135, 135))
+                mask = Image.new("L", (135, 135), 0)
+                ImageDraw.Draw(mask).ellipse([0, 0, 135, 135], fill=255)
                 logo.putalpha(mask)
-                canvas.paste(logo, (535, 40), logo)
+                canvas.paste(logo, (532, 35), logo)
 
             # 5. DYNAMIC LOVE BAR (Imperial Shield Style)
-            bar_w, bar_h = 900, 30
-            bx, by = (1200-bar_w)//2, 520
-            draw.rounded_rectangle([bx-5, by-5, bx+bar_w+5, by+bar_h+5], radius=15, fill=(0, 0, 0, 150)) # Shield border
+            bar_w, bar_h = 900, 35
+            bx, by = (1200-bar_w)//2, 530
+            draw.rounded_rectangle([bx-8, by-8, bx+bar_w+8, by+bar_h+8], radius=15, fill=(0, 0, 0, 180)) 
             
             fill_w = (percent / 100) * bar_w
             if fill_w > 10:
-                draw.rounded_rectangle([bx, by, bx+fill_w, by+bar_h], radius=10, fill=(255, 50, 80))
+                draw.rounded_rectangle([bx, by, bx+fill_w, by+bar_h], radius=10, fill=(255, 45, 95))
 
             # 6. FINAL CINEMATIC VIGNETTE
             vig = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
-            ImageDraw.Draw(vig).rectangle([0,0,1200,600], outline=(20, 0, 0, 220), width=100)
-            vig = vig.filter(ImageFilter.GaussianBlur(60))
+            ImageDraw.Draw(vig).rectangle([0,0,1200,600], outline=(30, 0, 5, 240), width=120)
+            vig = vig.filter(ImageFilter.GaussianBlur(70))
             canvas = Image.alpha_composite(canvas, vig)
 
             buf = io.BytesIO()
@@ -167,20 +175,17 @@ class DungeonShip(commands.Cog):
     async def matchme(self, ctx):
         """Scans the arena for top 5 romantic tension candidates."""
         async with ctx.typing():
-            # Filter members: No bots, not the author, must be present
             potential_members = [m for m in ctx.guild.members if not m.bot and m.id != ctx.author.id]
             
             if len(potential_members) < 5:
                 return await ctx.send("❌ Not enough gladiators in the arena to find a match!")
 
-            # Pick random members to simulate a 'scan'
             sample = random.sample(potential_members, min(len(potential_members), 15))
             matches = []
             
             for m in sample:
                 matches.append((m, random.randint(1, 100)))
 
-            # Sort by highest percentage and take top 5
             matches.sort(key=lambda x: x[1], reverse=True)
             top_5 = matches[:5]
 
@@ -190,14 +195,12 @@ class DungeonShip(commands.Cog):
                 color=0xFF4500
             )
 
-            # Fiery Logo logic
             if os.path.exists("fierylogo.jpg"):
                 logo_file = discord.File("fierylogo.jpg", filename="logo.png")
                 embed.set_thumbnail(url="attachment://logo.png")
 
             results_text = ""
             for i, (member, score) in enumerate(top_5, 1):
-                # Using the logic from !ship titles for consistency
                 indicator = "👑" if score >= 90 else "🔥" if score >= 70 else "💖" if score >= 50 else "✨"
                 results_text += f"**{i}. {member.display_name}** — {score}% {indicator}\n"
 
