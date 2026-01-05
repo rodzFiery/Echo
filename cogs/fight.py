@@ -263,10 +263,10 @@ class DungeonFight(commands.Cog):
 
         # --- AUTOMATED COMBAT LOOP ---
         while p1["hp"] > 0 and p2["hp"] > 0:
-            await asyncio.sleep(2.5)
+            await asyncio.sleep(3.0) # Medium pace for clutch tension
             
-            # Automated balanced logic (85% strike, 15% heal) - REDUCED HEAL CHANCES
-            action = random.choices(["strike", "heal"], weights=[85, 15])[0]
+            # Clutch Logic: 90% Strike, 10% Heal
+            action = random.choices(["strike", "heal"], weights=[90, 10])[0]
             
             if action == "strike":
                 dmg = int(random.randint(12, 28) * turn["luck"])
