@@ -96,6 +96,12 @@ class DungeonShip(commands.Cog):
             aura = aura.filter(ImageFilter.GaussianBlur(35))
             canvas = Image.alpha_composite(canvas, aura)
 
+            # --- AVATAR CARD BORDERS ---
+            # Draws a thick border around the avatars matching the aura color
+            draw.rectangle([48, 58, 52+av_size, 62+av_size], outline=aura_color, width=12)
+            draw.rectangle([708, 58, 712+av_size, 62+av_size], outline=aura_color, width=12)
+
+            # Paste Avatars (Maximized)
             canvas.paste(av1_raw, (50, 60), av1_raw)
             canvas.paste(av2_raw, (710, 60), av2_raw)
 
@@ -146,7 +152,8 @@ class DungeonShip(commands.Cog):
                 draw.rounded_rectangle([bx, by, bx+fill_w, by+bar_h], radius=10, fill=(255, 45, 95))
 
             # --- 6. IMPERIAL GLOW FILTER ---
-            glow = canvas.filter(ImageFilter.GaussianBlur(8))
+            # Creates a soft radiance over the entire composition
+            glow = canvas.filter(ImageFilter.GaussianBlur(10))
             canvas = Image.alpha_composite(glow, canvas)
 
             buf = io.BytesIO()
