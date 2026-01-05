@@ -369,6 +369,20 @@ class DungeonFight(commands.Cog):
 
     @commands.command(name="fighttop")
     async def fighttop(self, ctx):
+        # PREMIUM CHECK
+        guild_id = str(ctx.guild.id)
+        is_premium = False
+        if hasattr(__main__, "PREMIUM_GUILDS"):
+            guild_data = __main__.PREMIUM_GUILDS.get(guild_id, {})
+            expiry = guild_data.get(self.module_name)
+            if expiry and float(expiry) > datetime.now(timezone.utc).timestamp():
+                is_premium = True
+        
+        if not is_premium:
+            locked_emb = discord.Embed(title="🚫 MODULE LOCKED", color=0xFF0000)
+            locked_emb.description = "The **FIGHTTOP** command is part of the **Premium Fight Module**.\n\nType `!premium` to unlock it."
+            return await ctx.send(embed=locked_emb)
+
         gid = str(ctx.guild.id)
         
         # Identify the #1 Global Gladiator
