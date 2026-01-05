@@ -7,7 +7,7 @@ import io
 import aiohttp
 from datetime import datetime, timezone
 from PIL import Image, ImageDraw, ImageOps
-import __main__
+import __main__ # Access the premium list from main.py
 
 class DungeonFight(commands.Cog):
     def __init__(self, bot):
@@ -48,7 +48,7 @@ class DungeonFight(commands.Cog):
         }
         return random.choice(msgs[action_type])
 
-    # --- NEW: IMAGE ENGINE FOR ARENA VISUALS ---
+    # --- IMAGE ENGINE FOR ARENA VISUALS ---
     async def create_arena_visual(self, u1_url, u2_url):
         try:
             # maximized realistic arena canvas
@@ -76,9 +76,7 @@ class DungeonFight(commands.Cog):
             canvas.paste(av1, (50, 75), av1)
             canvas.paste(av2, (700, 75), av2)
 
-            # Draw Central Axes Symbol (Realistic Gladiator Vibe)
-            # Drawing a simple X shape representing Crossed Axes in the middle
-            center_x, center_y = 600, 300
+            # Draw Central Crossed Axes Symbol
             draw.line([530, 230, 670, 370], fill=(200, 200, 200, 255), width=15) # Axis 1
             draw.line([670, 230, 530, 370], fill=(200, 200, 200, 255), width=15) # Axis 2
             
@@ -86,8 +84,7 @@ class DungeonFight(commands.Cog):
             canvas.save(buf, format="PNG")
             buf.seek(0)
             return buf
-        except Exception as e:
-            print(f"Arena Image Error: {e}")
+        except:
             return None
 
     @commands.command(name="fight")
@@ -126,8 +123,8 @@ class DungeonFight(commands.Cog):
         if os.path.exists("fierylogo.jpg"):
             logo_file = discord.File("fierylogo.jpg", filename="logo.png")
             embed.set_thumbnail(url="attachment://logo.png")
-        
-        # Generate Initial Arena Image
+
+        # Arena Image Generation
         arena_img = await self.create_arena_visual(p1['user'].display_avatar.url, p2['user'].display_avatar.url)
         arena_file = discord.File(arena_img, filename="arena.png")
         embed.set_image(url="attachment://arena.png")
@@ -217,7 +214,7 @@ class DungeonFight(commands.Cog):
         # Winner Announcement
         winner = turn if turn["hp"] > 0 else other
         win_emb = discord.Embed(title="🏆 THE CHAMPION EMERGES", color=0x00ff00)
-        win_emb.description = f"**{winner['user'].display_name}** stands victorious in the arena!\n\n*The crowd goes wild!*"
+        win_emb.description = f"**{winner['user'].display_name}** stands victorious!\n\n*The crowd goes wild!*"
         win_emb.set_image(url="attachment://arena.png")
         
         if os.path.exists("fierylogo.jpg"):
