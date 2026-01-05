@@ -113,11 +113,16 @@ class DungeonFight(commands.Cog):
     # --- IMAGE ENGINE FOR ARENA VISUALS ---
     async def create_arena_visual(self, u1_url, u2_url, p1_hp, p2_hp):
         try:
-            # Roman Empire Cinematic Background (Base canvas 1200x600)
+            # Create a base canvas
+            canvas = Image.new("RGBA", (1200, 600), (40, 0, 0, 255))
+            
+            # Roman Empire Cinematic Background (Adjusted for centering)
             if os.path.exists("fight.jpg"):
-                canvas = Image.open("fight.jpg").convert("RGBA").resize((1200, 600))
-            else:
-                canvas = Image.new("RGBA", (1200, 600), (40, 0, 0, 255))
+                bg = Image.open("fight.jpg").convert("RGBA")
+                # Resize slightly larger to allow "shifting" the background to center the sword
+                bg = bg.resize((1300, 600)) 
+                # Paste with -50 offset to shift the image slightly to the right
+                canvas.paste(bg, (-50, 0))
             
             draw = ImageDraw.Draw(canvas)
             async with aiohttp.ClientSession() as session:
