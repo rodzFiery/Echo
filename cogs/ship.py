@@ -163,5 +163,50 @@ class DungeonShip(commands.Cog):
             else:
                 await ctx.send(embed=embed)
 
+    @commands.command(name="matchme")
+    async def matchme(self, ctx):
+        """Scans the arena for top 5 romantic tension candidates."""
+        async with ctx.typing():
+            # Filter members: No bots, not the author, must be present
+            potential_members = [m for m in ctx.guild.members if not m.bot and m.id != ctx.author.id]
+            
+            if len(potential_members) < 5:
+                return await ctx.send("❌ Not enough gladiators in the arena to find a match!")
+
+            # Pick random members to simulate a 'scan'
+            sample = random.sample(potential_members, min(len(potential_members), 15))
+            matches = []
+            
+            for m in sample:
+                matches.append((m, random.randint(1, 100)))
+
+            # Sort by highest percentage and take top 5
+            matches.sort(key=lambda x: x[1], reverse=True)
+            top_5 = matches[:5]
+
+            embed = discord.Embed(
+                title="🔥 ARENA MATCHMAKER: POSITIVE TENSION SCAN", 
+                description=f"Gladiator {ctx.author.mention}, the fates have spoken. Here are your top potential bonds:",
+                color=0xFF4500
+            )
+
+            # Fiery Logo logic
+            if os.path.exists("fierylogo.jpg"):
+                logo_file = discord.File("fierylogo.jpg", filename="logo.png")
+                embed.set_thumbnail(url="attachment://logo.png")
+
+            results_text = ""
+            for i, (member, score) in enumerate(top_5, 1):
+                indicator = "🔥" if score > 80 else "💖" if score > 50 else "✨"
+                results_text += f"**{i}. {member.display_name}** — {score}% {indicator}\n"
+
+            embed.add_field(name="🏛️ TOP POTENTIAL MATCHES", value=results_text, inline=False)
+            embed.set_footer(text="Glory to the Echo! | Try !ship with them to confirm.", icon_url=ctx.author.display_avatar.url)
+
+            if os.path.exists("fierylogo.jpg"):
+                await ctx.send(file=logo_file, embed=embed)
+            else:
+                await ctx.send(embed=embed)
+
 async def setup(bot):
     await bot.add_cog(DungeonShip(bot))
