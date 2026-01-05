@@ -19,37 +19,37 @@ class DungeonShip(commands.Cog):
         self.db_path = "/app/data/ship_data.db" if os.path.exists("/app/data") else "ship_data.db"
         self._init_db()
         
-        # 250+ EROTIC & EMOTIONAL MESSAGES CATEGORIZED
-        self.erotic_lexicon = {
+        # GLADIATOR & ARENA THEMED MESSAGES
+        self.arena_lexicon = {
             "sad": [
-                "A cold void. {u1} and {u2} are like oil and water in a dark cell.",
-                "Repulsion. The chains shattered before they could even lock.",
-                "Zero. Nada. The dungeon lights flicker and die at the sight of them."
+                "The Arena is silent. {u1} and {u2} have no tactical synergy.",
+                "Total Dissonance. Their blades clash in conflict, not in union.",
+                "The Emperor turns his thumb down. This pairing is executed by silence."
             ],
             "low": [
-                "Stiff and formal. A purely professional arrangement of pain.",
-                "Functional compatibility. They can occupy the same dungeon, barely.",
-                "A flicker of hope, immediately extinguished by reality."
+                "Mere recruits. {u1} and {u2} barely recognize each other's combat style.",
+                "A cold sparring session. No heat detected in the training pits.",
+                "Functional at best. They can share a shield, but never a soul."
             ],
             "medium": [
-                "Tension is building. The Red Room feels a little smaller now.",
-                "The chains are beginning to hum with anticipation.",
-                "The friction is consistent. A pleasant hum in the dark."
+                "The crowd begins to roar. A spark of combat passion between {u1} and {u2}.",
+                "Synchronized Strikes. They move with a rhythm that suggests a deeper bond.",
+                "Arena Tension. The sand heat rises when these two enter the pit together."
             ],
             "sexual": [
-                "🔞 **PEAK FRICTION.** The dungeon air grows thick when they touch.",
-                "69% - The perfect balance of oral tradition and heavy restraints.",
-                "Absolute carnal dominance. Neither wants to stop."
+                "🔥 **PIT FRICTION.** The Colosseum air grows thick with primal desire.",
+                "69% Sync - Tactical and carnal alignment achieved in the heat of battle.",
+                "Warrior's Ecstasy. They fight for glory, but stay for the touch."
             ],
             "high": [
-                "Dangerous obsession. They are losing track of the game.",
-                "Soul-binding heat. The collar is locked, and they threw away the key.",
-                "They are the gold standard for compatibility in the Red Room."
+                "Legendary Duo. They have conquered the pits and claimed each other.",
+                "Blood-Bound. {u1} and {u2} are a storm of steel and obsession.",
+                "The Arena's Favorites. Their bond is the gold standard of the empire."
             ],
             "love": [
-                "💖 **ETERNAL POSSESSION.** {u1} has claimed {u2}'s soul forever.",
-                "Two bodies, one heartbeat. A masterpiece of love.",
-                "The chains have turned to gold. A perfect 100."
+                "👑 **IMPERIAL DYNASTY.** 100% Sync. {u1} and {u2} are the gods of the Arena.",
+                "Eternal Champion Bond. Two gladiators, one unbreakable soul.",
+                "The Great Flame. Their union burns brighter than the Emperor's palace."
             ]
         }
 
@@ -60,7 +60,7 @@ class DungeonShip(commands.Cog):
                     user_id INTEGER PRIMARY KEY,
                     spouse_id INTEGER,
                     marriage_date TEXT,
-                    flames INTEGER DEFAULT 0
+                    arena_points INTEGER DEFAULT 0
                 )
             """)
             conn.commit()
@@ -72,10 +72,9 @@ class DungeonShip(commands.Cog):
             if not user:
                 conn.execute("INSERT INTO ship_users (user_id) VALUES (?)", (user_id,))
                 conn.commit()
-                return {"user_id": user_id, "spouse_id": None, "marriage_date": None, "flames": 0}
+                return {"user_id": user_id, "spouse_id": None, "marriage_date": None, "arena_points": 0}
             return dict(user)
 
-    # --- GLOBAL PREMIUM CHECK ---
     async def cog_check(self, ctx):
         guild_id = str(ctx.guild.id)
         is_premium = False
@@ -86,8 +85,8 @@ class DungeonShip(commands.Cog):
                 is_premium = True
         
         if not is_premium:
-            locked_emb = discord.Embed(title="🚫 MODULE LOCKED", color=0xFF0000)
-            locked_emb.description = "This server does not have an active **Premium Subscription** for the **SHIP** module.\n\nType `!premium` to unlock."
+            locked_emb = discord.Embed(title="⚔️ ARENA MODULE LOCKED", color=0xFF0000)
+            locked_emb.description = "This server's **Gladiator License** for the **SHIP** module is inactive.\n\nType `!premium` to unlock the Arena Bonds."
             await ctx.send(embed=locked_emb)
             return False
         return True
@@ -98,33 +97,60 @@ class DungeonShip(commands.Cog):
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     p1_data, p2_data = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
 
-            canvas = Image.new("RGBA", (1200, 700), (10, 0, 5, 255))
+            # Canvas (Arena Sand/Dark theme)
+            canvas = Image.new("RGBA", (1200, 700), (20, 15, 10, 255))
             draw = ImageDraw.Draw(canvas)
-            av_size = 400
+            av_size = 420
             
+            # Load Avatars
             av1 = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2 = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
-            # Draw Central Ruler
-            col_x, col_y, col_w, col_h = 540, 120, 120, 480
-            draw.rectangle([col_x, col_y, col_x+col_w, col_y+col_h], fill=(20,20,20), outline=(255,255,255), width=5)
-            fill_h = (percent / 100) * col_h
-            if percent > 0:
-                draw.rectangle([col_x+8, (col_y+col_h)-fill_h, col_x+col_w-8, col_y+col_h-8], fill=(50, 255, 50))
+            # Draw Arena Aura (Glow behind avatars)
+            aura_color = (255, 69, 0, 80) if percent > 50 else (100, 100, 100, 80)
+            draw.ellipse([30, 130, 30+av_size+40, 130+av_size+40], fill=aura_color)
+            draw.ellipse([730, 130, 730+av_size+40, 130+av_size+40], fill=aura_color)
 
+            # Central "Heat of Battle" Meter
+            col_x, col_y, col_w, col_h = 540, 120, 120, 480
+            # Border
+            draw.rectangle([col_x, col_y, col_x+col_w, col_y+col_h], fill=(30,30,30), outline=(218, 165, 32), width=8)
+            
+            # Fill (Fire gradient logic)
+            fill_h = (percent / 100) * (col_h - 16)
+            if percent > 0:
+                fill_color = (255, 215, 0) if percent < 80 else (255, 0, 0)
+                draw.rectangle([col_x+8, (col_y+col_h-8)-fill_h, col_x+col_w-8, col_y+col_h-8], fill=fill_color)
+
+            # Paste Avatars
             canvas.paste(av1, (50, 150), av1)
             canvas.paste(av2, (750, 150), av2)
+
+            # Gladiator Frame (Golden trim)
+            draw.rectangle([45, 145, 50+av_size+5, 150+av_size+5], outline=(218, 165, 32), width=10)
+            draw.rectangle([745, 145, 750+av_size+5, 150+av_size+5], outline=(218, 165, 32), width=10)
+
+            # Final Score Text
+            try:
+                # Attempt to use a bold font if available
+                font = ImageFont.truetype("arial.ttf", 90)
+            except:
+                font = ImageFont.load_default()
+            
+            score_text = f"{percent}%"
+            draw.text((545, 30), score_text, fill=(255, 255, 255), font=font, stroke_width=5, stroke_fill=(0,0,0))
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"Visual Error: {e}")
+            print(f"Arena Visual Error: {e}")
             return None
 
     @commands.command(name="ship")
     async def ship(self, ctx, user1: discord.Member, user2: discord.Member = None):
+        """⚔️ Test the bond of two Gladiators."""
         if user2 is None:
             user2, user1 = user1, ctx.author
 
@@ -135,25 +161,26 @@ class DungeonShip(commands.Cog):
         random.seed()
 
         tier = "sad" if percent < 20 else "low" if percent < 40 else "medium" if percent < 60 else "sexual" if percent < 80 else "high" if percent < 100 else "love"
-        msg = random.choice(self.erotic_lexicon[tier]).format(u1=user1.display_name, u2=user2.display_name)
+        msg = random.choice(self.arena_lexicon[tier]).format(u1=user1.display_name, u2=user2.display_name)
 
-        embed = discord.Embed(title="🔞 SOUL SYNCHRONIZATION 🔞", color=0xff4500)
-        embed.description = f"**Assets:** {user1.mention} & {user2.mention}\n\n**Compatibility: {percent}%**\n*{msg}*"
+        embed = discord.Embed(title="🏟️ ARENA BOND SYNCHRONIZATION 🏟️", color=0xdaa520)
+        embed.description = f"**Gladiators:** {user1.mention} & {user2.mention}\n\n**Arena Sync: {percent}%**\n> *{msg}*"
         
         async with ctx.typing():
             img_buf = await self.create_ship_visual(user1.display_avatar.url, user2.display_avatar.url, percent)
             if img_buf:
-                file = discord.File(img_buf, filename="ship.png")
-                embed.set_image(url="attachment://ship.png")
+                file = discord.File(img_buf, filename="arena_bond.png")
+                embed.set_image(url="attachment://arena_bond.png")
                 await ctx.send(file=file, embed=embed)
             else:
                 await ctx.send(embed=embed)
 
-    @commands.command(name="marry")
+    @commands.command(name="marry", aliases=["arena_bond"])
     async def marry(self, ctx, member: discord.Member):
-        if member.id == ctx.author.id: return await ctx.send("❌ Cannot bind to self.")
+        """💍 Seal a permanent contract in the pits."""
+        if member.id == ctx.author.id: return await ctx.send("❌ A gladiator cannot bond with their own shadow.")
         u1, u2 = self.get_ship_user(ctx.author.id), self.get_ship_user(member.id)
-        if u1['spouse_id'] or u2['spouse_id']: return await ctx.send("❌ Contract already exists.")
+        if u1['spouse_id'] or u2['spouse_id']: return await ctx.send("❌ One of you is already bound by an Imperial Contract.")
 
         view = discord.ui.View(timeout=60)
         async def accept_callback(interaction):
@@ -162,23 +189,31 @@ class DungeonShip(commands.Cog):
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute("UPDATE ship_users SET spouse_id = ?, marriage_date = ? WHERE user_id = ?", (member.id, date, ctx.author.id))
                 conn.execute("UPDATE ship_users SET spouse_id = ?, marriage_date = ? WHERE user_id = ?", (ctx.author.id, date, member.id))
-            await interaction.response.send_message(f"💖 **CONTRACT SEALED.** {ctx.author.mention} and {member.mention} are bound.")
+            
+            res_emb = discord.Embed(title="⚔️ IMPERIAL CONTRACT SEALED", color=0x00ff00)
+            res_emb.description = f"The Emperor has signed the decree. **{ctx.author.display_name}** and **{member.display_name}** are now bound forever."
+            await interaction.response.send_message(embed=res_emb)
 
-        btn = discord.ui.Button(label="Accept Possession", style=discord.ButtonStyle.success, emoji="🫦")
+        btn = discord.ui.Button(label="Accept Bond", style=discord.ButtonStyle.success, emoji="⚔️")
         btn.callback = accept_callback
         view.add_item(btn)
-        await ctx.send(f"🔞 {member.mention}, {ctx.author.mention} offers a lifelong contract. Do you accept?", view=view)
+        
+        propose_emb = discord.Embed(title="🛡️ ARENA PROPOSAL", color=0xff4500)
+        propose_emb.description = f"{member.mention}, Gladiator {ctx.author.mention} offers you a life-long contract in the pits. Do you accept?"
+        await ctx.send(embed=propose_emb, view=view)
 
-    @commands.command(name="divorce")
+    @commands.command(name="divorce", aliases=["sever"])
     async def divorce(self, ctx):
+        """💔 Sever an Imperial Contract."""
         u = self.get_ship_user(ctx.author.id)
-        if not u['spouse_id']: return await ctx.send("❌ You are not bound.")
+        if not u['spouse_id']: return await ctx.send("❌ You are currently unbound.")
         
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("UPDATE ship_users SET spouse_id = NULL, marriage_date = NULL WHERE user_id = ?", (ctx.author.id,))
             conn.execute("UPDATE ship_users SET spouse_id = NULL, marriage_date = NULL WHERE user_id = ?", (u['spouse_id'],))
-        await ctx.send("💔 **CONTRACT SEVERED.** You return to the shadows alone.")
+        
+        await ctx.send("🏚️ **CONTRACT SEVERED.** The Arena reclaiming your individual status.")
 
 async def setup(bot):
     await bot.add_cog(DungeonShip(bot))
-    print("✅ Module Loaded: ship.py")
+    print("✅ Module Loaded: arena_ship.py")
