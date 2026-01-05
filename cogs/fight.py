@@ -147,16 +147,30 @@ class DungeonFight(commands.Cog):
             av1_raw = Image.open(p1).convert("RGBA").resize((av_size, av_size))
             av2_raw = Image.open(p2).convert("RGBA").resize((av_size, av_size))
 
-            # Borderless circular clipping
+            # MIXING LOGIC: Circular clip + Linear Gradient Fade for background mixing
             mask = Image.new("L", (av_size, av_size), 0)
-            ImageDraw.Draw(mask).ellipse((0, 0, av_size, av_size), fill=255)
+            mask_draw = ImageDraw.Draw(mask)
+            mask_draw.ellipse((0, 0, av_size, av_size), fill=255)
             
-            av1 = ImageOps.fit(av1_raw, mask.size, centering=(0.5, 0.5))
-            av1.putalpha(mask)
-            av2 = ImageOps.fit(av2_raw, mask.size, centering=(0.5, 0.5))
-            av2.putalpha(mask)
+            # Create a secondary fade mask to vanish the edges/bottom into the background
+            fade = Image.new("L", (av_size, av_size), 255)
+            for y in range(av_size):
+                # Gradually decrease alpha towards the bottom/edges (approximate mix)
+                alpha_val = int(255 * (1 - (y / av_size) ** 2))
+                ImageDraw.Draw(fade).line([(0, y), (av_size, y)], fill=alpha_val)
+            
+            # Composite masks
+            mask = ImageOps.fit(mask, fade.size)
+            final_mask = Image.new("L", mask.size)
+            final_mask.paste(Image.eval(mask, lambda x: x if x < 200 else 200), (0,0)) # Slight global vanish
+            final_mask = Image.blend(mask, fade, 0.4) # Blend the circular clip with the fade
 
-            # Paste Avatars
+            av1 = ImageOps.fit(av1_raw, final_mask.size, centering=(0.5, 0.5))
+            av1.putalpha(final_mask)
+            av2 = ImageOps.fit(av2_raw, final_mask.size, centering=(0.5, 0.5))
+            av2.putalpha(final_mask)
+
+            # Paste Avatars (Alpha blending handles the vanish)
             canvas.paste(av1, (50, 75), av1)
             canvas.paste(av2, (700, 75), av2)
 
@@ -264,7 +278,6 @@ class DungeonFight(commands.Cog):
         # Arena Image Generation
         arena_img = await self.create_arena_visual(p1['user'].display_avatar.url, p2['user'].display_avatar.url)
         arena_file = discord.File(arena_img, filename="arena.png")
-        # Note: Combat loop below updates embed image to arena.png
         
         files = [arena_file]
         if lobby_file: files.append(lobby_file)
