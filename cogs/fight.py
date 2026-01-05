@@ -180,28 +180,39 @@ class DungeonFight(commands.Cog):
             return None
 
     # --- WINNER CARD ENGINE ---
-    async def create_winner_card(self, winner_url, name, wins, total_fights, streak):
+    async def create_winner_card(self, winner_url, name, g_wins, g_streak, l_wins, l_streak):
         try:
-            card = Image.new("RGBA", (1000, 500), (10, 10, 10, 255))
+            # Enlarged Canvas for High-Impact Visuals
+            card = Image.new("RGBA", (1200, 600), (15, 15, 15, 255))
             draw = ImageDraw.Draw(card)
             if os.path.exists("fierylogo.jpg"):
-                logo = Image.open("fierylogo.jpg").convert("RGBA").resize((1000, 500))
+                logo = Image.open("fierylogo.jpg").convert("RGBA").resize((1200, 600))
                 card.paste(logo, (0, 0))
 
             async with aiohttp.ClientSession() as session:
                 async with session.get(winner_url) as r:
                     av_data = io.BytesIO(await r.read())
             
-            av = Image.open(av_data).convert("RGBA").resize((320, 320))
-            mask = Image.new("L", (320, 320), 0)
-            ImageDraw.Draw(mask).ellipse((10, 10, 310, 310), fill=255)
+            # Big Avatar Framing
+            av = Image.open(av_data).convert("RGBA").resize((450, 450))
+            mask = Image.new("L", (450, 450), 0)
+            ImageDraw.Draw(mask).ellipse((10, 10, 440, 440), fill=255)
             av.putalpha(mask)
             
-            card.paste(av, (60, 90), av)
-            draw.text((430, 70), "LEGIONNAIRE VICTOR", fill=(255, 215, 0))
-            draw.text((430, 120), name.upper(), fill=(255, 255, 255))
-            draw.text((430, 220), f"CONQUESTS: {wins}", fill=(212, 175, 55))
-            draw.text((430, 275), f"BLOOD STREAK: {streak} 🔥", fill=(255, 69, 0))
+            # Draw Gold Avatar Glow
+            draw.ellipse((45, 70, 505, 530), outline=(255, 215, 0), width=15)
+            card.paste(av, (50, 75), av)
+
+            # Textual Data Section
+            draw.text((580, 80), "ARENA CHAMPION", fill=(255, 215, 0))
+            draw.text((580, 140), name.upper(), fill=(255, 255, 255))
+            
+            # Stat Blocks
+            draw.text((580, 240), "🌍 GLOBAL DOMINATION", fill=(200, 200, 200))
+            draw.text((580, 280), f"Conquests: {g_wins}  |  Streak: {g_streak} 🔥", fill=(255, 69, 0))
+            
+            draw.text((580, 380), "🏰 LOCAL SERVER GLORY", fill=(200, 200, 200))
+            draw.text((580, 420), f"Conquests: {l_wins}  |  Streak: {l_streak} ⚔️", fill=(52, 152, 219))
             
             buf = io.BytesIO()
             card.save(buf, format="PNG")
@@ -276,8 +287,13 @@ class DungeonFight(commands.Cog):
         loser = other if turn["hp"] > 0 else turn
         self._update_winner(ctx.guild.id, winner["user"].id, loser["user"].id)
 
-        win_data = self.stats["global"].get(str(winner["user"].id), {"wins": 0, "fights": 0, "streak": 0})
-        win_card_buf = await self.create_winner_card(winner["user"].display_avatar.url, winner["user"].display_name, win_data["wins"], win_data["fights"], win_data["streak"])
+        # Pull detailed stats for Winner Card
+        wid_str = str(winner["user"].id)
+        gid_str = str(ctx.guild.id)
+        g_stats = self.stats["global"].get(wid_str, {"wins": 0, "streak": 0})
+        l_stats = self.stats["servers"].get(gid_str, {}).get(wid_str, {"wins": 0, "streak": 0})
+
+        win_card_buf = await self.create_winner_card(winner["user"].display_avatar.url, winner["user"].display_name, g_stats["wins"], g_stats["streak"], l_stats["wins"], l_stats["streak"])
         if win_card_buf:
             await ctx.send(file=discord.File(win_card_buf, filename="winner_card.png"), embed=discord.Embed(title="🏆 THE ETERNAL CHAMPION", color=0xFFD700).set_image(url="attachment://winner_card.png"))
 
