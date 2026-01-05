@@ -66,13 +66,16 @@ class DungeonShip(commands.Cog):
                 font_heart = ImageFont.load_default()
             
             # 2. PARTICLE GENERATOR (Skulls for Doom, Hearts for Glory)
-            for _ in range(50):
+            # DYNAMIC RADIANCE: More particles for 80%+ scores
+            particle_count = 100 if percent >= 80 else 50
+            for _ in range(particle_count):
                 px, py = random.randint(0, 1200), random.randint(0, 600)
-                p_size = random.randint(5, 18)
+                p_size = random.randint(5, 18) if percent < 80 else random.randint(10, 25)
                 if percent < 20:
                     draw.text((px, py), "💀", fill=(0, 255, 255, 100), font=font_heart)
                 else:
-                    draw.polygon([(px, py), (px+p_size, py-p_size), (px+p_size*2, py)], fill=(255, 105, 180, 160))
+                    p_color = (255, 105, 180, 160) if percent < 80 else (255, 215, 0, 180) # Gold sparkles for 80%+
+                    draw.polygon([(px, py), (px+p_size, py-p_size), (px+p_size*2, py)], fill=p_color)
 
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
@@ -155,9 +158,12 @@ class DungeonShip(commands.Cog):
                 text_main, text_stroke = (255, 255, 255), (255, 105, 180) 
 
             pct_text = f"{percent}%"
-            # Colossal Rendering - drawing with massive stroke for weight
+            # Titanic Rendering - drawing with massive stroke for weight
             final_draw.text((615, 315), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
-            final_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=30, stroke_fill=text_stroke)
+            
+            # Pulsive Glow: Thicker stroke for 80%+
+            final_stroke_width = 40 if percent >= 80 else 30
+            final_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=final_stroke_width, stroke_fill=text_stroke)
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
