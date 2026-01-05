@@ -4,12 +4,6 @@ import random
 import asyncio
 import os
 import io
-import aiohttpimport discord
-from discord.ext import commands
-import random
-import asyncio
-import os
-import io
 import aiohttp
 import json
 from datetime import datetime, timezone
