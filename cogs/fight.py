@@ -219,7 +219,7 @@ class DungeonFight(commands.Cog):
         # Local Stats Block
         embed.add_field(
             name="🏰 SERVER LEGION",
-            value=f"**Rank:** #{local_pos}\n**Server Wins:** {l_data['wins']}\n**Current Streak:** {l_data['streak']} 🔥",
+            value=f"**Rank:** #{local_pos}\n**Server Wins:** {l_data['wins']}\n**Server Battles:** {l_data['fights']}\n**Current Streak:** {l_data['streak']} 🔥",
             inline=True
         )
         
@@ -387,7 +387,7 @@ class DungeonFight(commands.Cog):
         # Local Block
         embed.add_field(
             name="🏰 SERVER LEGION",
-            value=f"**Rank:** #{local_pos}\n**Server Wins:** {l_data['wins']}\n**Current Streak:** {l_data['streak']} 🔥",
+            value=f"**Rank:** #{local_pos}\n**Server Wins:** {l_data['wins']}\n**Server Battles:** {l_data['fights']}\n**Current Streak:** {l_data['streak']} 🔥",
             inline=True
         )
         
