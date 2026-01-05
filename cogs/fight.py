@@ -200,4 +200,3 @@ class DungeonFight(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(DungeonFight(bot))
-    await bot.add_cog(DungeonFight(bot))
