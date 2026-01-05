@@ -7,7 +7,7 @@ import io
 import aiohttp
 import json
 from datetime import datetime, timezone
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageDraw, ImageOps, ImageFont
 import __main__
 
 class DungeonFight(commands.Cog):
@@ -36,16 +36,26 @@ class DungeonFight(commands.Cog):
 
         # Global Update
         if wid not in self.stats["global"]:
-            self.stats["global"][wid] = {"wins": 0, "victims": {}}
+            self.stats["global"][wid] = {"wins": 0, "fights": 0, "victims": {}}
+        if lid not in self.stats["global"]:
+            self.stats["global"][lid] = {"wins": 0, "fights": 0, "victims": {}}
+            
         self.stats["global"][wid]["wins"] += 1
+        self.stats["global"][wid]["fights"] += 1
+        self.stats["global"][lid]["fights"] += 1
         self.stats["global"][wid]["victims"][lid] = self.stats["global"][wid]["victims"].get(lid, 0) + 1
 
         # Local Update
         if gid not in self.stats["servers"]:
             self.stats["servers"][gid] = {}
         if wid not in self.stats["servers"][gid]:
-            self.stats["servers"][gid][wid] = {"wins": 0, "victims": {}}
+            self.stats["servers"][gid][wid] = {"wins": 0, "fights": 0, "victims": {}}
+        if lid not in self.stats["servers"][gid]:
+            self.stats["servers"][gid][lid] = {"wins": 0, "fights": 0, "victims": {}}
+
         self.stats["servers"][gid][wid]["wins"] += 1
+        self.stats["servers"][gid][wid]["fights"] += 1
+        self.stats["servers"][gid][lid]["fights"] += 1
         self.stats["servers"][gid][wid]["victims"][lid] = self.stats["servers"][gid][wid]["victims"].get(lid, 0) + 1
         
         self._save_stats()
@@ -148,6 +158,54 @@ class DungeonFight(commands.Cog):
             
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
+            buf.seek(0)
+            return buf
+        except:
+            return None
+
+    # --- NEW: WINNER CARD ENGINE ---
+    async def create_winner_card(self, winner_url, name, wins, total_fights):
+        try:
+            # Base card setup
+            card = Image.new("RGBA", (1000, 500), (15, 15, 15, 255))
+            draw = ImageDraw.Draw(card)
+            
+            # Load fierylogo.jpg if exists
+            if os.path.exists("fierylogo.jpg"):
+                logo = Image.open("fierylogo.jpg").convert("RGBA").resize((1000, 500))
+                # Add a dark overlay to make text readable
+                overlay = Image.new("RGBA", (1000, 500), (0, 0, 0, 160))
+                card.paste(logo, (0, 0))
+                card.paste(overlay, (0, 0), overlay)
+
+            # Load Winner Avatar
+            async with aiohttp.ClientSession() as session:
+                async with session.get(winner_url) as r:
+                    av_data = io.BytesIO(await r.read())
+            
+            av_size = 300
+            av = Image.open(av_data).convert("RGBA").resize((av_size, av_size))
+            mask = Image.new("L", (av_size, av_size), 0)
+            ImageDraw.Draw(mask).ellipse((0, 0, av_size, av_size), fill=255)
+            av.putalpha(mask)
+            
+            # Draw Avatar and Gold Border
+            card.paste(av, (50, 100), av)
+            draw.ellipse((45, 95, 355, 405), outline=(255, 215, 0), width=10)
+
+            # Text Labels
+            draw.text((400, 100), "CHAMPION", fill=(255, 69, 0), font=None) # Use default font if custom not provided
+            draw.text((400, 150), name.upper(), fill=(255, 255, 255), font=None)
+            
+            draw.text((400, 250), f"TOTAL WINS: {wins}", fill=(255, 215, 0))
+            draw.text((400, 300), f"TOTAL FIGHTS: {total_fights}", fill=(200, 200, 200))
+            
+            # Accuracy percentage
+            acc = (wins / total_fights) * 100 if total_fights > 0 else 0
+            draw.text((400, 350), f"WIN RATE: {acc:.1f}%", fill=(0, 255, 127))
+
+            buf = io.BytesIO()
+            card.save(buf, format="PNG")
             buf.seek(0)
             return buf
         except:
@@ -258,14 +316,24 @@ class DungeonFight(commands.Cog):
         loser = other if turn["hp"] > 0 else turn
         self._update_winner(ctx.guild.id, winner["user"].id, loser["user"].id)
 
+        # --- GENERATE NEVER SEEN WINNER CARD ---
+        win_data = self.stats["global"].get(str(winner["user"].id), {"wins": 0, "fights": 0})
+        win_card_buf = await self.create_winner_card(
+            winner["user"].display_avatar.url, 
+            winner["user"].display_name, 
+            win_data["wins"], 
+            win_data["fights"]
+        )
+
         win_emb = discord.Embed(title="🏆 THE ECHO CHAMPION EMERGES", color=0x00ff00)
-        win_emb.description = f"🎊 **{winner['user'].display_name.upper()}** HAS CLAIMED VICTORY!\n\n*The losing soul fades into the arena echoes...*"
-        win_emb.set_image(url="attachment://arena.png")
+        win_emb.description = f"🎊 **{winner['user'].display_name.upper()}** HAS CLAIMED VICTORY!"
         
-        if os.path.exists("fierylogo.jpg"):
-            win_emb.set_thumbnail(url="attachment://logo.png")
-        
-        await ctx.send(embed=win_emb)
+        if win_card_buf:
+            win_file = discord.File(win_card_buf, filename="winner_card.png")
+            win_emb.set_image(url="attachment://winner_card.png")
+            await ctx.send(file=win_file, embed=win_emb)
+        else:
+            await ctx.send(embed=win_emb)
 
     @commands.command(name="fightrank")
     async def fightrank(self, ctx, user: discord.Member = None):
