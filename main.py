@@ -161,7 +161,7 @@ class MyBot(commands.Bot):
 
     async def on_ready(self):
         print(f'🔥 Bot Online: {self.user}')
-        await self.change_presence(activity=discord.Game(name="!fiery | !ask"))
+        await self.change_presence(activity=discord.Game(name="!echo | !fight"))
 
 bot = MyBot()
 
