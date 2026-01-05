@@ -43,9 +43,9 @@ class DungeonShip(commands.Cog):
             canvas = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             draw = ImageDraw.Draw(canvas)
 
-            # --- FONT SYSTEM LOADER (COLOSSAL FIX - ABSOLUTELY NO LIMITS) ---
-            # Increased to 900 for dominance
-            font_size_pct = 900 if percent < 100 else 750 
+            # --- FONT SYSTEM LOADER (COLOSSAL FIX - ZERO CONSTRAINTS) ---
+            # Forced to 950pt for total dominance. 
+            font_size_pct = 950 if percent < 100 else 800 
             font_size_heart = 120
             try:
                 font_paths = [
@@ -138,12 +138,10 @@ class DungeonShip(commands.Cog):
             glow = canvas.filter(ImageFilter.GaussianBlur(8))
             canvas = Image.alpha_composite(glow, canvas)
 
-            # --- 7. FINAL OVERLAY: THE COLOSSAL SCORE (LAYOUT/SHAPE DELETED) ---
+            # --- 7. FINAL OVERLAY: THE COLOSSAL SCORE (LAYOUT/SHAPES REMOVED) ---
             overlay = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             o_draw = ImageDraw.Draw(overlay)
             
-            # [LAYOUT SHAPE DELETED - NUMBERS ARE NOW FREE]
-
             if percent >= 90:
                 text_main, text_stroke = (255, 255, 255), (255, 215, 0)
             elif percent >= 70:
@@ -154,9 +152,9 @@ class DungeonShip(commands.Cog):
                 text_main, text_stroke = (255, 255, 255), (255, 105, 180) 
 
             pct_text = f"{percent}%"
-            # SHADOW FOR READABILITY
-            o_draw.text((615, 315), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
-            # COLOSSAL FOCAL SCORE
+            # COLOSSAL SHADOW
+            o_draw.text((630, 330), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
+            # COLOSSAL FOCAL SCORE - ABSOLUTE POP
             o_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=60, stroke_fill=text_stroke)
 
             canvas = Image.alpha_composite(canvas, overlay)
