@@ -36,14 +36,44 @@ class DungeonFight(commands.Cog):
                 "delivered a legendary slap to",
                 "poked the eye of",
                 "threw a heavy dictionary at",
-                "used a gamer move on"
+                "used a gamer move on",
+                "challenged the physics of the universe hitting",
+                "sent a strongly worded email to the face of",
+                "tried to delete the existence of",
+                "performed a professional wrestling dropkick on",
+                "threw a spoiled slice of pizza at",
+                "whispered an embarrassing secret to distract",
+                "bonked the head of",
+                "accidentally sneezed too hard on",
+                "used a selfie stick as a spear against",
+                "threw a handful of glitter into the eyes of",
+                "attempted a 360-no-scope slap on",
+                "lightly tapped the shoulder of",
+                "summoned a tiny, angry pigeon to peck",
+                "dropped a massive piano (cartoon style) on",
+                "hit a home run using the head of"
             ],
             "heal": [
                 "ate a suspicious mushroom.",
                 "drank a glowing potion that tastes like blueberry.",
                 "took a quick nap mid-battle.",
                 "used a band-aid on a broken heart.",
-                "screamed 'I REFUSE TO DIE' and felt better."
+                "screamed 'I REFUSE TO DIE' and felt better.",
+                "found a half-eaten sandwich on the floor.",
+                "rubbed some dirt on the wound.",
+                "recalled a happy memory and gained life.",
+                "drank some spicy lava juice.",
+                "patched themselves up with duct tape.",
+                "received a magical high-five from a ghost.",
+                "consumed an entire wheel of cheese instantly.",
+                "hugged a nearby cactus for some reason.",
+                "re-read the instructions of the fight.",
+                "activated 'Main Character' plot armor.",
+                "took a sip of a very expensive energy drink.",
+                "prayed to the gods of the Echo.",
+                "remembered they left the stove on and panicked into health.",
+                "did a quick yoga pose to realign their soul.",
+                "smelled a very refreshing lemon."
             ]
         }
         return random.choice(msgs[action_type])
