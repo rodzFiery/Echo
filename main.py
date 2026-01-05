@@ -9,14 +9,22 @@ from datetime import datetime, timezone, timedelta
 from discord.ext import commands
 from dotenv import load_dotenv
 from PIL import Image, ImageDraw, ImageOps, ImageFilter
-from aiohttp import web # New import for the webhook server
+from aiohttp import web
 
 # 1. SETUP & SECRETS
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 TOPGG_TOKEN = os.getenv('TOPGG_TOKEN')
-PAYPAL_EMAIL = os.getenv('PAYPAL_EMAIL')
-PORT = int(os.getenv("PORT", 8080)) # Railway provides a port
+PAYPAL_EMAIL = os.getenv('PAYPAL_EMAIL') # Properly pulling from Railway variables
+PORT = int(os.getenv("PORT", 8080))
+
+# --- PERSISTENT STORAGE PATHS ---
+DATA_DIR = "/app/data"
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
+
+HISTORY_FILE = os.path.join(DATA_DIR, "ask_history.json")
+PREMIUM_FILE = os.path.join(DATA_DIR, "premium_guilds.json")
 
 if TOKEN is None:
     print("ERROR: DISCORD_TOKEN not found.")
@@ -34,13 +42,14 @@ class MyBot(commands.Bot):
     async def setup_hook(self):
         print("--- Initializing Systems ---")
         global PREMIUM_GUILDS
-        if os.path.exists("premium_guilds.json"):
-            with open("premium_guilds.json", "r") as f:
-                PREMIUM_GUILDS = json.load(f)
+        if os.path.exists(PREMIUM_FILE):
+            with open(PREMIUM_FILE, "r") as f:
+                try: PREMIUM_GUILDS = json.load(f)
+                except: PREMIUM_GUILDS = []
         else:
             PREMIUM_GUILDS = []
         
-        # Start the Webhook Server in the background
+        print(f"Loaded {len(PREMIUM_GUILDS)} Premium Servers.")
         self.loop.create_task(self.start_webhook_server())
 
     async def start_webhook_server(self):
@@ -56,7 +65,6 @@ class MyBot(commands.Bot):
     async def handle_paypal_webhook(self, request):
         """Processes the signal from PayPal."""
         data = await request.post()
-        # PayPal sends the Server ID in the 'custom' field we set in !askpremium
         guild_id_str = data.get('custom')
         payment_status = data.get('payment_status')
 
@@ -64,7 +72,7 @@ class MyBot(commands.Bot):
             guild_id = int(guild_id_str)
             if guild_id not in PREMIUM_GUILDS:
                 PREMIUM_GUILDS.append(guild_id)
-                with open("premium_guilds.json", "w") as f:
+                with open(PREMIUM_FILE, "w") as f:
                     json.dump(PREMIUM_GUILDS, f)
                 print(f"AUTOMATIC ACTIVATION: Guild {guild_id} is now Premium.")
         
@@ -77,9 +85,6 @@ class MyBot(commands.Bot):
 bot = MyBot()
 
 # 3. UTILS & DATABASE LOGIC
-HISTORY_FILE = "ask_history.json"
-PREMIUM_GUILDS = []
-
 def fiery_embed(title, description, color=0xff4500):
     return discord.Embed(title=title, description=description, color=color)
 
@@ -186,7 +191,6 @@ async def askcommands(ctx):
 async def adminask(ctx):
     if ctx.guild.id not in PREMIUM_GUILDS:
         return await ctx.send("🚫 Premium Feature. Type `!askpremium` to upgrade.")
-    # ... (Timeframe logic from previous code)
     await ctx.send("Audit logs active.")
 
 @bot.command(name="askpremium")
@@ -195,6 +199,15 @@ async def askpremium(ctx):
     paypal_link = f"https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business={PAYPAL_EMAIL}&amount=2.50&currency_code=USD&item_name=Premium_Server_{ctx.guild.id}&custom={ctx.guild.id}"
     embed = fiery_embed("💎 PREMIUM UPGRADE", f"Click [**HERE**]({paypal_link}) to pay.\nActivation is automatic after payment.")
     await ctx.send(embed=embed)
+
+@bot.command(name="askactivate")
+@commands.is_owner()
+async def askactivate(ctx, guild_id: int):
+    if guild_id not in PREMIUM_GUILDS:
+        PREMIUM_GUILDS.append(guild_id)
+        with open(PREMIUM_FILE, "w") as f:
+            json.dump(PREMIUM_GUILDS, f)
+        await ctx.send(f"✅ Guild {guild_id} is now Premium!")
 
 @bot.command()
 async def invite(ctx):
