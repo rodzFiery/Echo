@@ -318,6 +318,53 @@ async def premiumstatus(ctx):
     else:
         await ctx.send(embed=embed)
 
+# --- NEW: DEVELOPER GLOBAL MODULE TOGGLES ---
+@bot.command(name="fieryon")
+async def fieryon(ctx):
+    # Restrict to your developer server ID
+    if ctx.guild.id != 1457658274496118786:
+        return
+    
+    if not ctx.author.guild_permissions.administrator:
+        return
+
+    guild_id_str = str(ctx.guild.id)
+    available_modules = [f[:-3] for f in os.listdir('./cogs') if f.endswith('.py')]
+    
+    # Set expiry to 10 years in the future for dev server
+    dev_expiry = (datetime.now(timezone.utc) + timedelta(days=3650)).timestamp()
+
+    global PREMIUM_GUILDS
+    if guild_id_str not in PREMIUM_GUILDS:
+        PREMIUM_GUILDS[guild_id_str] = {}
+
+    for module in available_modules:
+        PREMIUM_GUILDS[guild_id_str][module] = dev_expiry
+    
+    with open(PREMIUM_FILE, "w") as f:
+        json.dump(PREMIUM_GUILDS, f)
+    
+    await ctx.send("🛠️ **DEVELOPER MODE:** All modules activated for this server.")
+
+@bot.command(name="fieryoff")
+async def fieryoff(ctx):
+    # Restrict to your developer server ID
+    if ctx.guild.id != 1457658274496118786:
+        return
+    
+    if not ctx.author.guild_permissions.administrator:
+        return
+
+    guild_id_str = str(ctx.guild.id)
+    
+    global PREMIUM_GUILDS
+    if guild_id_str in PREMIUM_GUILDS:
+        PREMIUM_GUILDS[guild_id_str] = {}
+        with open(PREMIUM_FILE, "w") as f:
+            json.dump(PREMIUM_GUILDS, f)
+    
+    await ctx.send("🛠️ **DEVELOPER MODE:** All modules deactivated for this server.")
+
 async def main():
     async with bot:
         await bot.start(TOKEN)
