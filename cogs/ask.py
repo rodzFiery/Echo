@@ -119,7 +119,7 @@ class DungeonAsk(commands.Cog):
         if is_premium:
             img = await self.create_premium_lobby(ctx.author.display_avatar.url, member.display_avatar.url)
             files.append(discord.File(img, filename="ask.png"))
-            emb = self.fiery_embed("✨ A NEW CONNECTION IS BREWING...", f"**{ctx.author.display_name}** ⚔️ **{member.display_name}**")
+            emb = self.fiery_embed("✨ A NEW CONNECTION IS BREWING...", f"**{ctx.author.display_name}**  💗🥰💞  **{member.display_name}**")
             emb.set_image(url="attachment://ask.png")
         else:
             emb = self.fiery_embed("🔥 SOMETHING'S STARTING...", f"{ctx.author.mention} wants to get close to {member.mention}.\n\n*Unlock the full visual experience with !premium*")
@@ -134,9 +134,9 @@ class DungeonAsk(commands.Cog):
                 if interaction.user.id != self.r.id: return
                 
                 options = [
-                    discord.SelectOption(label="Polite & Sweet", value="SFW", emoji="😇"),
-                    discord.SelectOption(label="Wild & Lustful", value="NSFW", emoji="😈"),
-                    discord.SelectOption(label="Just Vibe", value="Casual", emoji="🍹")
+                    discord.SelectOption(label="Polite & Sweet (SFW)", value="SFW", emoji="😇"),
+                    discord.SelectOption(label="Wild & Lustful (NSFW)", value="NSFW", emoji="🔞"),
+                    discord.SelectOption(label="Just Vibe (Casual)", value="Casual", emoji="🍹")
                 ]
                 select = discord.ui.Select(placeholder="What's your mood?", options=options)
 
@@ -149,13 +149,13 @@ class DungeonAsk(commands.Cog):
                         mood_desc = f"{self.t.mention}, {self.r.mention} wants to dive into the **deep end** with you. Do you accept the heat?"
                         mood_color = 0xff0066 
                         acc_label = "Say Yes..."
-                        den_label = "Not Tonight"
+                        den_label = "No, not Tonight"
                     else:
                         mood_title = "👋 HEY THERE..."
                         mood_desc = f"{self.t.mention}, {self.r.mention} is reaching out for a **{intent}** chat. Want to talk?"
                         mood_color = 0xffa500 
                         acc_label = "Sure!"
-                        den_label = "Maybe later"
+                        den_label = "No, I'm sorry!"
 
                     class RecView(discord.ui.View):
                         def __init__(self, cog, r, t, it):
@@ -167,14 +167,14 @@ class DungeonAsk(commands.Cog):
                             if inner_i.user.id != self.t.id: return
                             self.cog.log_ask_event(self.r, self.t, self.it, "Accepted")
                             # FIXED: Proper interaction response
-                            await inner_i.response.send_message(f"✨ Spark lit for {self.r.mention}")
+                            await inner_i.response.send_message(f"✨ Yes please! {self.r.mention}")
 
                         @discord.ui.button(label=den_label, style=discord.ButtonStyle.danger, emoji="🥀")
                         async def den(self, inner_i, b):
                             if inner_i.user.id != self.t.id: return
                             self.cog.log_ask_event(self.r, self.t, self.it, "Denied")
                             # FIXED: Proper interaction response
-                            await inner_i.response.send_message(f"🥀 Fire out for {self.r.mention}")
+                            await inner_i.response.send_message(f"😭No, I'm sorry! {self.r.mention}")
 
                     final_emb = self.cog.fiery_embed(mood_title, mood_desc, mood_color)
                     # FIXED: Send interaction message correctly to prevent silent failures
@@ -190,7 +190,7 @@ class DungeonAsk(commands.Cog):
     @commands.command(name="askcommands")
     async def askcommands(self, ctx):
         logo = self.get_logo()
-        embed = self.fiery_embed("🔥 THE FIERY SYSTEM 🔥", "What can we do tonight?")
+        embed = self.fiery_embed("🔥 THE ECHO SYSTEM 🔥", "What can we do tonight?")
         embed.add_field(name="📩 Connections", value="`!ask @user` | `!invite`", inline=False)
         embed.add_field(name="💎 Premium", value="`!premium` | `!premiumstatus`", inline=False)
         await ctx.send(file=logo, embed=embed)
