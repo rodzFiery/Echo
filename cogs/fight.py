@@ -147,13 +147,14 @@ class DungeonFight(commands.Cog):
             av1_raw = Image.open(p1).convert("RGBA").resize((av_size, av_size))
             av2_raw = Image.open(p2).convert("RGBA").resize((av_size, av_size))
 
-            # CINEMATIC FEATHERED MIXING MASK
+            # REFINED MASK: High visibility center with soft cinematic edges
             mask = Image.new("L", (av_size, av_size), 0)
             mask_draw = ImageDraw.Draw(mask)
             
-            # Radial soft-edge feathering
+            # Larger solid center, tighter feathering at the edges
             for i in range(av_size // 2):
-                alpha = int(255 * (1 - (i / (av_size // 2))**1.8))
+                # Stronger alpha ramp to keep avatars visible
+                alpha = int(255 * (1 - (i / (av_size // 2))**4)) 
                 mask_draw.ellipse([i, i, av_size-i, av_size-i], outline=255-alpha, fill=255-alpha)
 
             av1 = ImageOps.fit(av1_raw, mask.size, centering=(0.5, 0.5))
@@ -161,18 +162,18 @@ class DungeonFight(commands.Cog):
             av2 = ImageOps.fit(av2_raw, mask.size, centering=(0.5, 0.5))
             av2.putalpha(mask)
 
-            # Atmospheric Lighting Overlay (Dust/Sunlight)
+            # Atmospheric Lighting Overlay (Sunlight Beam)
             lighting = Image.new("RGBA", (1200, 600), (0,0,0,0))
             light_draw = ImageDraw.Draw(lighting)
-            light_draw.polygon([(0,0), (600,0), (0,600)], fill=(255, 255, 200, 40)) # Light beam
+            light_draw.polygon([(0,0), (600,0), (0,600)], fill=(255, 255, 220, 30)) 
 
             # Cinematic Placement
             canvas.paste(av1, (50, 75), av1)
             canvas.paste(av2, (700, 75), av2)
             canvas = Image.alpha_composite(canvas, lighting)
 
-            # Central Gladiator Symbol (Crossed Gladius Style)
-            gold_color = (255, 215, 0, 200)
+            # Central Gladiator Symbol (Crossed Blades Style)
+            gold_color = (255, 215, 0, 220)
             draw.line([540, 240, 660, 360], fill=gold_color, width=15) 
             draw.line([660, 240, 540, 360], fill=gold_color, width=15) 
             
@@ -191,7 +192,7 @@ class DungeonFight(commands.Cog):
             
             if os.path.exists("fierylogo.jpg"):
                 logo = Image.open("fierylogo.jpg").convert("RGBA").resize((1000, 500))
-                overlay = Image.new("RGBA", (1000, 500), (20, 0, 0, 180)) # Dark Red Hue
+                overlay = Image.new("RGBA", (1000, 500), (20, 0, 0, 180)) 
                 card.paste(logo, (0, 0))
                 card.paste(overlay, (0, 0), overlay)
 
