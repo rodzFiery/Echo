@@ -103,9 +103,9 @@ class DungeonShip(commands.Cog):
             canvas.paste(av2_raw, (750, 110), av2_raw)
 
             # 4. THE IMPERIAL BOND (Center)
-            # Central Light Nova
+            # Central Light Nova - Increased transparency (lowered Alpha) for better text contrast
             nova = Image.new("RGBA", (1200, 600), (0,0,0,0))
-            ImageDraw.Draw(nova).ellipse([400, 100, 800, 500], fill=(255, 255, 255, 30))
+            ImageDraw.Draw(nova).ellipse([400, 100, 800, 500], fill=(255, 255, 255, 15))
             nova = nova.filter(ImageFilter.GaussianBlur(50))
             canvas = Image.alpha_composite(canvas, nova)
 
