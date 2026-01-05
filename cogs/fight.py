@@ -247,7 +247,7 @@ class DungeonFight(commands.Cog):
         self._update_winner(ctx.guild.id, winner["user"].id, loser["user"].id)
 
         win_data = self.stats["global"].get(str(winner["user"].id), {"wins": 0, "fights": 0, "streak": 0})
-        win_card_buf = await self.create_winner_card(winner["user"].display_avatar.url, winner["user'].display_name, win_data["wins"], win_data["fights"], win_data["streak"])
+        win_card_buf = await self.create_winner_card(winner["user"].display_avatar.url, winner["user"].display_name, win_data["wins"], win_data["fights"], win_data["streak"])
         if win_card_buf:
             await ctx.send(file=discord.File(win_card_buf, filename="winner_card.png"), embed=discord.Embed(title="🏆 THE ETERNAL CHAMPION", color=0xFFD700).set_image(url="attachment://winner_card.png"))
 
@@ -256,9 +256,41 @@ class DungeonFight(commands.Cog):
         target = user or ctx.author
         tid = str(target.id)
         g_data = self.stats["global"].get(tid, {"wins": 0, "streak": 0, "fights": 0, "victims": {}})
-        embed = discord.Embed(title=f"📜 THE SCROLLS OF VALOR: {target.display_name.upper()}", color=0xC0C0C0)
-        embed.add_field(name="🏛️ EMPIRE RANK", value=f"**Total Conquests:** {g_data['wins']}\n**Glory Streak:** {g_data['streak']}", inline=True)
-        await ctx.send(embed=embed)
+        
+        # Calculation for Valor Ratio
+        total_fights = g_data.get("fights", 0)
+        total_wins = g_data.get("wins", 0)
+        ratio = (total_wins / total_fights * 100) if total_fights > 0 else 0
+        
+        embed = discord.Embed(title=f"📜 THE SCROLLS OF VALOR: {target.display_name.upper()}", color=0xFF4500)
+        embed.description = f"⚔️ **Imperial Gladiator Profile**\n*Glory to the Echo!*"
+        
+        # Fiery Logo Thumbnail Logic
+        logo_file = None
+        if os.path.exists("fierylogo.jpg"):
+            logo_file = discord.File("fierylogo.jpg", filename="logo.png")
+            embed.set_thumbnail(url="attachment://logo.png")
+            
+        embed.add_field(name="🏛️ ARENA RECORD", value=f"**Battles:** {total_fights}\n**Conquests:** {total_wins}\n**Valor Ratio:** {ratio:.1f}%", inline=True)
+        embed.add_field(name="🔥 CURRENT STATUS", value=f"**Glory Streak:** {g_data.get('streak', 0)}\n**Imperial Rank:** Gladiator", inline=True)
+        
+        # Victims Logic
+        victims = g_data.get("victims", {})
+        if victims:
+            v_sorted = sorted(victims.items(), key=lambda x: x[1], reverse=True)[:3]
+            v_text = ""
+            for vid, count in v_sorted:
+                v_user = self.bot.get_user(int(vid))
+                v_name = v_user.display_name if v_user else f"Fallen_{vid}"
+                v_text += f"• **{v_name}**: {count} executions\n"
+            embed.add_field(name="💀 TOP VICTIMS", value=v_text, inline=False)
+
+        embed.set_footer(text=f"Gladiator ID: {tid}", icon_url=target.display_avatar.url)
+        
+        if logo_file:
+            await ctx.send(file=logo_file, embed=embed)
+        else:
+            await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(DungeonFight(bot))
