@@ -76,16 +76,16 @@ class DungeonFight(commands.Cog):
     def get_health_bar(self, hp, max_hp, is_premium):
         pct = (hp / max_hp) * 100
         # Color Logic: Green (100-55%) > Yellow (54-25%) > Red (24-0%)
-        if pct >= 55: bar_color, segment = "🟢", "🟩"
-        elif pct >= 25: bar_color, segment = "🟡", "🟨"
-        else: bar_color, segment = "🔴", "🟥"
+        if pct >= 55: segment = "🟩"
+        elif pct >= 25: segment = "🟨"
+        else: segment = "🟥"
         
         # Dynamic Segmented Bar (10 segments)
         filled = max(0, min(10, int(pct / 10)))
         empty = 10 - filled
         bar_str = segment * filled + "⬛" * empty
         
-        return f"{bar_color} **{bar_str}** {pct:.0f}% ({hp}/{max_hp} HP)"
+        return f"**{bar_str}** {pct:.0f}% ({hp}/{max_hp} HP)"
 
     def get_funny_msg(self, action_type):
         msgs = {
@@ -100,7 +100,7 @@ class DungeonFight(commands.Cog):
                 "unleashed the fury of the gods on", "kicked into a bottomless pit (Sparta style)", "dealt a critical vibe check to"
             ],
             "heal": [
-                "ate a suspicious mushroom.", "drank a glowing potion that tastes like blueberry.", "took a quick nap mid-battle.",
+                "ate a suspicious mushroom.", "drank a glowing potion that tastes like blueberry.", "took a quick napped mid-battle.",
                 "used a band-aid on a broken heart.", "screamed 'I REFUSE TO DIE' and felt better.",
                 "found a half-eaten sandwich on the floor.", "rubbed some dirt on the wound.", "recalled a happy memory and gained life.",
                 "drank some spicy lava juice.", "patched themselves up with duct tape.", "received a magical high-five from a ghost.",
