@@ -17,17 +17,18 @@ DATA_DIR = "/app/data"
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
-PREMIUM_FILE = os.path.join(DATA_DIR, "premium_guilds.json")
+# Changed filename to reflect modular data structure
+PREMIUM_FILE = os.path.join(DATA_DIR, "premium_modules.json")
 
-def get_premium_list():
+def get_premium_data():
     if os.path.exists(PREMIUM_FILE):
         with open(PREMIUM_FILE, "r") as f:
-            try: return json.load(f)
-            except: return []
-    return []
+            try: return json.load(f) # Now returns a dict: {"guild_id": ["ask", "casino"]}
+            except: return {}
+    return {}
 
 # Shared global variable for the bot instance
-PREMIUM_GUILDS = get_premium_list()
+PREMIUM_GUILDS = get_premium_data()
 
 # 3. INITIALIZATION
 intents = discord.Intents.default()
@@ -40,13 +41,11 @@ class MyBot(commands.Bot):
 
     async def setup_hook(self):
         print("--- Loading Modules ---")
-        # Automatically load everything inside the /cogs folder
         for filename in os.listdir('./cogs'):
             if filename.endswith('.py'):
                 await self.load_extension(f'cogs.{filename[:-3]}')
                 print(f'✅ Module Loaded: {filename}')
         
-        # Start the Webhook Server
         self.loop.create_task(self.start_webhook_server())
 
     async def start_webhook_server(self):
@@ -60,17 +59,23 @@ class MyBot(commands.Bot):
 
     async def handle_paypal_webhook(self, request):
         data = await request.post()
-        guild_id_str = data.get('custom')
+        # Expecting 'custom' to be formatted as "guild_id|module_name"
+        custom_field = data.get('custom', "")
         payment_status = data.get('payment_status')
 
-        if payment_status == 'Completed' and guild_id_str:
-            guild_id = int(guild_id_str)
+        if payment_status == 'Completed' and "|" in custom_field:
+            guild_id_str, module_name = custom_field.split("|")
+            
             global PREMIUM_GUILDS
-            if guild_id not in PREMIUM_GUILDS:
-                PREMIUM_GUILDS.append(guild_id)
+            if guild_id_str not in PREMIUM_GUILDS:
+                PREMIUM_GUILDS[guild_id_str] = []
+            
+            if module_name not in PREMIUM_GUILDS[guild_id_str]:
+                PREMIUM_GUILDS[guild_id_str].append(module_name)
                 with open(PREMIUM_FILE, "w") as f:
                     json.dump(PREMIUM_GUILDS, f)
-                print(f"💎 PREMIUM ACTIVATED: {guild_id}")
+                print(f"💎 MODULE ACTIVATED: {module_name} for Guild {guild_id_str}")
+                
         return web.Response(text="OK")
 
     async def on_ready(self):
