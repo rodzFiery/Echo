@@ -43,6 +43,29 @@ class DungeonShip(commands.Cog):
             canvas = Image.new("RGBA", (1200, 600), (40, 0, 5, 255))
             
             draw = ImageDraw.Draw(canvas)
+
+            # --- FONT SYSTEM LOADER ---
+            # Pillow needs a font file to render text. This checks common system paths.
+            font_size_pct = 230
+            font_size_heart = 100
+            try:
+                # Common font paths for Linux and Windows
+                font_paths = [
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+                    "C:\\Windows\\Fonts\\arialbd.ttf",
+                    "arial.ttf"
+                ]
+                font_file = next((f for f in font_paths if os.path.exists(f)), None)
+                if font_file:
+                    font_pct = ImageFont.truetype(font_file, font_size_pct)
+                    font_heart = ImageFont.truetype(font_file, font_size_heart)
+                else:
+                    font_pct = ImageFont.load_default()
+                    font_heart = ImageFont.load_default()
+            except:
+                font_pct = ImageFont.load_default()
+                font_heart = ImageFont.load_default()
             
             # 2. LOVE PARTICLE GENERATOR (Heart-shaped sparkles)
             for _ in range(50):
@@ -108,19 +131,19 @@ class DungeonShip(commands.Cog):
             # Massive focal Percentage (SHOWING THE LOVE SCORE)
             pct_text = f"{percent}%"
             # Multi-layered text for maximum visibility (VERY BIG AT THE MIDDLE)
-            draw.text((608, 308), pct_text, fill=(0, 0, 0, 200), anchor="mm", size=230) # Shadow
-            draw.text((600, 300), pct_text, fill=text_main, anchor="mm", size=230, stroke_width=6, stroke_fill=text_stroke)
+            draw.text((608, 308), pct_text, fill=(0, 0, 0, 200), anchor="mm", font=font_pct) # Shadow
+            draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=6, stroke_fill=text_stroke)
 
             # Status Icon with Dynamic Glow for high scores
             heart_emoji = "❤️" if percent > 50 else "💔"
             if percent >= 75:
                 heart_glow = Image.new("RGBA", (1200, 600), (0,0,0,0))
                 hg_draw = ImageDraw.Draw(heart_glow)
-                hg_draw.text((600, 435), heart_emoji, anchor="mm", size=110, fill=(text_main[0], text_main[1], text_main[2], 150))
+                hg_draw.text((600, 435), heart_emoji, anchor="mm", font=font_heart, fill=(text_main[0], text_main[1], text_main[2], 150))
                 heart_glow = heart_glow.filter(ImageFilter.GaussianBlur(15))
                 canvas = Image.alpha_composite(canvas, heart_glow)
             
-            draw.text((600, 435), heart_emoji, anchor="mm", size=100, fill=text_main if percent >= 75 else None)
+            draw.text((600, 435), heart_emoji, anchor="mm", font=font_heart, fill=text_main if percent >= 75 else None)
 
             # Fiery Logo Placement
             if os.path.exists("fierylogo.jpg"):
@@ -149,7 +172,8 @@ class DungeonShip(commands.Cog):
             canvas.save(buf, format="PNG")
             buf.seek(0)
             return buf
-        except:
+        except Exception as e:
+            print(f"Error creating visual: {e}")
             return None
 
     @commands.command(name="ship")
