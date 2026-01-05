@@ -147,25 +147,24 @@ class DungeonFight(commands.Cog):
             av1_raw = Image.open(p1).convert("RGBA").resize((av_size, av_size))
             av2_raw = Image.open(p2).convert("RGBA").resize((av_size, av_size))
 
-            # FIXED MASK: Highly opaque center for clarity
-            mask = Image.new("L", (av_size, av_size), 0)
+            # FIXED MASK: Highly opaque (No more vanishing)
+            mask = Image.new("L", (av_size, av_size), 255)
             mask_draw = ImageDraw.Draw(mask)
             
-            # Use a much sharper mask to avoid the "vanished" look
-            for i in range(av_size // 2):
-                # Alpha stays solid for much longer (raised to power of 10 for sharpness)
-                alpha = int(255 * (1 - (i / (av_size // 2))**10)) 
-                mask_draw.ellipse([i, i, av_size-i, av_size-i], outline=255-alpha, fill=255-alpha)
+            # Very slight circular vignette just to smooth the edge pixels
+            mask_draw.ellipse([0, 0, av_size, av_size], outline=0, fill=255)
+            # Create a second tiny internal border to ensure 100% opacity in center
+            mask_draw.ellipse([5, 5, av_size-5, av_size-5], outline=255, fill=255)
 
             av1 = ImageOps.fit(av1_raw, mask.size, centering=(0.5, 0.5))
             av1.putalpha(mask)
             av2 = ImageOps.fit(av2_raw, mask.size, centering=(0.5, 0.5))
             av2.putalpha(mask)
 
-            # Atmospheric Lighting Overlay (Sunlight Beam)
+            # Atmospheric Lighting Overlay (Sunlight Beam - Lowered intensity)
             lighting = Image.new("RGBA", (1200, 600), (0,0,0,0))
             light_draw = ImageDraw.Draw(lighting)
-            light_draw.polygon([(0,0), (600,0), (0,600)], fill=(255, 255, 220, 30)) 
+            light_draw.polygon([(0,0), (600,0), (0,600)], fill=(255, 255, 220, 20)) 
 
             # Cinematic Placement
             canvas.paste(av1, (50, 75), av1)
