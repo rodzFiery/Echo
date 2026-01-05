@@ -40,17 +40,15 @@ class DungeonShip(commands.Cog):
     async def create_ship_visual(self, u1_url, u2_url, percent):
         try:
             # 1. TRANSPARENT ENGINE (1200x600 for Max Embed Fit)
-            # Removed background color and theme for a clean look
+            # Full transparency (0,0,0,0) to let the glow effects shine
             canvas = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             
             draw = ImageDraw.Draw(canvas)
 
             # --- FONT SYSTEM LOADER & DYNAMIC SCALING ---
-            # Shrinks font size for 100% to ensure fit
             font_size_pct = 230 if percent < 100 else 180 
             font_size_heart = 100
             try:
-                # Common font paths for Linux and Windows
                 font_paths = [
                     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
                     "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
@@ -72,7 +70,6 @@ class DungeonShip(commands.Cog):
             for _ in range(50):
                 px, py = random.randint(0, 1200), random.randint(0, 600)
                 p_size = random.randint(5, 18)
-                # Drawing heart-like triangles as sparkles
                 draw.polygon([(px, py), (px+p_size, py-p_size), (px+p_size*2, py)], fill=(255, 105, 180, 160))
 
             async with aiohttp.ClientSession() as session:
@@ -89,7 +86,7 @@ class DungeonShip(commands.Cog):
             a_draw = ImageDraw.Draw(aura)
             aura_color = (255, 215, 0) if percent > 75 else (255, 50, 100) if percent > 40 else (120, 120, 140)
             
-            # UI Pedestals (Adjusted for larger avatars)
+            # UI Pedestals
             a_draw.rectangle([40, 50, 40+av_size+10, 60+av_size+10], fill=(0, 0, 0, 180))
             a_draw.rectangle([700, 50, 710+av_size+10, 60+av_size+10], fill=(0, 0, 0, 180))
             
@@ -99,56 +96,40 @@ class DungeonShip(commands.Cog):
             aura = aura.filter(ImageFilter.GaussianBlur(35))
             canvas = Image.alpha_composite(canvas, aura)
 
-            # Paste Avatars (Maximized)
             canvas.paste(av1_raw, (50, 60), av1_raw)
             canvas.paste(av2_raw, (710, 60), av2_raw)
 
             # 4. THE IMPERIAL BOND (Center)
-            # Central Light Nova
             nova = Image.new("RGBA", (1200, 600), (0,0,0,0))
             ImageDraw.Draw(nova).ellipse([400, 100, 800, 500], fill=(255, 255, 255, 15))
             nova = nova.filter(ImageFilter.GaussianBlur(50))
             canvas = Image.alpha_composite(canvas, nova)
 
-            # --- VERTICAL LOVE COLUMN (CENTERED) ---
+            # --- VERTICAL LOVE COLUMN ---
             col_x, col_y, col_w, col_h = 585, 60, 30, 480
-            # Column Background
             draw.rounded_rectangle([col_x, col_y, col_x + col_w, col_y + col_h], radius=15, fill=(20, 0, 0, 180), outline=(255, 255, 255, 60), width=2)
-            # Love Fill (Bottom-up)
             fill_size = int((percent / 100) * (col_h - 6))
             if fill_size > 0:
                 draw.rounded_rectangle([col_x + 3, col_y + col_h - 3 - fill_size, col_x + col_w - 3, col_y + col_h - 3], radius=12, fill=(255, 0, 40, 220))
 
-            # Dynamic Percentage Color Selection
+            # --- DYNAMIC TEXT RENDERING (FORCED VISIBILITY) ---
             if percent >= 90:
-                text_main = (255, 255, 255)  # Pure White for Visibility
-                text_stroke = (255, 0, 0)    # Fiery Red Stroke
+                text_main, text_stroke = (255, 255, 255), (255, 0, 0)
             elif percent >= 70:
-                text_main = (255, 215, 0)    # Pure Gold
-                text_stroke = (0, 0, 0)
+                text_main, text_stroke = (255, 215, 0), (0, 0, 0)
             else:
-                text_main = (220, 220, 220)  # Imperial Silver
-                text_stroke = (0, 0, 0)
+                text_main, text_stroke = (255, 255, 255), (50, 50, 50)
 
-            # --- GUARANTEED TEXT VISIBILITY ---
             pct_text = f"{percent}%"
-            # Render Shadow/Outer Glow Layer
-            draw.text((608, 308), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
-            # Render Foreground Score Text
-            draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=10, stroke_fill=text_stroke)
+            # Explicit layering for visibility
+            draw.text((612, 312), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) # Deep Shadow
+            draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=14, stroke_fill=text_stroke)
 
-            # Status Icon with Dynamic Glow for high scores
+            # Status Icon
             heart_emoji = "❤️" if percent > 50 else "💔"
-            if percent >= 75:
-                heart_glow = Image.new("RGBA", (1200, 600), (0,0,0,0))
-                hg_draw = ImageDraw.Draw(heart_glow)
-                hg_draw.text((600, 435), heart_emoji, anchor="mm", font=font_heart, fill=(text_stroke[0], text_stroke[1], text_stroke[2], 150))
-                heart_glow = heart_glow.filter(ImageFilter.GaussianBlur(15))
-                canvas = Image.alpha_composite(canvas, heart_glow)
-            
-            draw.text((600, 435), heart_emoji, anchor="mm", font=font_heart, fill=text_main if percent >= 75 else (255, 255, 255, 255))
+            draw.text((600, 435), heart_emoji, anchor="mm", font=font_heart)
 
-            # Fiery Logo Placement
+            # Fiery Logo
             if os.path.exists("fierylogo.jpg"):
                 logo = Image.open("fierylogo.jpg").convert("RGBA").resize((135, 135))
                 mask = Image.new("L", (135, 135), 0)
@@ -156,14 +137,17 @@ class DungeonShip(commands.Cog):
                 logo.putalpha(mask)
                 canvas.paste(logo, (532, 35), logo)
 
-            # 5. DYNAMIC LOVE BAR (Imperial Shield Style)
+            # 5. DYNAMIC LOVE BAR
             bar_w, bar_h = 1000, 40
             bx, by = (1200-bar_w)//2, 545
             draw.rounded_rectangle([bx-8, by-8, bx+bar_w+8, by+bar_h+8], radius=15, fill=(0, 0, 0, 180)) 
-            
             fill_w = (percent / 100) * bar_w
             if fill_w > 10:
                 draw.rounded_rectangle([bx, by, bx+fill_w, by+bar_h], radius=10, fill=(255, 45, 95))
+
+            # --- 6. IMPERIAL GLOW FILTER ---
+            glow = canvas.filter(ImageFilter.GaussianBlur(8))
+            canvas = Image.alpha_composite(glow, canvas)
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
@@ -177,11 +161,9 @@ class DungeonShip(commands.Cog):
     async def ship(self, ctx, member: discord.Member = None):
         if member is None:
             return await ctx.send("💘 **THE ORACLE NEEDS A PARTNER!** Mention someone to challenge the fates!")
-        
         if member.id == ctx.author.id:
             return await ctx.send("🎭 Narcissus? Try shipping with someone else!")
 
-        # --- RANDOM PERCENT GENERATOR ---
         percent = random.randint(0, 100)
         
         if percent >= 90: title = "👑 ABSOLUTE DYNASTY"
@@ -192,16 +174,12 @@ class DungeonShip(commands.Cog):
 
         async with ctx.typing():
             ship_img = await self.create_ship_visual(ctx.author.display_avatar.url, member.display_avatar.url, percent)
-            
             embed = discord.Embed(title=f"🏹 {title}", color=0xff4500)
             embed.description = f"### {ctx.author.mention} 💓 {member.mention}"
-            
             if ship_img:
                 file = discord.File(ship_img, filename="ship.png")
                 embed.set_image(url="attachment://ship.png")
-                
             embed.set_footer(text="Glory to the Echo! | Master Matchmaker", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
-            
             if ship_img:
                 await ctx.send(file=file, embed=embed)
             else:
@@ -212,37 +190,22 @@ class DungeonShip(commands.Cog):
         """Scans the arena for top 5 romantic tension candidates."""
         async with ctx.typing():
             potential_members = [m for m in ctx.guild.members if not m.bot and m.id != ctx.author.id]
-            
             if len(potential_members) < 5:
-                return await ctx.send("❌ Not enough gladiators in the arena to find a match!")
-
+                return await ctx.send("❌ Not enough gladiators in the arena!")
             sample = random.sample(potential_members, min(len(potential_members), 15))
-            matches = []
-            
-            for m in sample:
-                matches.append((m, random.randint(1, 100)))
-
+            matches = [(m, random.randint(1, 100)) for m in sample]
             matches.sort(key=lambda x: x[1], reverse=True)
             top_5 = matches[:5]
-
-            embed = discord.Embed(
-                title="🔥 ARENA MATCHMAKER: POSITIVE TENSION SCAN", 
-                description=f"Gladiator {ctx.author.mention}, the fates have spoken. Here are your top potential bonds:",
-                color=0xFF4500
-            )
-
+            embed = discord.Embed(title="🔥 ARENA MATCHMAKER", description=f"Gladiator {ctx.author.mention}, the fates have spoken:", color=0xFF4500)
             if os.path.exists("fierylogo.jpg"):
                 logo_file = discord.File("fierylogo.jpg", filename="logo.png")
                 embed.set_thumbnail(url="attachment://logo.png")
-
             results_text = ""
             for i, (member, score) in enumerate(top_5, 1):
                 indicator = "💖" if score >= 90 else "🔥" if score >= 70 else "💖" if score >= 50 else "✨"
                 results_text += f"**{i}. {member.display_name}** — {score}% {indicator}\n"
-
             embed.add_field(name="🏛️ TOP POTENTIAL MATCHES", value=results_text, inline=False)
-            embed.set_footer(text="Glory to the Echo! | Try !ship with them to confirm.", icon_url=ctx.author.display_avatar.url)
-
+            embed.set_footer(text="Glory to the Echo! | Try !ship with them.", icon_url=ctx.author.display_avatar.url)
             if os.path.exists("fierylogo.jpg"):
                 await ctx.send(file=logo_file, embed=embed)
             else:
