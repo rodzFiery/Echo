@@ -147,14 +147,12 @@ class DungeonFight(commands.Cog):
             av1_raw = Image.open(p1).convert("RGBA").resize((av_size, av_size))
             av2_raw = Image.open(p2).convert("RGBA").resize((av_size, av_size))
 
-            # FIXED MASK: Highly opaque (No more vanishing)
-            mask = Image.new("L", (av_size, av_size), 255)
+            # FIXED MASK: 100% Solid Opacity (No more vanishing/transparency)
+            mask = Image.new("L", (av_size, av_size), 0)
             mask_draw = ImageDraw.Draw(mask)
             
-            # Very slight circular vignette just to smooth the edge pixels
-            mask_draw.ellipse([0, 0, av_size, av_size], outline=0, fill=255)
-            # Create a second tiny internal border to ensure 100% opacity in center
-            mask_draw.ellipse([5, 5, av_size-5, av_size-5], outline=255, fill=255)
+            # Draw a solid white circle - white in 'L' mode is 255 (fully opaque)
+            mask_draw.ellipse([0, 0, av_size, av_size], fill=255)
 
             av1 = ImageOps.fit(av1_raw, mask.size, centering=(0.5, 0.5))
             av1.putalpha(mask)
