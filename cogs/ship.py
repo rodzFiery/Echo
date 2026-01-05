@@ -44,9 +44,9 @@ class DungeonShip(commands.Cog):
             
             draw = ImageDraw.Draw(canvas)
 
-            # --- FONT SYSTEM LOADER ---
-            # Pillow needs a font file to render text. This checks common system paths.
-            font_size_pct = 230
+            # --- FONT SYSTEM LOADER & DYNAMIC SCALING ---
+            # Shrinks font size for 100% to ensure fit
+            font_size_pct = 230 if percent < 100 else 180 
             font_size_heart = 100
             try:
                 # Common font paths for Linux and Windows
@@ -130,7 +130,7 @@ class DungeonShip(commands.Cog):
 
             # Massive focal Percentage (SHOWING THE LOVE SCORE)
             pct_text = f"{percent}%"
-            # Multi-layered text for maximum visibility (VERY BIG AT THE MIDDLE)
+            # Multi-layered text for maximum visibility
             draw.text((608, 308), pct_text, fill=(0, 0, 0, 200), anchor="mm", font=font_pct) # Shadow
             draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=6, stroke_fill=text_stroke)
 
@@ -173,7 +173,7 @@ class DungeonShip(commands.Cog):
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"Error creating visual: {e}")
+            print(f"Visual Error: {e}")
             return None
 
     @commands.command(name="ship")
