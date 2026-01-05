@@ -130,25 +130,26 @@ class DungeonFight(commands.Cog):
         return random.choice(msgs[action_type])
 
     # --- IMAGE ENGINE FOR ARENA VISUALS ---
-    async def create_arena_visual(self, u1_url, u2_url):
+    async def create_arena_visual(self, u1_url, u2_url, p1_hp, p2_hp):
         try:
-            # Roman Empire Cinematic Background
+            # Roman Empire Cinematic Background (Base canvas 1200x600)
             if os.path.exists("fight.jpg"):
                 canvas = Image.open("fight.jpg").convert("RGBA").resize((1200, 600))
             else:
-                canvas = Image.new("RGBA", (1200, 600), (30, 10, 10, 255))
+                # Fallback to dark fiery background
+                canvas = Image.new("RGBA", (1200, 600), (40, 0, 0, 255))
             
             draw = ImageDraw.Draw(canvas)
             
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
-                    p1, p2 = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
+                    p1_data, p2_data = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
             
             av_size = 450 
-            av1_raw = Image.open(p1).convert("RGBA").resize((av_size, av_size))
-            av2_raw = Image.open(p2).convert("RGBA").resize((av_size, av_size))
+            av1_raw = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
+            av2_raw = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
-            # FIXED MASK: Circular with slight feathering for the arena feel
+            # FIXED MASK: Highly opaque circular mask
             mask = Image.new("L", (av_size, av_size), 0)
             mask_draw = ImageDraw.Draw(mask)
             mask_draw.ellipse([0, 0, av_size, av_size], fill=255)
@@ -158,30 +159,43 @@ class DungeonFight(commands.Cog):
             av2 = ImageOps.fit(av2_raw, mask.size, centering=(0.5, 0.5))
             av2.putalpha(mask)
 
-            # Atmospheric Lighting Overlay (Fiery Imperial Glow)
+            # --- IMAGE REPLICATION: UI Platforms ---
+            # Blue platform for Challenger (P1)
+            draw.rectangle([50, 480, 500, 530], fill=(52, 152, 219, 230)) 
+            # Red platform for Opponent (P2)
+            draw.rectangle([700, 480, 1150, 530], fill=(231, 76, 60, 230)) 
+
+            # Atmospheric Fiery Glow
             lighting = Image.new("RGBA", (1200, 600), (0,0,0,0))
             light_draw = ImageDraw.Draw(lighting)
-            light_draw.polygon([(0,0), (1200,0), (600,600)], fill=(255, 69, 0, 40)) 
+            light_draw.polygon([(0,0), (1200,0), (600,600)], fill=(255, 69, 0, 30)) 
 
-            # UI Platforms Logic (Image Style)
-            draw.rectangle([50, 480, 500, 520], fill=(52, 152, 219, 200)) # Challenger Blue
-            draw.rectangle([700, 480, 1150, 520], fill=(231, 76, 60, 200)) # Opponent Red
-
-            # Cinematic Placement
-            canvas.paste(av1, (50, 75), av1)
-            canvas.paste(av2, (700, 75), av2)
+            # Paste Avatars
+            canvas.paste(av1, (50, 60), av1)
+            canvas.paste(av2, (700, 60), av2)
             canvas = Image.alpha_composite(canvas, lighting)
-
-            # Central Arena UI (Text Overlay)
             draw = ImageDraw.Draw(canvas)
-            draw.text((600, 100), "ARENA FIGHT!", fill=(255, 255, 255), anchor="mm")
-            draw.text((600, 300), "VS", fill=(255, 255, 255), anchor="mm")
+
+            # --- IMAGE REPLICATION: Status Icons (Trophy/RIP) ---
+            # If P2 has 0 HP, P1 gets trophy, P2 gets RIP. 
+            # Note: During the fight, we can show neutral or based on current leader
+            if p2_hp <= 0:
+                draw.text((275, 400), "🏆", font=None, size=80, anchor="mm")
+                draw.text((925, 400), "🪦", font=None, size=80, anchor="mm")
+            elif p1_hp <= 0:
+                draw.text((275, 400), "🪦", font=None, size=80, anchor="mm")
+                draw.text((925, 400), "🏆", font=None, size=80, anchor="mm")
+
+            # --- IMAGE REPLICATION: Header Text ---
+            draw.text((600, 80), "ARENA FIGHT!", fill=(255, 255, 255), anchor="mm", stroke_width=2, stroke_fill=(0,0,0))
+            draw.text((600, 280), "VS", fill=(255, 255, 255), anchor="mm", stroke_width=3, stroke_fill=(0,0,0))
             
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
             buf.seek(0)
             return buf
-        except:
+        except Exception as e:
+            print(f"Image Error: {e}")
             return None
 
     # --- WINNER CARD ENGINE ---
@@ -203,16 +217,13 @@ class DungeonFight(commands.Cog):
             av_size = 320
             av = Image.open(av_data).convert("RGBA").resize((av_size, av_size))
             
-            # Roman Laurel Wreath Style Mask
             mask = Image.new("L", (av_size, av_size), 0)
             ImageDraw.Draw(mask).ellipse((10, 10, av_size-10, av_size-10), fill=255)
             av.putalpha(mask)
             
-            # Gold Ornate Border
             card.paste(av, (60, 90), av)
             draw.ellipse((50, 80, 390, 420), outline=(218, 165, 32), width=15)
 
-            # Imperial Typography Styling
             draw.text((430, 70), "LEGIONNAIRE VICTOR", fill=(255, 215, 0))
             draw.text((430, 120), name.upper(), fill=(255, 255, 255))
             
@@ -256,10 +267,10 @@ class DungeonFight(commands.Cog):
         p2 = {"user": member, "hp": 100, "max": 100, "luck": 1.0}
         turn = p1
         other = p2
-        battle_log = "🏛️ **THE GATES OPEN!** The crowd roars as the sun hits the sand."
+        battle_log = "🏛️ **THE GATES OPEN!** The crowd roars as the fight begins."
 
         embed = discord.Embed(title="🦅 IMPERIAL ARENA: A DUEL TO THE DEATH", color=0x8B0000)
-        embed.description = f"⚔️ **{p1['user'].mention}** vs **{p2['user'].mention}**\n\n*\"Veni, Vidi, Vici!\"*"
+        embed.description = f"⚔️ **{p1['user'].mention}** vs **{p2['user'].mention}**"
         
         # Lobby Background Logic (using fight.jpg)
         lobby_file = None
@@ -273,8 +284,8 @@ class DungeonFight(commands.Cog):
             logo_file = discord.File("fierylogo.jpg", filename="logo.png")
             embed.set_thumbnail(url="attachment://logo.png")
 
-        # Arena Image Generation
-        arena_img = await self.create_arena_visual(p1['user'].display_avatar.url, p2['user'].display_avatar.url)
+        # Initial Arena Image
+        arena_img = await self.create_arena_visual(p1['user'].display_avatar.url, p2['user'].display_avatar.url, p1['hp'], p2['hp'])
         arena_file = discord.File(arena_img, filename="arena.png")
         
         files = [arena_file]
@@ -292,43 +303,30 @@ class DungeonFight(commands.Cog):
             if action == "strike":
                 dmg = int(random.randint(12, 28) * turn["luck"])
                 other["hp"] = max(0, other["hp"] - dmg)
-                battle_log = f"🗡️ **{turn['user'].display_name}** {self.get_funny_msg('strike')} **{other['user'].display_name}** for **{dmg} damage!**"
-                emb_color = 0xFF4500 if dmg > 20 else 0x8B0000 # Fiery flash for big hits
+                battle_log = f"🗡️ **{turn['user'].display_name}** {self.get_funny_msg('strike')} **{other['user'].display_name}**, dealing **-{dmg}** damage!"
+                emb_color = 0xFF4500 if dmg > 20 else 0x8B0000
             else:
                 amt = random.randint(10, 22)
                 turn["hp"] = min(turn["max"], turn["hp"] + amt)
                 battle_log = f"🏺 **{turn['user'].display_name}** {self.get_funny_msg('heal')} (+{amt} HP)"
-                emb_color = 0x50C878 # Golden/Green for healing
+                emb_color = 0x50C878
 
-            embed = discord.Embed(title="🏟️ THE COLOSSEUM RADIATES GLORY", color=emb_color)
+            # Update Arena Image every turn to reflect Trophy/RIP status at the end
+            arena_img = await self.create_arena_visual(p1['user'].display_avatar.url, p2['user'].display_avatar.url, p1['hp'], p2['hp'])
+            arena_file = discord.File(arena_img, filename="arena.png")
+
+            embed = discord.Embed(title=f"🏆 Victory! {turn['user'].display_name} was victorious!" if other["hp"] <= 0 else "🏟️ THE COLOSSEUM RADIATES GLORY", color=emb_color)
             embed.set_image(url="attachment://arena.png")
-            if os.path.exists("fierylogo.jpg"):
-                embed.set_thumbnail(url="attachment://logo.png")
             
             p1_status = f"{self.get_health_bar(p1['hp'], p1['max'], is_premium)}"
-            if p1['luck'] > 1.0: p1_status += " 🦅 **IMPERIAL FAVOR**"
             p2_status = f"{self.get_health_bar(p2['hp'], p2['max'], is_premium)}"
-            if p2['luck'] > 1.0: p2_status += " 🦅 **IMPERIAL FAVOR**"
 
-            # Layout Update: Grouped Status for a cleaner Arena feel
-            embed.add_field(name=f"🔱 {p1['user'].display_name}", value=p1_status, inline=True)
-            embed.add_field(name=f"🔱 {p2['user'].display_name}", value=p2_status, inline=True)
-            embed.add_field(name="📜 THE CHRONICLES", value=f"> *{battle_log}*", inline=False)
+            embed.add_field(name=f"🔵 {p1['user'].display_name}", value=p1_status, inline=False)
+            embed.add_field(name=f"🔴 {p2['user'].display_name}", value=p2_status, inline=False)
+            embed.add_field(name="📜 BATTLE LOG", value=f"> *{battle_log}*", inline=False)
             embed.set_footer(text=f"🚩 Turn: {turn['user'].display_name.upper()} | Glory to the Echo!")
 
-            view = discord.ui.View(timeout=1)
-            cheer_btn = discord.ui.Button(label="AVE!", style=discord.ButtonStyle.danger, emoji="🙌")
-            
-            async def cheer_callback(interaction):
-                if interaction.user.id in [p1["user"].id, p2["user"].id]:
-                    return await interaction.response.send_message("💢 The Emperor demands focus! Fight!", ephemeral=True)
-                turn["luck"] += 0.05
-                await interaction.response.send_message(f"📣 **{interaction.user.display_name}** roars for the legion! **{turn['user'].display_name}** feels the Echo!", ephemeral=False)
-
-            cheer_btn.callback = cheer_callback
-            view.add_item(cheer_btn)
-
-            await main_msg.edit(embed=embed, view=view)
+            await main_msg.edit(attachments=[arena_file], embed=embed)
 
             if other["hp"] <= 0:
                 break
@@ -340,7 +338,7 @@ class DungeonFight(commands.Cog):
         loser = other if turn["hp"] > 0 else turn
         self._update_winner(ctx.guild.id, winner["user"].id, loser["user"].id)
 
-        # Generate Winner Card with Streak
+        # Generate Winner Card
         win_data = self.stats["global"].get(str(winner["user"].id), {"wins": 0, "fights": 0, "streak": 0})
         win_card_buf = await self.create_winner_card(
             winner["user"].display_avatar.url, 
@@ -357,12 +355,10 @@ class DungeonFight(commands.Cog):
             win_file = discord.File(win_card_buf, filename="winner_card.png")
             win_emb.set_image(url="attachment://winner_card.png")
             await ctx.send(file=win_file, embed=win_emb)
-        else:
-            await ctx.send(embed=win_emb)
 
     @commands.command(name="fightrank")
     async def fightrank(self, ctx, user: discord.Member = None):
-        """Displays combat ranking and victim stats. Usage: !fightrank [@user]"""
+        """Displays combat ranking and victim stats."""
         target = user or ctx.author
         tid = str(target.id)
         gid = str(ctx.guild.id)
@@ -373,38 +369,16 @@ class DungeonFight(commands.Cog):
         g_wins = g_data.get(tid, {}).get("wins", 0)
         g_streak = g_data.get(tid, {}).get("streak", 0)
 
-        l_data = self.stats["servers"].get(gid, {})
-        l_sorted = sorted(l_data.items(), key=lambda x: x[1]["wins"], reverse=True)
-        l_pos = next((i for i, (uid, _) in enumerate(l_sorted, 1) if uid == tid), "N/A")
-        l_wins = l_data.get(tid, {}).get("wins", 0)
-
         embed = discord.Embed(title=f"📜 THE SCROLLS OF VALOR: {target.display_name.upper()}", color=0xC0C0C0)
-        
-        if os.path.exists("fierylogo.jpg"):
-            file = discord.File("fierylogo.jpg", filename="rank_logo.png")
-            embed.set_thumbnail(url="attachment://rank_logo.png")
-        
         embed.add_field(name="🏛️ EMPIRE RANK", value=f"**Position:** #{g_pos}\n**Total Conquests:** {g_wins}\n**Glory Streak:** {g_streak}", inline=True)
-        embed.add_field(name="🚩 LEGION RANK", value=f"**Position:** #{l_pos}\n**Legion Wins:** {l_wins}", inline=True)
-
+        
         victims = g_data.get(tid, {}).get("victims", {})
         if victims:
             v_sorted = sorted(victims.items(), key=lambda x: x[1], reverse=True)[:5]
-            v_text = ""
-            for vid, count in v_sorted:
-                v_user = self.bot.get_user(int(vid))
-                v_name = v_user.display_name if v_user else f"Fallen_{vid}"
-                v_text += f"• **{v_name}**: {count} executions\n"
+            v_text = "\n".join([f"• **{self.bot.get_user(int(vid)).display_name if self.bot.get_user(int(vid)) else vid}**: {count} executions" for vid, count in v_sorted])
             embed.add_field(name="💀 FALLEN ENEMIES", value=v_text, inline=False)
-        else:
-            embed.add_field(name="💀 FALLEN ENEMIES", value="No lives claimed yet.", inline=False)
-
-        embed.set_footer(text=f"Glory to the Echo! | ID: {gid}")
         
-        if os.path.exists("fierylogo.jpg"):
-            await ctx.send(file=file, embed=embed)
-        else:
-            await ctx.send(embed=embed)
+        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(DungeonFight(bot))
