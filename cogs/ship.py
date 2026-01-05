@@ -18,7 +18,6 @@ class ArenaShip(commands.Cog):
         self.db_path = "/app/data/ship_data.db" if os.path.exists("/app/data") else "ship_data.db"
         self._init_db()
 
-        # Modern Arena Lexicon
         self.lexicon = {
             "sad": ["The Arena is silent. {u1} and {u2} have no synergy.", "Zero heat. The Emperor is bored."],
             "low": ["Recruits in training. {u1} and {u2} barely spark.", "Lukewarm synergy in the pits."],
@@ -35,8 +34,14 @@ class ArenaShip(commands.Cog):
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("CREATE TABLE IF NOT EXISTS ship_users (user_id INTEGER PRIMARY KEY, spouse_id INTEGER, marriage_date TEXT)")
 
+    def get_marriage(self, user_id):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            return conn.execute("SELECT * FROM ship_users WHERE user_id = ?", (user_id,)).fetchone()
+
     async def cog_check(self, ctx):
         guild_id = str(ctx.guild.id)
+        # This syncs with the PREMIUM_GUILDS dictionary in your main.py
         if hasattr(__main__, "PREMIUM_GUILDS"):
             guild_data = __main__.PREMIUM_GUILDS.get(guild_id, {})
             expiry = guild_data.get(self.module_name)
@@ -46,62 +51,37 @@ class ArenaShip(commands.Cog):
         return False
 
     async def generate_web_ui(self, u1_url, u2_url, percent):
-        """Web-style UI: Rounded Cards + Integrated Bar with robust font loading."""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     if r1.status != 200 or r2.status != 200:
                         return None
-                    img1_data = io.BytesIO(await r1.read())
-                    img2_data = io.BytesIO(await r2.read())
-                    img1 = Image.open(img1_data).convert("RGBA")
-                    img2 = Image.open(img2_data).convert("RGBA")
+                    img1 = Image.open(io.BytesIO(await r1.read())).convert("RGBA")
+                    img2 = Image.open(io.BytesIO(await r2.read())).convert("RGBA")
 
-            # 1. Setup Canvas (1000x450)
             canvas = Image.new("RGBA", (1000, 450), (30, 31, 34, 255)) 
             draw = ImageDraw.Draw(canvas)
-            
-            # 2. Process Avatars (Rounded Corners)
             av_size = 400
             mask = Image.new("L", (av_size, av_size), 0)
-            mask_draw = ImageDraw.Draw(mask)
-            mask_draw.rounded_rectangle([0, 0, av_size, av_size], radius=40, fill=255)
+            ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=40, fill=255)
             
             img1 = ImageOps.fit(img1, (av_size, av_size)).convert("RGBA")
             img2 = ImageOps.fit(img2, (av_size, av_size)).convert("RGBA")
             img1.putalpha(mask)
             img2.putalpha(mask)
 
-            # 3. Dynamic Heat Color
             bar_color = (255, 45, 85) if percent > 60 else (255, 215, 0) if percent > 30 else (150, 150, 150)
-
-            # 4. The Center Meter
             meter_x, meter_y, meter_w, meter_h = 450, 50, 100, 350
             draw.rectangle([meter_x, meter_y, meter_x + meter_w, meter_y + meter_h], fill=(15, 15, 15))
             fill_h = (percent / 100) * meter_h
             draw.rectangle([meter_x, (meter_y + meter_h) - fill_h, meter_x + meter_w, meter_y + meter_h], fill=bar_color)
 
-            # 5. FONT WORKAROUND (Critical Fix)
-            font_paths = [
-                "arial.ttf", 
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-                "DejaVuSans-Bold.ttf"
-            ]
-            font = None
-            for path in font_paths:
-                try:
-                    font = ImageFont.truetype(path, 65)
-                    break
-                except:
-                    continue
-            if font is None:
-                font = ImageFont.load_default()
+            font_paths = ["arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "DejaVuSans-Bold.ttf"]
+            font = next((ImageFont.truetype(p, 65) for p in font_paths if os.path.exists(p)), ImageFont.load_default())
 
             score_txt = f"{percent}%"
             draw.text((500, 225), score_txt, fill=(255, 255, 255), anchor="mm", font=font, stroke_width=4, stroke_fill=(0,0,0))
 
-            # 6. Final Paste
             canvas.paste(img1, (25, 25), img1)
             canvas.paste(img2, (575, 25), img2)
 
@@ -110,16 +90,14 @@ class ArenaShip(commands.Cog):
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"Image Generation Error: {e}")
+            print(f"UI Error: {e}")
             return None
 
     @commands.command(name="ship")
     async def ship(self, ctx, u1: discord.Member, u2: discord.Member = None):
         if u2 is None: u2, u1 = u1, ctx.author
-        
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        seed_str = f"{min(u1.id, u2.id)}{max(u1.id, u2.id)}{today}"
-        random.seed(seed_str)
+        random.seed(f"{min(u1.id, u2.id)}{max(u1.id, u2.id)}{today}")
         pct = random.randint(0, 100)
         random.seed()
 
@@ -127,19 +105,47 @@ class ArenaShip(commands.Cog):
         desc = random.choice(self.lexicon[tier]).format(u1=u1.display_name, u2=u2.display_name)
 
         async with ctx.typing():
-            try:
-                img = await self.generate_web_ui(u1.display_avatar.url, u2.display_avatar.url, pct)
-                if img is None:
-                    return await ctx.send("❌ Error generating ship image. Please check logs.")
-                
+            img = await self.generate_web_ui(u1.display_avatar.url, u2.display_avatar.url, pct)
+            if img:
                 embed = discord.Embed(title="❤️ Shipped off & off!", description=f"**{u1.mention} & {u2.mention}**\n*{desc}*", color=0xFF2D55)
                 file = discord.File(fp=img, filename="ship.png")
                 embed.set_image(url="attachment://ship.png")
-                embed.set_footer(text="Lies? Reroll tomorrow for a better score! 🫦")
                 await ctx.send(file=file, embed=embed)
-            except Exception as e:
-                print(f"Command Error: {e}")
-                await ctx.send("❌ An unexpected error occurred.")
+
+    @commands.command(name="marry")
+    async def marry(self, ctx, member: discord.Member):
+        if member.id == ctx.author.id: return await ctx.send("❌ You cannot marry yourself.")
+        
+        u1_data = self.get_marriage(ctx.author.id)
+        u2_data = self.get_marriage(member.id)
+        
+        if (u1_data and u1_data['spouse_id']) or (u2_data and u2_data['spouse_id']):
+            return await ctx.send("❌ One of you is already married!")
+
+        view = discord.ui.View(timeout=60)
+        async def accept(interaction):
+            if interaction.user.id != member.id: return
+            date = datetime.now().strftime("%Y-%m-%d")
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("INSERT OR REPLACE INTO ship_users (user_id, spouse_id, marriage_date) VALUES (?, ?, ?)", (ctx.author.id, member.id, date))
+                conn.execute("INSERT OR REPLACE INTO ship_users (user_id, spouse_id, marriage_date) VALUES (?, ?, ?)", (member.id, ctx.author.id, date))
+            await interaction.response.send_message(f"💖 **{ctx.author.mention} and {member.mention} are now married!**")
+
+        btn = discord.ui.Button(label="Accept", style=discord.ButtonStyle.green)
+        btn.callback = accept
+        view.add_item(btn)
+        await ctx.send(f"💍 {member.mention}, {ctx.author.mention} has proposed to you! Do you accept?", view=view)
+
+    @commands.command(name="divorce")
+    async def divorce(self, ctx):
+        data = self.get_marriage(ctx.author.id)
+        if not data or not data['spouse_id']: return await ctx.send("❌ You are not married.")
+        
+        spouse_id = data['spouse_id']
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("UPDATE ship_users SET spouse_id = NULL WHERE user_id = ?", (ctx.author.id,))
+            conn.execute("UPDATE ship_users SET spouse_id = NULL WHERE user_id = ?", (spouse_id,))
+        await ctx.send("💔 The marriage has been dissolved.")
 
 async def setup(bot):
     await bot.add_cog(ArenaShip(bot))
