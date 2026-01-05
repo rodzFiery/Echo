@@ -179,47 +179,60 @@ class DungeonFight(commands.Cog):
         except:
             return None
 
-    # --- WINNER CARD ENGINE ---
-    async def create_winner_card(self, winner_url, name, g_wins, g_streak, l_wins, l_streak):
-        try:
-            # Enlarged Canvas for High-Impact Visuals
-            card = Image.new("RGBA", (1200, 600), (15, 15, 15, 255))
-            draw = ImageDraw.Draw(card)
-            if os.path.exists("fierylogo.jpg"):
-                logo = Image.open("fierylogo.jpg").convert("RGBA").resize((1200, 600))
-                card.paste(logo, (0, 0))
+    # --- NEW EMBED WINNER CARD ENGINE ---
+    async def send_winner_card(self, ctx, winner):
+        wid = str(winner.id)
+        gid = str(ctx.guild.id)
+        
+        # Pull Stats
+        g_data = self.stats["global"].get(wid, {"wins": 0, "fights": 0, "streak": 0, "victims": {}})
+        l_data = self.stats["servers"].get(gid, {}).get(wid, {"wins": 0, "fights": 0, "streak": 0, "victims": {}})
+        
+        # Calculate Ranking Positions
+        all_global = sorted(self.stats["global"].items(), key=lambda x: x[1]["wins"], reverse=True)
+        global_pos = next((i + 1 for i, (uid, data) in enumerate(all_global) if uid == wid), "N/A")
+        
+        all_local = sorted(self.stats["servers"].get(gid, {}).items(), key=lambda x: x[1]["wins"], reverse=True)
+        local_pos = next((i + 1 for i, (uid, data) in enumerate(all_local) if uid == wid), "N/A")
 
-            async with aiohttp.ClientSession() as session:
-                async with session.get(winner_url) as r:
-                    av_data = io.BytesIO(await r.read())
+        embed = discord.Embed(
+            title="🏆 THE ETERNAL CHAMPION EMERGES",
+            description=f"### {winner.mention} has claimed absolute victory!",
+            color=0xFFD700
+        )
+        
+        # Assets
+        logo_file = None
+        if os.path.exists("fierylogo.jpg"):
+            logo_file = discord.File("fierylogo.jpg", filename="logo.png")
+            embed.set_thumbnail(url="attachment://logo.png")
             
-            # Big Avatar Framing
-            av = Image.open(av_data).convert("RGBA").resize((450, 450))
-            mask = Image.new("L", (450, 450), 0)
-            ImageDraw.Draw(mask).ellipse((10, 10, 440, 440), fill=255)
-            av.putalpha(mask)
-            
-            # Draw Gold Avatar Glow
-            draw.ellipse((45, 70, 505, 530), outline=(255, 215, 0), width=15)
-            card.paste(av, (50, 75), av)
+        embed.set_image(url=winner.display_avatar.url)
+        
+        # Global Stats Block
+        embed.add_field(
+            name="🌍 GLOBAL STANDING",
+            value=f"**Rank:** #{global_pos}\n**Total Conquests:** {g_data['wins']}\n**Total Battles:** {g_data['fights']}",
+            inline=True
+        )
+        
+        # Local Stats Block
+        embed.add_field(
+            name="🏰 SERVER LEGION",
+            value=f"**Rank:** #{local_pos}\n**Server Wins:** {l_data['wins']}\n**Current Streak:** {l_data['streak']} 🔥",
+            inline=True
+        )
+        
+        # Kill Count (Total Unique Victims)
+        total_kills = sum(g_data["victims"].values())
+        embed.add_field(name="💀 TOTAL EXECUTIONS", value=f"**{total_kills} Kills**", inline=False)
 
-            # Textual Data Section
-            draw.text((580, 80), "ARENA CHAMPION", fill=(255, 215, 0))
-            draw.text((580, 140), name.upper(), fill=(255, 255, 255))
-            
-            # Stat Blocks
-            draw.text((580, 240), "🌍 GLOBAL DOMINATION", fill=(200, 200, 200))
-            draw.text((580, 280), f"Conquests: {g_wins}  |  Streak: {g_streak} 🔥", fill=(255, 69, 0))
-            
-            draw.text((580, 380), "🏰 LOCAL SERVER GLORY", fill=(200, 200, 200))
-            draw.text((580, 420), f"Conquests: {l_wins}  |  Streak: {l_streak} ⚔️", fill=(52, 152, 219))
-            
-            buf = io.BytesIO()
-            card.save(buf, format="PNG")
-            buf.seek(0)
-            return buf
-        except:
-            return None
+        embed.set_footer(text="Glory to the Echo! | Arena Records Updated", icon_url=ctx.guild.icon.url if ctx.guild.icon else None)
+
+        if logo_file:
+            await ctx.send(file=logo_file, embed=embed)
+        else:
+            await ctx.send(embed=embed)
 
     @commands.command(name="fight")
     async def fight(self, ctx, member: discord.Member = None):
@@ -287,15 +300,8 @@ class DungeonFight(commands.Cog):
         loser = other if turn["hp"] > 0 else turn
         self._update_winner(ctx.guild.id, winner["user"].id, loser["user"].id)
 
-        # Pull detailed stats for Winner Card
-        wid_str = str(winner["user"].id)
-        gid_str = str(ctx.guild.id)
-        g_stats = self.stats["global"].get(wid_str, {"wins": 0, "streak": 0})
-        l_stats = self.stats["servers"].get(gid_str, {}).get(wid_str, {"wins": 0, "streak": 0})
-
-        win_card_buf = await self.create_winner_card(winner["user"].display_avatar.url, winner["user"].display_name, g_stats["wins"], g_stats["streak"], l_stats["wins"], l_stats["streak"])
-        if win_card_buf:
-            await ctx.send(file=discord.File(win_card_buf, filename="winner_card.png"), embed=discord.Embed(title="🏆 THE ETERNAL CHAMPION", color=0xFFD700).set_image(url="attachment://winner_card.png"))
+        # Send the New overhauled Winner Card
+        await self.send_winner_card(ctx, winner["user"])
 
     @commands.command(name="fightrank")
     async def fightrank(self, ctx, user: discord.Member = None):
