@@ -39,86 +39,83 @@ class DungeonShip(commands.Cog):
 
     async def create_ship_visual(self, u1_url, u2_url, percent):
         try:
-            # 1. CELESTIAL CANVAS ENGINE
-            # Deep space triple-gradient background
-            canvas = Image.new("RGBA", (1200, 500), (10, 5, 20, 255))
+            # 1. IMPERIAL ARENA ENGINE (1200x600 for Max Embed Fit)
+            canvas = Image.new("RGBA", (1200, 600), (40, 0, 5, 255))
+            
+            # Use fight.jpg if it exists for the Gladiator theme
+            if os.path.exists("fight.jpg"):
+                bg = Image.open("fight.jpg").convert("RGBA").resize((1200, 600))
+                # Add a warm pink/red romantic tint to the arena
+                tint = Image.new("RGBA", (1200, 600), (255, 20, 147, 40))
+                bg = Image.alpha_composite(bg, tint)
+                canvas.paste(bg, (0, 0))
+            
             draw = ImageDraw.Draw(canvas)
             
-            # Layering a central "Nova Burst"
-            nova = Image.new("RGBA", (1200, 500), (0, 0, 0, 0))
-            n_draw = ImageDraw.Draw(nova)
-            nova_color = (255, 50, 150, 60) if percent > 50 else (100, 100, 255, 60)
-            for i in range(15):
-                n_rad = 350 - (i * 20)
-                n_draw.ellipse([600-n_rad, 250-n_rad, 600+n_rad, 250+n_rad], fill=(nova_color[0], nova_color[1], nova_color[2], 8))
-            nova = nova.filter(ImageFilter.GaussianBlur(30))
-            canvas = Image.alpha_composite(canvas, nova)
-
-            # 2. PARTICLE GENERATOR
-            # Adding star-dust particles across the field
-            for _ in range(60):
-                px, py = random.randint(0, 1200), random.randint(0, 500)
-                p_size = random.randint(1, 3)
-                draw.ellipse([px, py, px+p_size, py+p_size], fill=(255, 255, 255, random.randint(100, 255)))
+            # 2. LOVE PARTICLE GENERATOR (Heart-shaped sparkles)
+            for _ in range(40):
+                px, py = random.randint(0, 1200), random.randint(0, 600)
+                p_size = random.randint(5, 15)
+                # Drawing tiny heart-like triangles as sparkles
+                draw.polygon([(px, py), (px+p_size, py-p_size), (px+p_size*2, py)], fill=(255, 105, 180, 150))
 
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     p1_data, p2_data = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
 
-            av_size = 350
+            av_size = 380
             av1_raw = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2_raw = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
-            # 3. POWER AURA LOGIC (Behind Avatars)
-            aura = Image.new("RGBA", (1200, 500), (0, 0, 0, 0))
+            # 3. GLADIATOR AURA (Behind Avatars)
+            aura = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             a_draw = ImageDraw.Draw(aura)
-            aura_color = (255, 0, 100) if percent > 60 else (0, 200, 255) if percent > 30 else (150, 150, 150)
+            # Gold/Crimson theme for the Arena
+            aura_color = (255, 215, 0) if percent > 75 else (255, 50, 100) if percent > 40 else (100, 100, 100)
             
-            # Left Aura
-            a_draw.rectangle([90, 65, 100+av_size+10, 75+av_size+10], fill=(aura_color[0], aura_color[1], aura_color[2], 120))
-            # Right Aura
-            a_draw.rectangle([740, 65, 750+av_size+10, 75+av_size+10], fill=(aura_color[0], aura_color[1], aura_color[2], 120))
-            aura = aura.filter(ImageFilter.GaussianBlur(25))
+            # Left Platform Glow
+            a_draw.ellipse([80, 100, 100+av_size+20, 120+av_size+20], fill=(aura_color[0], aura_color[1], aura_color[2], 100))
+            # Right Platform Glow
+            a_draw.ellipse([730, 100, 750+av_size+20, 120+av_size+20], fill=(aura_color[0], aura_color[1], aura_color[2], 100))
+            aura = aura.filter(ImageFilter.GaussianBlur(30))
             canvas = Image.alpha_composite(canvas, aura)
 
-            # Paste Avatars (Square/Borderless)
-            canvas.paste(av1_raw, (100, 75), av1_raw)
-            canvas.paste(av2_raw, (750, 75), av2_raw)
+            # Paste Avatars
+            canvas.paste(av1_raw, (100, 110), av1_raw)
+            canvas.paste(av2_raw, (750, 110), av2_raw)
 
-            # 4. THE BOND UI (Center)
-            # Neon Connection Line
-            draw.rectangle([450, 248, 750, 252], fill=(255, 255, 255, 180))
-            
-            # High-Visibility Percentage (Multi-Layered Text)
+            # 4. THE IMPERIAL BOND (Center)
+            # Massive High-Visibility Percentage
             pct_text = f"{percent}%"
-            # Text Glow/Shadow
-            draw.text((604, 254), pct_text, fill=(0, 0, 0, 180), anchor="mm", size=170)
-            # Main Text
-            draw.text((600, 250), pct_text, fill=(255, 255, 255), anchor="mm", size=170, stroke_width=3, stroke_fill=(0,0,0))
+            # Multi-layered "Gladiator Gold" Text Effect
+            draw.text((606, 306), pct_text, fill=(0, 0, 0, 180), anchor="mm", size=220) # Deep shadow
+            draw.text((600, 300), pct_text, fill=(255, 215, 0), anchor="mm", size=220, stroke_width=5, stroke_fill=(0,0,0))
+
+            # Centered Heart Icon
+            heart_emoji = "❤️" if percent > 50 else "💔"
+            draw.text((600, 420), heart_emoji, anchor="mm", size=80)
 
             # Fiery Logo Placement
             if os.path.exists("fierylogo.jpg"):
-                logo = Image.open("fierylogo.jpg").convert("RGBA").resize((120, 120))
-                # Circular crop for branding
-                mask = Image.new("L", (120, 120), 0)
-                ImageDraw.Draw(mask).ellipse([0, 0, 120, 120], fill=255)
+                logo = Image.open("fierylogo.jpg").convert("RGBA").resize((130, 130))
+                mask = Image.new("L", (130, 130), 0)
+                ImageDraw.Draw(mask).ellipse([0, 0, 130, 130], fill=255)
                 logo.putalpha(mask)
-                canvas.paste(logo, (540, 30), logo)
+                canvas.paste(logo, (535, 40), logo)
 
-            # 5. DYNAMIC LOVE BAR (Glassmorphism)
-            bar_w, bar_h = 850, 20
-            bx, by = (1200-bar_w)//2, 440
-            # Bar Container
-            draw.rounded_rectangle([bx-2, by-2, bx+bar_w+2, by+bar_h+2], radius=10, fill=(255, 255, 255, 40))
-            # Bar Fill
+            # 5. DYNAMIC LOVE BAR (Imperial Shield Style)
+            bar_w, bar_h = 900, 30
+            bx, by = (1200-bar_w)//2, 520
+            draw.rounded_rectangle([bx-5, by-5, bx+bar_w+5, by+bar_h+5], radius=15, fill=(0, 0, 0, 150)) # Shield border
+            
             fill_w = (percent / 100) * bar_w
-            if fill_w > 5:
-                draw.rounded_rectangle([bx, by, bx+fill_w, by+bar_h], radius=10, fill=aura_color)
+            if fill_w > 10:
+                draw.rounded_rectangle([bx, by, bx+fill_w, by+bar_h], radius=10, fill=(255, 50, 80))
 
-            # 6. VIGNETTE POLISH
-            vig = Image.new("RGBA", (1200, 500), (0, 0, 0, 0))
-            ImageDraw.Draw(vig).rectangle([0,0,1200,500], outline=(0,0,0,200), width=60)
-            vig = vig.filter(ImageFilter.GaussianBlur(50))
+            # 6. FINAL CINEMATIC VIGNETTE
+            vig = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
+            ImageDraw.Draw(vig).rectangle([0,0,1200,600], outline=(20, 0, 0, 220), width=100)
+            vig = vig.filter(ImageFilter.GaussianBlur(60))
             canvas = Image.alpha_composite(canvas, vig)
 
             buf = io.BytesIO()
