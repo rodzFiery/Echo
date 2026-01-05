@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import random
 import asyncio
+import os
 from datetime import datetime, timezone
 import __main__
 
@@ -65,23 +66,42 @@ class DungeonFight(commands.Cog):
                 if expiry and expiry > datetime.now(timezone.utc).timestamp():
                     is_premium = True
 
-        # Initial Stats
-        p1 = {"user": ctx.author, "hp": 100, "max": 100}
-        p2 = {"user": member, "hp": 100, "max": 100}
+        # Initial Stats (Added Luck key)
+        p1 = {"user": ctx.author, "hp": 100, "max": 100, "luck": 1.0}
+        p2 = {"user": member, "hp": 100, "max": 100, "luck": 1.0}
         turn = p1
         other = p2
 
         embed = discord.Embed(title="⚔️ DUEL INITIATED", color=0xff4500)
         embed.description = f"{p1['user'].mention} vs {p2['user'].mention}\n\n*Fight for honor!*"
         
-        main_msg = await ctx.send(embed=embed)
+        # Thumbnail Logic
+        logo_file = None
+        if os.path.exists("fierylogo.jpg"):
+            logo_file = discord.File("fierylogo.jpg", filename="logo.png")
+            embed.set_thumbnail(url="attachment://logo.png")
+        
+        if logo_file:
+            main_msg = await ctx.send(file=logo_file, embed=embed)
+        else:
+            main_msg = await ctx.send(embed=embed)
 
         while p1["hp"] > 0 and p2["hp"] > 0:
             embed = discord.Embed(title="⚔️ BATTLE IN PROGRESS", color=0x2f3136)
             
+            # Thumbnail Logic for every turn
+            if os.path.exists("fierylogo.jpg"):
+                embed.set_thumbnail(url="attachment://logo.png")
+            
             # Display Health Bars
-            embed.add_field(name=f"👤 {p1['user'].display_name}", value=self.get_health_bar(p1["hp"], p1["max"], is_premium), inline=False)
-            embed.add_field(name=f"👤 {p2['user'].display_name}", value=self.get_health_bar(p2["hp"], p2["max"], is_premium), inline=False)
+            p1_status = f"{self.get_health_bar(p1['hp'], p1['max'], is_premium)}"
+            if p1['luck'] > 1.0: p1_status += " ✨ *LUCKY*"
+            
+            p2_status = f"{self.get_health_bar(p2['hp'], p2['max'], is_premium)}"
+            if p2['luck'] > 1.0: p2_status += " ✨ *LUCKY*"
+
+            embed.add_field(name=f"👤 {p1['user'].display_name}", value=p1_status, inline=False)
+            embed.add_field(name=f"👤 {p2['user'].display_name}", value=p2_status, inline=False)
             embed.set_footer(text=f"Current Turn: {turn['user'].display_name}")
 
             view = discord.ui.View(timeout=60)
@@ -89,12 +109,14 @@ class DungeonFight(commands.Cog):
             # Action Buttons
             strike_btn = discord.ui.Button(label="Strike", style=discord.ButtonStyle.danger, emoji="💥")
             heal_btn = discord.ui.Button(label="Heal", style=discord.ButtonStyle.success, emoji="🧪")
+            cheer_btn = discord.ui.Button(label="Cheering!", style=discord.ButtonStyle.secondary, emoji="🙌")
 
             async def strike_callback(interaction):
                 nonlocal turn, other
                 if interaction.user.id != turn["user"].id: return
                 
-                dmg = random.randint(15, 30)
+                # Apply Luck (5% extra potential damage)
+                dmg = int(random.randint(15, 30) * turn["luck"])
                 other["hp"] = max(0, other["hp"] - dmg)
                 msg = f"**{turn['user'].display_name}** {self.get_funny_msg('strike')} **{other['user'].display_name}** for **{dmg} damage!**"
                 await interaction.response.edit_message(content=msg, view=None)
@@ -110,10 +132,22 @@ class DungeonFight(commands.Cog):
                 await interaction.response.edit_message(content=msg, view=None)
                 view.stop()
 
+            async def cheer_callback(interaction):
+                # Only members NOT fighting can cheer
+                if interaction.user.id in [p1["user"].id, p2["user"].id]:
+                    return await interaction.response.send_message("You're too busy fighting to cheer for yourself!", ephemeral=True)
+                
+                # Determine who is being cheered for based on whose turn it is
+                turn["luck"] += 0.05
+                await interaction.response.send_message(f"📣 {interaction.user.display_name} cheered for {turn['user'].display_name}! Luck increased by 5%!", ephemeral=False)
+
             strike_btn.callback = strike_callback
             heal_btn.callback = heal_callback
+            cheer_btn.callback = cheer_callback
+            
             view.add_item(strike_btn)
             view.add_item(heal_btn)
+            view.add_item(cheer_btn)
 
             await main_msg.edit(embed=embed, view=view)
 
@@ -134,6 +168,10 @@ class DungeonFight(commands.Cog):
         winner = turn if turn["hp"] > 0 else other
         win_emb = discord.Embed(title="🏆 VICTORY", color=0x00ff00)
         win_emb.description = f"**{winner['user'].display_name}** has won the duel!\n\n*The loser has been sent to the shadow realm.*"
+        
+        if os.path.exists("fierylogo.jpg"):
+            win_emb.set_thumbnail(url="attachment://logo.png")
+        
         await ctx.send(embed=win_emb)
 
 async def setup(bot):
