@@ -102,8 +102,14 @@ class DungeonAsk(commands.Cog):
         if member.id == ctx.author.id:
             return await ctx.send("Try asking someone else, love.")
 
+        # --- UPDATED SUBSCRIPTION CHECK ---
         guild_id = str(ctx.guild.id)
-        is_premium = guild_id in __main__.PREMIUM_GUILDS and self.module_name in __main__.PREMIUM_GUILDS[guild_id]
+        is_premium = False
+        if guild_id in __main__.PREMIUM_GUILDS:
+            # Check if module exists in dict and if expiry is in the future
+            expiry = __main__.PREMIUM_GUILDS[guild_id].get(self.module_name)
+            if expiry and expiry > datetime.now(timezone.utc).timestamp():
+                is_premium = True
         
         files = []
         if logo: files.append(logo)
@@ -111,7 +117,7 @@ class DungeonAsk(commands.Cog):
         if is_premium:
             img = await self.create_premium_lobby(ctx.author.display_avatar.url, member.display_avatar.url)
             files.append(discord.File(img, filename="ask.png"))
-            emb = self.fiery_embed("✨ A NEW CONNECTION IS BREWING...", f"**{ctx.author.display_name}** is looking at **{member.display_name}** with interest...")
+            emb = self.fiery_embed("✨ A NEW CONNECTION IS BREWING...", f"**{ctx.author.display_name}** ⚔️ **{member.display_name}**")
             emb.set_image(url="attachment://ask.png")
         else:
             emb = self.fiery_embed("🔥 SOMETHING'S STARTING...", f"{ctx.author.mention} wants to get close to {member.mention}.\n\n*Unlock the full visual experience with !premium*")
@@ -121,13 +127,13 @@ class DungeonAsk(commands.Cog):
                 super().__init__(timeout=120)
                 self.cog, self.r, self.t = cog, r, t
 
-            @discord.ui.button(label="Ask to DM", style=discord.ButtonStyle.primary, emoji="🫦")
+            @discord.ui.button(label="Approach", style=discord.ButtonStyle.primary, emoji="🫦")
             async def dm_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
                 if interaction.user.id != self.r.id: return
                 
                 options = [
-                    discord.SelectOption(label="Polite & Sweet (SFW)", value="SFW", emoji="😇"),
-                    discord.SelectOption(label="Wild & Lustful (NSFW)", value="NSFW", emoji="🔞"),
+                    discord.SelectOption(label="Polite & Sweet", value="SFW", emoji="😇"),
+                    discord.SelectOption(label="Wild & Lustful", value="NSFW", emoji="😈"),
                     discord.SelectOption(label="Just Vibe", value="Casual", emoji="🍹")
                 ]
                 select = discord.ui.Select(placeholder="What's your mood?", options=options)
@@ -147,7 +153,7 @@ class DungeonAsk(commands.Cog):
                         mood_desc = f"{self.t.mention}, {self.r.mention} is reaching out for a **{intent}** chat. Want to talk?"
                         mood_color = 0xffa500 
                         acc_label = "Sure!"
-                        den_label = "No! Maybe later, sorry"
+                        den_label = "Maybe later"
 
                     class RecView(discord.ui.View):
                         def __init__(self, cog, r, t, it):
@@ -158,13 +164,13 @@ class DungeonAsk(commands.Cog):
                         async def acc(self, inner_i, b):
                             if inner_i.user.id != self.t.id: return
                             self.cog.log_ask_event(self.r, self.t, self.it, "Accepted")
-                            await inner_i.response.send_message(f"✨ YES {self.r.mention}")
+                            await inner_i.response.send_message(f"✨ Spark lit for {self.r.mention}")
 
                         @discord.ui.button(label=den_label, style=discord.ButtonStyle.danger, emoji="🥀")
                         async def den(self, inner_i, b):
                             if inner_i.user.id != self.t.id: return
                             self.cog.log_ask_event(self.r, self.t, self.it, "Denied")
-                            await inner_i.response.send_message(f"😭 No {self.r.mention}")
+                            await inner_i.response.send_message(f"🥀 Fire out for {self.r.mention}")
 
                     final_emb = self.cog.fiery_embed(mood_title, mood_desc, mood_color)
                     await i.response.send_message(content=self.t.mention, embed=final_emb, view=RecView(self.cog, self.r, self.t, intent), file=logo_callback)
@@ -198,7 +204,14 @@ class DungeonAsk(commands.Cog):
     async def adminask(self, ctx):
         logo = self.get_logo()
         guild_id = str(ctx.guild.id)
-        is_premium = guild_id in __main__.PREMIUM_GUILDS and self.module_name in __main__.PREMIUM_GUILDS[guild_id]
+        
+        # Subscription Check
+        is_premium = False
+        if guild_id in __main__.PREMIUM_GUILDS:
+            expiry = __main__.PREMIUM_GUILDS[guild_id].get(self.module_name)
+            if expiry and expiry > datetime.now(timezone.utc).timestamp():
+                is_premium = True
+
         if not is_premium:
             return await ctx.send(file=logo, embed=self.fiery_embed("🚫 LOCKED", "History is a premium feature."))
         
@@ -213,27 +226,31 @@ class DungeonAsk(commands.Cog):
     @commands.command(name="askactivate")
     @commands.is_owner()
     async def askactivate(self, ctx, guild_id: str):
+        # Admin manual activation logic (Default 30 days)
+        expiry = (datetime.now(timezone.utc) + timedelta(days=30)).timestamp()
         if guild_id not in __main__.PREMIUM_GUILDS:
-            __main__.PREMIUM_GUILDS[guild_id] = []
-        if self.module_name not in __main__.PREMIUM_GUILDS[guild_id]:
-            __main__.PREMIUM_GUILDS[guild_id].append(self.module_name)
-            with open(self.PREMIUM_FILE, "w") as f:
-                json.dump(__main__.PREMIUM_GUILDS, f)
-        await ctx.send(f"✅ **{self.module_name.upper()}** module activated!")
+            __main__.PREMIUM_GUILDS[guild_id] = {}
+        
+        __main__.PREMIUM_GUILDS[guild_id][self.module_name] = expiry
+        with open(self.PREMIUM_FILE, "w") as f:
+            json.dump(__main__.PREMIUM_GUILDS, f)
+        await ctx.send(f"✅ **{self.module_name.upper()}** module activated manually (30 Days)!")
 
     @commands.command(name="askon")
     @commands.is_owner()
     async def askon(self, ctx):
         guild_id = str(ctx.guild.id)
-        if guild_id not in __main__.PREMIUM_GUILDS: __main__.PREMIUM_GUILDS[guild_id] = []
-        if self.module_name not in __main__.PREMIUM_GUILDS[guild_id]: __main__.PREMIUM_GUILDS[guild_id].append(self.module_name)
+        expiry = (datetime.now(timezone.utc) + timedelta(days=365)).timestamp() # Dev mode ON (1 Year)
+        if guild_id not in __main__.PREMIUM_GUILDS: __main__.PREMIUM_GUILDS[guild_id] = {}
+        __main__.PREMIUM_GUILDS[guild_id][self.module_name] = expiry
         await ctx.send("🛠️ **DEV MODE:** Premium ON.")
 
     @commands.command(name="askoff")
     @commands.is_owner()
     async def askoff(self, ctx):
         guild_id = str(ctx.guild.id)
-        if guild_id in __main__.PREMIUM_GUILDS and self.module_name in __main__.PREMIUM_GUILDS[guild_id]: __main__.PREMIUM_GUILDS[guild_id].remove(self.module_name)
+        if guild_id in __main__.PREMIUM_GUILDS and self.module_name in __main__.PREMIUM_GUILDS[guild_id]:
+            del __main__.PREMIUM_GUILDS[guild_id][self.module_name]
         await ctx.send("🛠️ **DEV MODE:** Premium OFF.")
 
 async def setup(bot):
