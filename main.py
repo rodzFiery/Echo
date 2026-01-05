@@ -23,7 +23,10 @@ PREMIUM_FILE = os.path.join(DATA_DIR, "premium_guilds.json")
 def get_premium_list():
     if os.path.exists(PREMIUM_FILE):
         with open(PREMIUM_FILE, "r") as f:
-            try: return json.load(f) # Now returns a dictionary for modularity
+            try: 
+                data = json.load(f)
+                # Ensure we return a dictionary even if the file was empty
+                return data if isinstance(data, dict) else {}
             except: return {}
     return {}
 
