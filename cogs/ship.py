@@ -43,7 +43,7 @@ class DungeonShip(commands.Cog):
             canvas = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             draw = ImageDraw.Draw(canvas)
 
-            # --- FONT SYSTEM LOADER (COLOSSAL SCALING - MAXIMUM) ---
+            # --- FONT SYSTEM LOADER (TITANIC SCALING - MAXIMUM) ---
             font_size_pct = 500 if percent < 100 else 400 
             font_size_heart = 120
             try:
@@ -137,30 +137,33 @@ class DungeonShip(commands.Cog):
             glow = canvas.filter(ImageFilter.GaussianBlur(8))
             canvas = Image.alpha_composite(glow, canvas)
 
-            # --- 7. FINAL OVERLAY: THE COLOSSAL SCORE (ULTRA VISIBILITY) ---
-            final_draw = ImageDraw.Draw(canvas)
+            # --- 7. FINAL OVERLAY: THE COLOSSAL SCORE (FIXED VISIBILITY) ---
+            # Create a dedicated layer for the plate and text that sits ABOVE everything
+            overlay = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
+            o_draw = ImageDraw.Draw(overlay)
             
-            # Crystal Heart Plate
+            # Crystal Heart Plate (Centrally Focused)
             heart_points = [(600, 570), (280, 280), (400, 50), (600, 180), (800, 50), (920, 280)]
-            final_draw.polygon(heart_points, fill=(aura_color[0], aura_color[1], aura_color[2], 90))
-            final_draw.polygon(heart_points, outline=(255, 255, 255, 150), width=8)
+            o_draw.polygon(heart_points, fill=(aura_color[0], aura_color[1], aura_color[2], 230)) # Increased Opacity to 230
+            o_draw.polygon(heart_points, outline=(255, 255, 255, 255), width=10) # Thicker Border
 
-            # DYNAMIC COLOR ENGINE FOR TEXT
             if percent >= 90:
-                text_main, text_stroke = (255, 255, 255), (255, 215, 0) # Gold
+                text_main, text_stroke = (255, 255, 255), (255, 215, 0)
             elif percent >= 70:
                 text_main, text_stroke = (255, 215, 0), (0, 0, 0)
             elif percent < 20:
-                # DOOMED BLOOD RED TRANSFORMATION
-                text_main, text_stroke = (139, 0, 0), (20, 0, 0) # Blood Red / Deep Black-Red
+                text_main, text_stroke = (139, 0, 0), (20, 0, 0)
             else:
-                text_main, text_stroke = (255, 255, 255), (255, 105, 180) # Pink Glow
+                text_main, text_stroke = (255, 255, 255), (255, 105, 180) 
 
             pct_text = f"{percent}%"
-            # SHADOW FOR DEPTH
-            final_draw.text((620, 320), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
-            # COLOSSAL TEXT
-            final_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=35, stroke_fill=text_stroke)
+            # COLOSSAL SHADOW
+            o_draw.text((620, 320), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
+            # COLOSSAL FOCAL SCORE
+            o_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=35, stroke_fill=text_stroke)
+
+            # Merge the overlay onto the final canvas
+            canvas = Image.alpha_composite(canvas, overlay)
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
