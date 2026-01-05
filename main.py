@@ -5,6 +5,7 @@ import json
 from discord.ext import commands
 from dotenv import load_dotenv
 from aiohttp import web
+from datetime import datetime, timedelta, timezone
 
 # 1. SETUP & SECRETS
 load_dotenv()
@@ -24,7 +25,7 @@ def get_premium_list():
         with open(PREMIUM_FILE, "r") as f:
             try: return json.load(f) # Now returns a dictionary for modularity
             except: return {}
-    return []
+    return {}
 
 # Shared global variable for the bot instance
 PREMIUM_GUILDS = get_premium_list()
@@ -48,6 +49,31 @@ class MyBot(commands.Bot):
         
         # Start the Webhook Server
         self.loop.create_task(self.start_webhook_server())
+        # Start the Expiry Checker (Runs every hour)
+        self.loop.create_task(self.check_subscriptions_expiry())
+
+    async def check_subscriptions_expiry(self):
+        """Background task to remove expired monthly subscriptions"""
+        while True:
+            await asyncio.sleep(3600) # Wait 1 hour
+            now = datetime.now(timezone.utc).timestamp()
+            changed = False
+            
+            global PREMIUM_GUILDS
+            for guild_id in list(PREMIUM_GUILDS.keys()):
+                # Filter out modules where the timestamp is in the past
+                original_count = len(PREMIUM_GUILDS[guild_id])
+                PREMIUM_GUILDS[guild_id] = {
+                    mod: expiry for mod, expiry in PREMIUM_GUILDS[guild_id].items() 
+                    if expiry > now
+                }
+                if len(PREMIUM_GUILDS[guild_id]) != original_count:
+                    changed = True
+            
+            if changed:
+                with open(PREMIUM_FILE, "w") as f:
+                    json.dump(PREMIUM_GUILDS, f)
+                print("🧹 Cleaned up expired subscriptions.")
 
     async def start_webhook_server(self):
         app = web.Application()
@@ -68,51 +94,56 @@ class MyBot(commands.Bot):
         if payment_status == 'Completed' and "|" in custom_data:
             guild_id_str, module_name = custom_data.split("|")
             
+            # Calculate 30 days from now
+            expiry_date = datetime.now(timezone.utc) + timedelta(days=30)
+            expiry_timestamp = expiry_date.timestamp()
+
             global PREMIUM_GUILDS
             if guild_id_str not in PREMIUM_GUILDS:
-                PREMIUM_GUILDS[guild_id_str] = []
+                PREMIUM_GUILDS[guild_id_str] = {} # Use dict instead of list for timestamps
             
-            if module_name not in PREMIUM_GUILDS[guild_id_str]:
-                PREMIUM_GUILDS[guild_id_str].append(module_name)
-                with open(PREMIUM_FILE, "w") as f:
-                    json.dump(PREMIUM_GUILDS, f)
-                print(f"💎 MODULE ACTIVATED: {module_name} for {guild_id_str}")
+            # Store the module with its specific expiry time
+            PREMIUM_GUILDS[guild_id_str][module_name] = expiry_timestamp
+            
+            with open(PREMIUM_FILE, "w") as f:
+                json.dump(PREMIUM_GUILDS, f)
+            print(f"💎 MONTHLY ACCESS ACTIVATED: {module_name} for {guild_id_str}")
 
-                # --- NEW: AUTOMATED SUCCESS BROADCAST TO CUSTOMER SERVER ---
-                try:
-                    target_guild = self.get_guild(int(guild_id_str))
-                    if target_guild:
-                        # Find the best channel to announce the upgrade
-                        chan = next((c for c in target_guild.text_channels if c.permissions_for(target_guild.me).send_messages), None)
-                        if chan:
-                            success_emb = discord.Embed(title="💎 PREMIUM UNLOCKED", color=0x00ff00)
-                            success_emb.description = f"The **{module_name.upper()}** module has been activated! Enjoy your new high-level features."
-                            if os.path.exists("fierylogo.jpg"):
-                                file = discord.File("fierylogo.jpg", filename="logo.png")
-                                success_emb.set_thumbnail(url="attachment://logo.png")
-                                await chan.send(file=file, embed=success_emb)
-                            else:
-                                await chan.send(embed=success_emb)
-                except Exception as e:
-                    print(f"Broadcast Error: {e}")
-
-                # --- NEW: SALES LOG TO YOUR DEVELOPER SERVER ---
-                try:
-                    dev_channel = self.get_channel(1457706030199996570)
-                    if dev_channel:
-                        log_emb = discord.Embed(title="💰 NEW SALE DETECTED", color=0x00ff00)
-                        log_emb.add_field(name="Module", value=module_name.upper(), inline=True)
-                        log_emb.add_field(name="Amount", value=f"${amount} USD", inline=True)
-                        log_emb.add_field(name="Server ID", value=guild_id_str, inline=False)
-                        log_emb.set_footer(text=f"Time: {discord.utils.utcnow().strftime('%Y-%m-%d %H:%M')}")
+            # --- NEW: AUTOMATED SUCCESS BROADCAST TO CUSTOMER SERVER ---
+            try:
+                target_guild = self.get_guild(int(guild_id_str))
+                if target_guild:
+                    # Find the best channel to announce the upgrade
+                    chan = next((c for c in target_guild.text_channels if c.permissions_for(target_guild.me).send_messages), None)
+                    if chan:
+                        success_emb = discord.Embed(title="💎 30-DAY PREMIUM UNLOCKED", color=0x00ff00)
+                        success_emb.description = f"The **{module_name.upper()}** module is now active for 30 days! Expiry: <t:{int(expiry_timestamp)}:F>"
                         if os.path.exists("fierylogo.jpg"):
-                            f_log = discord.File("fierylogo.jpg", filename="logo_log.png")
-                            log_emb.set_thumbnail(url="attachment://logo_log.png")
-                            await dev_channel.send(file=f_log, embed=log_emb)
+                            file = discord.File("fierylogo.jpg", filename="logo.png")
+                            success_emb.set_thumbnail(url="attachment://logo.png")
+                            await chan.send(file=file, embed=success_emb)
                         else:
-                            await dev_channel.send(embed=log_emb)
-                except Exception as e:
-                    print(f"Failed to log sale: {e}")
+                            await chan.send(embed=success_emb)
+            except Exception as e:
+                print(f"Broadcast Error: {e}")
+
+            # --- NEW: SALES LOG TO YOUR DEVELOPER SERVER ---
+            try:
+                dev_channel = self.get_channel(1457706030199996570)
+                if dev_channel:
+                    log_emb = discord.Embed(title="💰 NEW SUBSCRIPTION", color=0x00ff00)
+                    log_emb.add_field(name="Module", value=module_name.upper(), inline=True)
+                    log_emb.add_field(name="Amount", value=f"${amount} USD", inline=True)
+                    log_emb.add_field(name="Server ID", value=guild_id_str, inline=False)
+                    log_emb.set_footer(text=f"Time: {discord.utils.utcnow().strftime('%Y-%m-%d %H:%M')}")
+                    if os.path.exists("fierylogo.jpg"):
+                        f_log = discord.File("fierylogo.jpg", filename="logo_log.png")
+                        log_emb.set_thumbnail(url="attachment://logo_log.png")
+                        await dev_channel.send(file=f_log, embed=log_emb)
+                    else:
+                        await dev_channel.send(embed=log_emb)
+            except Exception as e:
+                print(f"Failed to log sale: {e}")
 
         return web.Response(text="OK")
 
@@ -168,7 +199,7 @@ async def premium(ctx):
     
     embed = discord.Embed(
         title="🔥 FIERY MODULE SHOP", 
-        description="Select a module to unlock its premium features for this server.",
+        description="Select a module to unlock 30 days of premium features.",
         color=0xff4500
     )
     
@@ -185,8 +216,8 @@ async def premium(ctx):
             for mod in available_modules:
                 price = MODULE_PRICES.get(mod, "5.00") # Default $5 if price not set
                 options.append(discord.SelectOption(
-                    label=f"Unlock {mod.upper()}", 
-                    description=f"Direct PayPal Activation - ${price}", 
+                    label=f"Unlock {mod.upper()} (Monthly)", 
+                    description=f"30 Days Access - ${price}", 
                     value=f"{mod}|{price}",
                     emoji="💎"
                 ))
@@ -194,7 +225,7 @@ async def premium(ctx):
             if not options:
                 return # Prevent crash if no cogs exist
                 
-            self.select = discord.ui.Select(placeholder="Select a module to buy...", options=options)
+            self.select = discord.ui.Select(placeholder="Select a module to subscribe...", options=options)
             self.select.callback = self.select_callback
             self.add_item(self.select)
 
@@ -206,16 +237,16 @@ async def premium(ctx):
             paypal_url = (
                 f"https://www.paypal.com/cgi-bin/webscr?cmd=_xclick"
                 f"&business={pay_email}&amount={price}&currency_code=USD"
-                f"&item_name=Fiery_{mod_name.upper()}_Module_Server_{interaction.guild_id}"
+                f"&item_name=Fiery_{mod_name.upper()}_Monthly_Server_{interaction.guild_id}"
                 f"&custom={custom_payload}"
             )
             
-            checkout_emb = discord.Embed(title=f"🛒 Checkout: {mod_name.upper()}", color=0x00ff00)
+            checkout_emb = discord.Embed(title=f"🛒 Monthly Subscription: {mod_name.upper()}", color=0x00ff00)
             checkout_emb.description = (
-                f"You are purchasing the **{mod_name.upper()}** module.\n"
-                f"**Price:** ${price} USD\n\n"
+                f"You are subscribing to the **{mod_name.upper()}** module.\n"
+                f"**Price:** ${price} USD per month\n\n"
                 f"Click [**HERE TO PAY**]({paypal_url})\n\n"
-                "*The module will unlock automatically after payment.*"
+                "*Access is granted for 30 days from payment.*"
             )
             await interaction.response.send_message(embed=checkout_emb, ephemeral=True)
 
@@ -232,7 +263,7 @@ async def premiumstatus(ctx):
     # Get all .py files in cogs to see what's available
     available_modules = [f[:-3] for f in os.listdir('./cogs') if f.endswith('.py')]
     # Get what this server has bought
-    owned_modules = PREMIUM_GUILDS.get(guild_id, [])
+    owned_modules = PREMIUM_GUILDS.get(guild_id, {})
 
     embed = discord.Embed(title="⚔️ SERVER MODULE DASHBOARD", color=0xff4500)
     
@@ -243,10 +274,13 @@ async def premiumstatus(ctx):
     
     status_text = ""
     unlocked_count = 0
+    now = datetime.now(timezone.utc).timestamp()
     
     for module in available_modules:
-        if module in owned_modules:
-            status_text += f"✅ **{module.upper()}**: `UNLOCKED`\n"
+        expiry = owned_modules.get(module)
+        if expiry and expiry > now:
+            # Show expiry date using Discord Timestamps
+            status_text += f"✅ **{module.upper()}**: `Expires` <t:{int(expiry)}:R>\n"
             unlocked_count += 1
         else:
             status_text += f"❌ **{module.upper()}**: `LOCKED` (Type `!premium` to buy)\n"
@@ -256,7 +290,7 @@ async def premiumstatus(ctx):
     percent = (unlocked_count / total) * 100 if total > 0 else 0
     bar = "🟩" * unlocked_count + "⬛" * (total - unlocked_count)
     
-    embed.add_field(name="Current Features", value=status_text, inline=False)
+    embed.add_field(name="Subscription Status", value=status_text, inline=False)
     embed.add_field(name="Unlock Progress", value=f"{bar} **{percent:.0f}%**", inline=False)
     embed.set_footer(text=f"Server ID: {guild_id} | Support your developer 🔥")
     
