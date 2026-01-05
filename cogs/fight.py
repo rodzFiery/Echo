@@ -19,15 +19,24 @@ class DungeonFight(commands.Cog):
         self._load_stats()
 
     def _load_stats(self):
-        if os.path.exists(self.stats_file):
-            with open(self.stats_file, "r") as f:
-                self.stats = json.load(f)
-        else:
+        try:
+            if os.path.exists(self.stats_file):
+                with open(self.stats_file, "r") as f:
+                    self.stats = json.load(f)
+            else:
+                self.stats = {"global": {}, "servers": {}}
+        except Exception as e:
+            print(f"Error loading stats: {e}")
             self.stats = {"global": {}, "servers": {}}
 
     def _save_stats(self):
-        with open(self.stats_file, "w") as f:
-            json.dump(self.stats, f, indent=4)
+        try:
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(self.stats_file), exist_ok=True)
+            with open(self.stats_file, "w") as f:
+                json.dump(self.stats, f, indent=4)
+        except Exception as e:
+            print(f"Error saving stats: {e}")
 
     def _update_winner(self, guild_id, winner_id, loser_id):
         gid = str(guild_id)
@@ -199,7 +208,7 @@ class DungeonFight(commands.Cog):
 
         guild_id = str(ctx.guild.id)
         is_premium = False
-        if guild_id in __main__.PREMIUM_GUILDS:
+        if hasattr(__main__, "PREMIUM_GUILDS") and guild_id in __main__.PREMIUM_GUILDS:
             is_premium = True
 
         p1 = {"user": ctx.author, "hp": 100, "max": 100, "luck": 1.0}
