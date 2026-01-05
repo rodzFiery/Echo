@@ -43,8 +43,9 @@ class DungeonShip(commands.Cog):
             canvas = Image.new("RGBA", (1200, 600), (0, 0, 0, 0))
             draw = ImageDraw.Draw(canvas)
 
-            # --- FONT SYSTEM LOADER (TITANIC SCALING) ---
-            font_size_pct = 320 if percent < 100 else 250 
+            # --- FONT SYSTEM LOADER (COLOSSAL SCALING) ---
+            # Forced massive sizes for arena dominance - 450 is now the Titanic scale
+            font_size_pct = 450 if percent < 100 else 350 
             font_size_heart = 120
             try:
                 font_paths = [
@@ -135,13 +136,14 @@ class DungeonShip(commands.Cog):
             glow = canvas.filter(ImageFilter.GaussianBlur(8))
             canvas = Image.alpha_composite(glow, canvas)
 
-            # --- 7. FINAL OVERLAY: THE TITANIC SCORE ---
+            # --- 7. FINAL OVERLAY: THE COLOSSAL SCORE ---
             final_draw = ImageDraw.Draw(canvas)
             
-            # REFINED: Loving Crystal Heart Plate (Instead of ugly black square)
-            heart_points = [(600, 480), (380, 250), (450, 140), (600, 220), (750, 140), (820, 250)]
-            final_draw.polygon(heart_points, fill=(aura_color[0], aura_color[1], aura_color[2], 60))
-            final_draw.polygon(heart_points, outline=(255, 255, 255, 100), width=5)
+            # REFINED: MASSIVE Loving Crystal Heart Plate
+            # Expanded points to accommodate the much bigger text
+            heart_points = [(600, 550), (320, 270), (420, 80), (600, 180), (780, 80), (880, 270)]
+            final_draw.polygon(heart_points, fill=(aura_color[0], aura_color[1], aura_color[2], 75))
+            final_draw.polygon(heart_points, outline=(255, 255, 255, 120), width=6)
 
             if percent >= 90:
                 text_main, text_stroke = (255, 255, 255), (255, 215, 0)
@@ -150,12 +152,12 @@ class DungeonShip(commands.Cog):
             elif percent < 20:
                 text_main, text_stroke = (0, 255, 255), (0, 50, 150)
             else:
-                text_main, text_stroke = (255, 255, 255), (255, 105, 180) # Pink Glow for mid-range
+                text_main, text_stroke = (255, 255, 255), (255, 105, 180) 
 
             pct_text = f"{percent}%"
-            # Titanic Rendering for massive visibility
-            final_draw.text((610, 310), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
-            final_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=20, stroke_fill=text_stroke)
+            # Colossal Rendering - drawing with massive stroke for weight
+            final_draw.text((615, 315), pct_text, fill=(0, 0, 0, 255), anchor="mm", font=font_pct) 
+            final_draw.text((600, 300), pct_text, fill=text_main, anchor="mm", font=font_pct, stroke_width=30, stroke_fill=text_stroke)
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
