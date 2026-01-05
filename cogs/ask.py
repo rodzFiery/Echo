@@ -121,13 +121,13 @@ class DungeonAsk(commands.Cog):
                 super().__init__(timeout=120)
                 self.cog, self.r, self.t = cog, r, t
 
-            @discord.ui.button(label="Approach", style=discord.ButtonStyle.primary, emoji="🫦")
+            @discord.ui.button(label="Ask to DM", style=discord.ButtonStyle.primary, emoji="🫦")
             async def dm_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
                 if interaction.user.id != self.r.id: return
                 
                 options = [
-                    discord.SelectOption(label="Polite & Sweet", value="SFW", emoji="😇"),
-                    discord.SelectOption(label="Wild & Lustful", value="NSFW", emoji="😈"),
+                    discord.SelectOption(label="Polite & Sweet (SFW)", value="SFW", emoji="😇"),
+                    discord.SelectOption(label="Wild & Lustful (NSFW)", value="NSFW", emoji="🔞"),
                     discord.SelectOption(label="Just Vibe", value="Casual", emoji="🍹")
                 ]
                 select = discord.ui.Select(placeholder="What's your mood?", options=options)
@@ -147,7 +147,7 @@ class DungeonAsk(commands.Cog):
                         mood_desc = f"{self.t.mention}, {self.r.mention} is reaching out for a **{intent}** chat. Want to talk?"
                         mood_color = 0xffa500 
                         acc_label = "Sure!"
-                        den_label = "Maybe later"
+                        den_label = "No! Maybe later, sorry"
 
                     class RecView(discord.ui.View):
                         def __init__(self, cog, r, t, it):
@@ -158,13 +158,13 @@ class DungeonAsk(commands.Cog):
                         async def acc(self, inner_i, b):
                             if inner_i.user.id != self.t.id: return
                             self.cog.log_ask_event(self.r, self.t, self.it, "Accepted")
-                            await inner_i.response.send_message(f"✨ Spark lit for {self.r.mention}")
+                            await inner_i.response.send_message(f"✨ YES {self.r.mention}")
 
                         @discord.ui.button(label=den_label, style=discord.ButtonStyle.danger, emoji="🥀")
                         async def den(self, inner_i, b):
                             if inner_i.user.id != self.t.id: return
                             self.cog.log_ask_event(self.r, self.t, self.it, "Denied")
-                            await inner_i.response.send_message(f"🥀 Fire out for {self.r.mention}")
+                            await inner_i.response.send_message(f"😭 No {self.r.mention}")
 
                     final_emb = self.cog.fiery_embed(mood_title, mood_desc, mood_color)
                     await i.response.send_message(content=self.t.mention, embed=final_emb, view=RecView(self.cog, self.r, self.t, intent), file=logo_callback)
