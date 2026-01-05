@@ -131,8 +131,12 @@ class DungeonFight(commands.Cog):
     # --- IMAGE ENGINE FOR ARENA VISUALS ---
     async def create_arena_visual(self, u1_url, u2_url):
         try:
-            # maximized realistic arena canvas
-            canvas = Image.new("RGBA", (1200, 600), (20, 20, 20, 255))
+            # Check if fight.jpg exists to use as background
+            if os.path.exists("fight.jpg"):
+                canvas = Image.open("fight.jpg").convert("RGBA").resize((1200, 600))
+            else:
+                canvas = Image.new("RGBA", (1200, 600), (20, 20, 20, 255))
+            
             draw = ImageDraw.Draw(canvas)
             
             async with aiohttp.ClientSession() as session:
@@ -245,6 +249,12 @@ class DungeonFight(commands.Cog):
         embed = discord.Embed(title="⚔️ ECHO ARENA: THE DUEL BEGINS", color=0xff4500)
         embed.description = f"🔥 **{p1['user'].mention}** HAS CHALLENGED **{p2['user'].mention}**\n\n*\"In the echo of battle, only one will stand!\"*"
         
+        # Lobby Background Logic (using fight.jpg)
+        lobby_file = None
+        if os.path.exists("fight.jpg"):
+            lobby_file = discord.File("fight.jpg", filename="lobby.jpg")
+            embed.set_image(url="attachment://lobby.jpg")
+
         # Thumbnail Logic
         logo_file = None
         if os.path.exists("fierylogo.jpg"):
@@ -254,9 +264,10 @@ class DungeonFight(commands.Cog):
         # Arena Image Generation
         arena_img = await self.create_arena_visual(p1['user'].display_avatar.url, p2['user'].display_avatar.url)
         arena_file = discord.File(arena_img, filename="arena.png")
-        embed.set_image(url="attachment://arena.png")
+        # Note: Combat loop below updates embed image to arena.png
         
         files = [arena_file]
+        if lobby_file: files.append(lobby_file)
         if logo_file: files.append(logo_file)
         
         main_msg = await ctx.send(files=files, embed=embed)
