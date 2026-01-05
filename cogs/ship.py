@@ -39,81 +39,87 @@ class DungeonShip(commands.Cog):
 
     async def create_ship_visual(self, u1_url, u2_url, percent):
         try:
-            # 1. GENERATE CINEMATIC BACKGROUND
-            # We create a large 1200x500 canvas with a deep midnight-to-crimson gradient
-            base = Image.new("RGBA", (1200, 500), (15, 0, 5, 255))
-            overlay = Image.new("RGBA", (1200, 500), (0, 0, 0, 0))
-            draw_ov = ImageDraw.Draw(overlay)
-            
-            # Create a "Nebula" glow in the center
-            glow_color = (255, 20, 147, 40) if percent > 50 else (100, 100, 120, 40)
-            for i in range(10): # Layered radial glow
-                radius = 300 + (i * 20)
-                draw_ov.ellipse([600-radius, 250-radius, 600+radius, 250+radius], fill=(glow_color[0], glow_color[1], glow_color[2], 10))
-            
-            canvas = Image.alpha_composite(base, overlay)
+            # 1. CELESTIAL CANVAS ENGINE
+            # Deep space triple-gradient background
+            canvas = Image.new("RGBA", (1200, 500), (10, 5, 20, 255))
             draw = ImageDraw.Draw(canvas)
+            
+            # Layering a central "Nova Burst"
+            nova = Image.new("RGBA", (1200, 500), (0, 0, 0, 0))
+            n_draw = ImageDraw.Draw(nova)
+            nova_color = (255, 50, 150, 60) if percent > 50 else (100, 100, 255, 60)
+            for i in range(15):
+                n_rad = 350 - (i * 20)
+                n_draw.ellipse([600-n_rad, 250-n_rad, 600+n_rad, 250+n_rad], fill=(nova_color[0], nova_color[1], nova_color[2], 8))
+            nova = nova.filter(ImageFilter.GaussianBlur(30))
+            canvas = Image.alpha_composite(canvas, nova)
+
+            # 2. PARTICLE GENERATOR
+            # Adding star-dust particles across the field
+            for _ in range(60):
+                px, py = random.randint(0, 1200), random.randint(0, 500)
+                p_size = random.randint(1, 3)
+                draw.ellipse([px, py, px+p_size, py+p_size], fill=(255, 255, 255, random.randint(100, 255)))
 
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     p1_data, p2_data = io.BytesIO(await r1.read()), io.BytesIO(await r2.read())
 
-            av_size = 360
-            # Square avatars - 100% Borderless per request
+            av_size = 350
             av1_raw = Image.open(p1_data).convert("RGBA").resize((av_size, av_size))
             av2_raw = Image.open(p2_data).convert("RGBA").resize((av_size, av_size))
 
-            # 2. AVATAR FX: Add a subtle outer drop shadow/glow to avatars
-            shadow = Image.new("RGBA", (1200, 500), (0, 0, 0, 0))
-            sh_draw = ImageDraw.Draw(shadow)
-            sh_draw.rectangle([95, 70, 100+av_size+5, 75+av_size+5], fill=(0,0,0,150))
-            sh_draw.rectangle([745, 70, 750+av_size+5, 75+av_size+5], fill=(0,0,0,150))
-            shadow = shadow.filter(ImageFilter.GaussianBlur(15))
-            canvas = Image.alpha_composite(canvas, shadow)
+            # 3. POWER AURA LOGIC (Behind Avatars)
+            aura = Image.new("RGBA", (1200, 500), (0, 0, 0, 0))
+            a_draw = ImageDraw.Draw(aura)
+            aura_color = (255, 0, 100) if percent > 60 else (0, 200, 255) if percent > 30 else (150, 150, 150)
+            
+            # Left Aura
+            a_draw.rectangle([90, 65, 100+av_size+10, 75+av_size+10], fill=(aura_color[0], aura_color[1], aura_color[2], 120))
+            # Right Aura
+            a_draw.rectangle([740, 65, 750+av_size+10, 75+av_size+10], fill=(aura_color[0], aura_color[1], aura_color[2], 120))
+            aura = aura.filter(ImageFilter.GaussianBlur(25))
+            canvas = Image.alpha_composite(canvas, aura)
 
-            # Paste main avatars
+            # Paste Avatars (Square/Borderless)
             canvas.paste(av1_raw, (100, 75), av1_raw)
             canvas.paste(av2_raw, (750, 75), av2_raw)
 
-            # 3. CENTRAL UI: THE SOUL METER
-            # Frosted Glass Path
-            draw.rectangle([460, 248, 740, 252], fill=(255, 255, 255, 100)) # Thin white line
+            # 4. THE BOND UI (Center)
+            # Neon Connection Line
+            draw.rectangle([450, 248, 750, 252], fill=(255, 255, 255, 180))
             
-            # Percentage with 3D shadow effect
+            # High-Visibility Percentage (Multi-Layered Text)
             pct_text = f"{percent}%"
-            # Draw shadow
-            draw.text((603, 253), pct_text, fill=(0, 0, 0, 200), anchor="mm", size=160)
-            # Draw main text
-            main_text_color = (255, 255, 255) if percent > 15 else (200, 200, 200)
-            draw.text((600, 250), pct_text, fill=main_text_color, anchor="mm", size=160, stroke_width=2, stroke_fill=(0,0,0))
+            # Text Glow/Shadow
+            draw.text((604, 254), pct_text, fill=(0, 0, 0, 180), anchor="mm", size=170)
+            # Main Text
+            draw.text((600, 250), pct_text, fill=(255, 255, 255), anchor="mm", size=170, stroke_width=3, stroke_fill=(0,0,0))
 
-            # 4. LOGO BRANDING
+            # Fiery Logo Placement
             if os.path.exists("fierylogo.jpg"):
-                logo = Image.open("fierylogo.jpg").convert("RGBA").resize((130, 130))
-                # Circular crop for logo to look premium
-                l_mask = Image.new("L", (130, 130), 0)
-                ImageDraw.Draw(l_mask).ellipse([0,0,130,130], fill=255)
-                logo.putalpha(l_mask)
-                canvas.paste(logo, (535, 25), logo)
+                logo = Image.open("fierylogo.jpg").convert("RGBA").resize((120, 120))
+                # Circular crop for branding
+                mask = Image.new("L", (120, 120), 0)
+                ImageDraw.Draw(mask).ellipse([0, 0, 120, 120], fill=255)
+                logo.putalpha(mask)
+                canvas.paste(logo, (540, 30), logo)
 
-            # 5. PREMIUM PROGRESS BAR
-            bar_width = 900
-            bar_start = (1200 - bar_width) // 2
-            # Background bar (Glass effect)
-            draw.rounded_rectangle([bar_start, 450, bar_start + bar_width, 465], radius=8, fill=(255, 255, 255, 30))
-            
-            # Filled bar (Animated color)
-            bar_color = (255, 40, 100) if percent > 50 else (120, 120, 140)
-            current_bar = (percent / 100) * bar_width
-            if current_bar > 5: # Only draw if there is a percentage
-                draw.rounded_rectangle([bar_start, 450, bar_start + current_bar, 465], radius=8, fill=bar_color)
-            
-            # 6. FINAL POLISH: Vignette Effect
-            vignette = Image.new("RGBA", (1200, 500), (0, 0, 0, 0))
-            v_draw = ImageDraw.Draw(vignette)
-            v_draw.rectangle([0, 0, 1200, 500], outline=(0,0,0,180), width=80)
-            vignette = vignette.filter(ImageFilter.GaussianBlur(60))
-            canvas = Image.alpha_composite(canvas, vignette)
+            # 5. DYNAMIC LOVE BAR (Glassmorphism)
+            bar_w, bar_h = 850, 20
+            bx, by = (1200-bar_w)//2, 440
+            # Bar Container
+            draw.rounded_rectangle([bx-2, by-2, bx+bar_w+2, by+bar_h+2], radius=10, fill=(255, 255, 255, 40))
+            # Bar Fill
+            fill_w = (percent / 100) * bar_w
+            if fill_w > 5:
+                draw.rounded_rectangle([bx, by, bx+fill_w, by+bar_h], radius=10, fill=aura_color)
+
+            # 6. VIGNETTE POLISH
+            vig = Image.new("RGBA", (1200, 500), (0, 0, 0, 0))
+            ImageDraw.Draw(vig).rectangle([0,0,1200,500], outline=(0,0,0,200), width=60)
+            vig = vig.filter(ImageFilter.GaussianBlur(50))
+            canvas = Image.alpha_composite(canvas, vig)
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
@@ -132,7 +138,6 @@ class DungeonShip(commands.Cog):
 
         percent = random.randint(0, 100)
         
-        # Unique Romantic Titles
         if percent >= 90: title = "👑 ABSOLUTE DYNASTY"
         elif percent >= 70: title = "💖 ETERNAL FLAME"
         elif percent >= 50: title = "⚖️ BALANCED DESTINY"
