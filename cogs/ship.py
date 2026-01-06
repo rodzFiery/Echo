@@ -48,40 +48,52 @@ class ArenaShip(commands.Cog):
         return False
 
     async def generate_web_ui(self, u1_url, u2_url, percent):
-        """LEGENDARY UI: Titanic Score Overlay + Web Designer Compositing."""
+        """LEGENDARY FINAL VERSION: Blurred Background + Gargantuan Typography."""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     if r1.status != 200 or r2.status != 200: return None
-                    img1 = Image.open(io.BytesIO(await r1.read())).convert("RGBA")
-                    img2 = Image.open(io.BytesIO(await r2.read())).convert("RGBA")
+                    img1_raw = await r1.read()
+                    img2_raw = await r2.read()
+                    img1 = Image.open(io.BytesIO(img1_raw)).convert("RGBA")
+                    img2 = Image.open(io.BytesIO(img2_raw)).convert("RGBA")
 
             # --- CANVAS ENGINE ---
-            width, height = 1200, 550 # Increased canvas for giant display
-            canvas = Image.new("RGBA", (width, height), (20, 22, 25, 255)) 
+            width, height = 1200, 600
+            # 1. PROFESSIONAL BLURRED BACKGROUND
+            bg_base = Image.new("RGBA", (width, height), (20, 22, 25, 255))
+            
+            # Create blurred background from avatars
+            back_av1 = img1.resize((600, 600)).filter(ImageFilter.GaussianBlur(40))
+            back_av2 = img2.resize((600, 600)).filter(ImageFilter.GaussianBlur(40))
+            bg_base.paste(back_av1, (-100, 0), back_av1)
+            bg_base.paste(back_av2, (700, 0), back_av2)
+            
+            # Darken the background for text contrast
+            dark_overlay = Image.new("RGBA", (width, height), (0, 0, 0, 160))
+            canvas = Image.alpha_composite(bg_base, dark_overlay)
             draw = ImageDraw.Draw(canvas)
             
-            # 1. SIDE ACCENT
+            # 2. SIDE ACCENT
             draw.rectangle([0, 0, 15, height], fill=(233, 30, 99))
 
-            # 2. AVATARS (Modern Squircle)
+            # 3. AVATARS (Modern Squircle)
             av_size = 460
-            img1 = ImageOps.fit(img1, (av_size, av_size))
-            img2 = ImageOps.fit(img2, (av_size, av_size))
+            img1_final = ImageOps.fit(img1, (av_size, av_size))
+            img2_final = ImageOps.fit(img2, (av_size, av_size))
             
             mask = Image.new("L", (av_size, av_size), 0)
-            ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=80, fill=255)
+            ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=100, fill=255)
 
-            # 3. TITANIC METER (The Split)
-            meter_w = 150
+            # 4. TITANIC METER (The Split)
+            meter_w = 160
             meter_x = (width // 2) - (meter_w // 2)
-            draw.rectangle([meter_x, 0, meter_x + meter_w, height], fill=(10, 10, 10))
+            draw.rectangle([meter_x, 0, meter_x + meter_w, height], fill=(10, 10, 10, 200))
             
             fill_h = (percent / 100) * height
             draw.rectangle([meter_x, height - fill_h, meter_x + meter_w, height], fill=(233, 30, 99))
 
-            # 4. TITANIC SCORE ENGINE (The Fix)
-            # We use a gigantic 400pt font to act as a central watermark
+            # 5. TITANIC SCORE ENGINE (400pt Scale)
             score_txt = f"{percent}%"
             score_layer = Image.new("RGBA", (width, height), (0,0,0,0))
             score_draw = ImageDraw.Draw(score_layer)
@@ -90,25 +102,18 @@ class ArenaShip(commands.Cog):
             font = None
             for p in font_paths:
                 try:
-                    font = ImageFont.truetype(p, 400) # GARGANTUAN SCALE
+                    font = ImageFont.truetype(p, 420) 
                     break
                 except: continue
-            
             if not font: font = ImageFont.load_default()
 
-            # Layered Text Rendering (Outer Glow -> Shadow -> Main)
-            # 1. Subtle Outer Glow
-            score_draw.text((width//2, height//2), score_txt, fill=(233, 30, 99, 40), anchor="mm", font=font, stroke_width=20, stroke_fill=(233, 30, 99, 20))
-            # 2. Deep Shadow
-            score_draw.text((width//2 + 8, height//2 + 8), score_txt, fill=(0, 0, 0, 180), anchor="mm", font=font)
-            # 3. Main Titanic Number
-            score_draw.text((width//2, height//2), score_txt, fill=(255, 255, 255, 255), anchor="mm", font=font, stroke_width=2, stroke_fill=(255,255,255,100))
+            # Layered Text Rendering (Outer Glow -> Main)
+            score_draw.text((width//2, height//2), score_txt, fill=(233, 30, 99, 60), anchor="mm", font=font, stroke_width=25, stroke_fill=(233, 30, 99, 30))
+            score_draw.text((width//2, height//2), score_txt, fill=(255, 255, 255, 255), anchor="mm", font=font)
 
-            # 5. FINAL ASSEMBLY
-            canvas.paste(img1, (40, 45), mask)
-            canvas.paste(img2, (width - av_size - 40, 45), mask)
-            
-            # Blend the giant text layer over the entire composition
+            # 6. FINAL ASSEMBLY
+            canvas.paste(img1_final, (50, 70), mask)
+            canvas.paste(img2_final, (width - av_size - 50, 70), mask)
             canvas = Image.alpha_composite(canvas, score_layer)
 
             buf = io.BytesIO()
@@ -116,7 +121,7 @@ class ArenaShip(commands.Cog):
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"Legendary UI Error: {e}")
+            print(f"Legendary Engine Error: {e}")
             return None
 
     @commands.command(name="ship")
@@ -140,7 +145,7 @@ class ArenaShip(commands.Cog):
                 embed.set_image(url="attachment://ship.png")
                 await ctx.send(file=file, embed=embed)
             else:
-                await ctx.send(content=f"⚠️ Visual generator error.\n**Sync: {pct}%**\n{desc}", embed=embed)
+                await ctx.send(content=f"⚠️ Visual Error. Result: **Sync: {pct}%**", embed=embed)
 
     @commands.command(name="marry")
     async def marry(self, ctx, member: discord.Member):
