@@ -131,10 +131,11 @@ class Ship(commands.Cog):
         av1, glow1 = process_avatar(avatar1_bytes)
         av2, glow2 = process_avatar(avatar2_bytes)
 
-        canvas.paste(glow1, (-35, 75), glow1)
-        canvas.paste(av1, (0, 110), av1)
-        canvas.paste(glow2, (785, 75), glow2)
-        canvas.paste(av2, (820, 110), av2)
+        # ADJUSTED POSITIONING: Centering the Avatars better in the outer sectors
+        canvas.paste(glow1, (15, 75), glow1)
+        canvas.paste(av1, (50, 110), av1)
+        canvas.paste(glow2, (735, 75), glow2)
+        canvas.paste(av2, (770, 110), av2)
 
         # 4. REFINED: High-Intensity Dynamic Column - SOFT PINK CRYSTAL
         bar_x, bar_y, bar_w, bar_h = 490, 20, 220, 560
@@ -342,7 +343,5 @@ class Ship(commands.Cog):
                 print(f"Error: {e}")
                 await ctx.send("⚠️ The Sanctuary is too warm!")
 
-async def setup(bot):
-    await bot.add_cog(Ship(bot))
 async def setup(bot):
     await bot.add_cog(Ship(bot))
