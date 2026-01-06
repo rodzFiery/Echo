@@ -59,17 +59,16 @@ class Ship(commands.Cog):
         if fill_height > 5:
             draw.rectangle([bar_x + 10, fill_top_y, bar_x + bar_w - 10, bar_y + bar_h - 5], fill="#39FF14")
 
-        # 5. ZOOMED PERCENTAGE LOGIC
+        # 5. MEGA ZOOMED PERCENTAGE LOGIC (TRIPLE SIZE)
         text_str = f"{percentage}%"
         
-        # We create a much larger text canvas to ensure "zoom"
-        text_canvas = Image.new('RGBA', (600, 300), (0, 0, 0, 0))
+        # Increased canvas size for the text layer to accommodate triple size
+        text_canvas = Image.new('RGBA', (800, 400), (0, 0, 0, 0))
         t_draw = ImageDraw.Draw(text_canvas)
         
-        # Font handling with additive fallback
-        f_size = 150
+        # Font handling - Increased base size to 250 (Triple the original readable size)
+        f_size = 250 
         try:
-            # Using a basic path that works on most Linux/Windows
             font_pct = ImageFont.truetype("arial.ttf", f_size)
         except:
             try:
@@ -77,29 +76,31 @@ class Ship(commands.Cog):
             except:
                 font_pct = ImageFont.load_default()
 
-        # Draw the text on its own layer
-        t_draw.text((300, 150), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=4, stroke_fill="black")
+        # Draw the text with a thicker stroke for high contrast
+        t_draw.text((400, 200), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=8, stroke_fill="black")
         
-        # If the font is the tiny default, we manually upscale the image (The Zoom)
+        # If we are stuck with the tiny default font, we upscale even more aggressively
         if font_pct.getbbox(text_str)[2] < 100: 
-            text_canvas = text_canvas.resize((1200, 600), Image.Resampling.NEAREST)
-            canvas.paste(text_canvas, (0, 0), text_canvas) # Paste full size
+            # Extreme upscale for default font
+            text_canvas = text_canvas.resize((2400, 1200), Image.Resampling.NEAREST)
+            canvas.paste(text_canvas, (-600, -300), text_canvas) 
         else:
-            # Normal paste centered on the bar
-            canvas.paste(text_canvas, (300, 150), text_canvas)
+            # Normal paste for real fonts, centered exactly over the column
+            # Offsets adjusted for the larger text_canvas
+            canvas.paste(text_canvas, (200, 100), text_canvas)
 
         # 6. ADDITION: 100% Special Heart Icon
         if percentage == 100:
             heart_layer = Image.new('RGBA', (width, height), (0, 0, 0, 0))
             h_draw = ImageDraw.Draw(heart_layer)
-            # Drawing a simple large heart shape in the center
+            # Use the same mega font size for the heart emojis
             h_draw.text((600, 300), "💎❤️💎", fill="white", font=font_pct, anchor="mm")
             canvas.paste(heart_layer, (0, 0), heart_layer)
 
         # Final labels
         try:
-            font_sub = ImageFont.truetype("arial.ttf", 40)
-            draw.text((600, 50), "SHIP COMPATIBILITY", fill="#FF4500", font=font_sub, anchor="mm")
+            font_sub = ImageFont.truetype("arial.ttf", 45)
+            draw.text((600, 50), "SHIP COMPATIBILITY", fill="#FF4500", font=font_sub, anchor="mm", stroke_width=2, stroke_fill="black")
         except:
             draw.text((600, 50), "SHIP COMPATIBILITY", fill="#FF4500", anchor="mm")
 
@@ -118,7 +119,6 @@ class Ship(commands.Cog):
             try:
                 percentage = random.randint(0, 100)
                 
-                # Fetch avatars with a timeout to prevent hanging
                 async with aiohttp.ClientSession() as session:
                     async with session.get(str(user1.display_avatar.url)) as resp1:
                         if resp1.status != 200: raise Exception("Failed to get User1 Avatar")
@@ -127,7 +127,6 @@ class Ship(commands.Cog):
                         if resp2.status != 200: raise Exception("Failed to get User2 Avatar")
                         av2_data = await resp2.read()
 
-                # Generate card
                 image_buffer = self.create_ship_card(av1_data, av2_data, percentage)
                 
                 file = discord.File(fp=image_buffer, filename="ship_result.png")
@@ -137,7 +136,6 @@ class Ship(commands.Cog):
                 await ctx.send(file=file, embed=embed)
                 
             except Exception as e:
-                # This will print the error in your terminal so you can see why it's failing
                 print(f"Error in Ship Command: {e}")
                 await ctx.send("⚠️ An error occurred while generating the ship card. Check the console.")
 
