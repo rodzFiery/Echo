@@ -313,6 +313,15 @@ class Bank(commands.Cog):
         """Job category: Transport illegal Echo-crystals past Sanctuary guards."""
         await self.execute_job(ctx)
 
+    # --- DEBUGGING COMMAND ---
+    @commands.command(name="bankdebug")
+    async def bankdebug(self, ctx):
+        """Raw view of premium data for this server."""
+        guild_id_str = str(ctx.guild.id)
+        premium_data = getattr(self.bot, 'PREMIUM_GUILDS', {})
+        guild_mods = premium_data.get(guild_id_str, "NO DATA FOUND")
+        await ctx.send(f"🔍 **Memory Check for Guild {guild_id_str}:**\n`{guild_mods}`")
+
     @work.error
     @job.error
     @clean.error
