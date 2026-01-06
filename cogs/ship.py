@@ -48,7 +48,7 @@ class ArenaShip(commands.Cog):
         return False
 
     async def generate_web_ui(self, u1_url, u2_url, percent):
-        """LEGENDARY FIX: Shrunk canvas + Titanic 300pt font for Image 1 accuracy."""
+        """VERTICAL TITANIC ENGINE: Eliminates the wide canvas to force massive font scaling."""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
@@ -56,54 +56,50 @@ class ArenaShip(commands.Cog):
                     img1 = Image.open(io.BytesIO(await r1.read())).convert("RGBA")
                     img2 = Image.open(io.BytesIO(await r2.read())).convert("RGBA")
 
-            # --- CANVAS CONFIG (Shrunk for higher density text) ---
-            width, height = 850, 380 
-            canvas = Image.new("RGBA", (width, height), (32, 34, 37, 255)) 
+            # --- CANVAS ENGINE (Vertical 1:1.5 Aspect Ratio) ---
+            # Shorter width and taller height forces the center score to look huge
+            width, height = 500, 800 
+            canvas = Image.new("RGBA", (width, height), (20, 20, 20, 255)) 
             draw = ImageDraw.Draw(canvas)
             
             # 1. SIDE ACCENT
-            draw.rectangle([0, 0, 10, height], fill=(233, 30, 99))
+            draw.rectangle([0, 0, 15, height], fill=(233, 30, 99))
 
             # 2. AVATAR FORMATTING
-            av_size = 330
+            av_size = 400
             img1 = ImageOps.fit(img1, (av_size, av_size))
             img2 = ImageOps.fit(img2, (av_size, av_size))
             
             mask = Image.new("L", (av_size, av_size), 0)
-            ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=60, fill=255)
+            ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=80, fill=255)
 
-            # 3. CENTRAL METER
-            meter_w = 150
-            meter_x = (width // 2) - (meter_w // 2)
-            draw.rectangle([meter_x, 0, meter_x + meter_w, height], fill=(15, 15, 15))
-            
-            fill_h = (percent / 100) * height
-            draw.rectangle([meter_x, height - fill_h, meter_x + meter_w, height], fill=(233, 30, 99))
+            # 3. VERTICAL LAYOUT PLACEMENT
+            # Top Avatar
+            canvas.paste(img1, (50, 30), mask)
+            # Bottom Avatar
+            canvas.paste(img2, (50, 370), mask)
 
-            # 4. GARGANTUAN FONT ENGINE (The 100% Fix)
+            # 4. TITANIC SCORE ENGINE (Overlaid in center)
             score_txt = f"{percent}%"
-            # 300pt font on a 380px high canvas will be GIGANTIC
+            # On a 500px wide canvas, a 350pt font is a GOLIATH.
             font_paths = ["arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "DejaVuSans-Bold.ttf"]
             font = None
             for p in font_paths:
                 try:
-                    font = ImageFont.truetype(p, 300) 
+                    font = ImageFont.truetype(p, 350) 
                     break
                 except: continue
             if not font: font = ImageFont.load_default()
 
-            # 5. OVERLAY LAYER (Prevents clipping)
+            # Create a separate layer for the score to use alpha blending
             score_layer = Image.new("RGBA", (width, height), (0,0,0,0))
             s_draw = ImageDraw.Draw(score_layer)
-            
-            # Massive Shadow
-            s_draw.text((width//2 + 5, height//2 + 5), score_txt, fill=(0, 0, 0, 200), anchor="mm", font=font)
-            # Main Giant White Text
-            s_draw.text((width//2, height//2), score_txt, fill=(255, 255, 255, 255), anchor="mm", font=font)
 
-            # 6. COMPOSITING
-            canvas.paste(img1, (25, 25), mask)
-            canvas.paste(img2, (width - av_size - 25, 25), mask)
+            # Massive High-Contrast Stroke and Shadow
+            s_draw.text((width//2, height//2), score_txt, fill=(255, 255, 255, 255), 
+                        anchor="mm", font=font, stroke_width=15, stroke_fill=(0, 0, 0, 255))
+
+            # 5. FINAL MERGE
             canvas = Image.alpha_composite(canvas, score_layer)
 
             buf = io.BytesIO()
@@ -111,7 +107,7 @@ class ArenaShip(commands.Cog):
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"Final Fix Error: {e}")
+            print(f"Rebuild Error: {e}")
             return None
 
     @commands.command(name="ship")
@@ -129,12 +125,12 @@ class ArenaShip(commands.Cog):
         async with ctx.typing():
             img = await self.generate_web_ui(u1.display_avatar.url, u2.display_avatar.url, pct)
             if img:
-                embed = discord.Embed(title="❤️ Shipped off & off!", description=f"**{u1.mention} & {u2.mention}**\n*{desc}*", color=0xE91E63)
+                embed = discord.Embed(title="❤️ Shipped!", description=f"**{u1.mention} & {u2.mention}**\n*{desc}*", color=0xE91E63)
                 file = discord.File(fp=img, filename="ship.png")
                 embed.set_image(url="attachment://ship.png")
                 await ctx.send(file=file, embed=embed)
             else:
-                await ctx.send(f"❌ Error generating UI. Score: {pct}%")
+                await ctx.send(f"❌ Error building image. Result: {pct}%")
 
     @commands.command(name="marry")
     async def marry(self, ctx, member: discord.Member):
