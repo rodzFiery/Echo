@@ -238,67 +238,56 @@ class Bank(commands.Cog):
     @commands.command(name="clean")
     async def clean(self, ctx):
         """Work category: Clean the Sanctuary floors."""
-        self.work.reset_cooldown(ctx) # Shared cooldown with work
         await ctx.invoke(self.bot.get_command('work'))
 
     @commands.command(name="beg")
     async def beg(self, ctx):
         """Work category: Beg for Sparks in the Echo-Plaza."""
-        self.work.reset_cooldown(ctx)
         await ctx.invoke(self.bot.get_command('work'))
 
     @commands.command(name="slut")
     async def slut(self, ctx):
         """Work category: Sell your Echo-energy on the street."""
-        self.work.reset_cooldown(ctx)
         await ctx.invoke(self.bot.get_command('work'))
 
     @commands.command(name="farm")
     async def farm(self, ctx):
         """Work category: Harvest resources from the Spark-Fields."""
-        self.work.reset_cooldown(ctx)
         await ctx.invoke(self.bot.get_command('work'))
 
     @commands.command(name="cook")
     async def cook(self, ctx):
         """Work category: Prepare Echo-infused meals for travelers."""
-        self.work.reset_cooldown(ctx)
         await ctx.invoke(self.bot.get_command('work'))
 
     @commands.command(name="mine")
     async def mine(self, ctx):
         """Work category: Extract raw crystals from the Sanctuary mines."""
-        self.work.reset_cooldown(ctx)
         await ctx.invoke(self.bot.get_command('work'))
 
     @commands.command(name="crime")
     async def crime(self, ctx):
         """Job category: Attempt a high-stakes Echo-heist."""
-        self.job.reset_cooldown(ctx) # Shared cooldown with job
         await ctx.invoke(self.bot.get_command('job'))
 
     @commands.command(name="pimp")
     async def pimp(self, ctx):
         """Job category: Manage a ring of Echo-energy sellers."""
-        self.job.reset_cooldown(ctx)
         await ctx.invoke(self.bot.get_command('job'))
 
     @commands.command(name="hack")
     async def hack(self, ctx):
         """Job category: Breach a high-security Sanctuary data-node."""
-        self.job.reset_cooldown(ctx)
         await ctx.invoke(self.bot.get_command('job'))
 
     @commands.command(name="assassinate")
     async def assassinate(self, ctx):
         """Job category: Take down a rogue entity threatening the Echo-Chamber."""
-        self.job.reset_cooldown(ctx)
         await ctx.invoke(self.bot.get_command('job'))
 
     @commands.command(name="smuggle")
     async def smuggle(self, ctx):
         """Job category: Transport illegal Echo-crystals past Sanctuary guards."""
-        self.job.reset_cooldown(ctx)
         await ctx.invoke(self.bot.get_command('job'))
 
     @work.error
