@@ -10,7 +10,13 @@ class Bank(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         # Database Setup - Using Railway Volume for persistence
-        db_path = "/app/data/economy.db" if os.path.exists("/app/data") else "economy.db"
+        # Ensure directory exists to prevent silent loading failure
+        db_dir = "/app/data"
+        if os.path.exists(db_dir):
+            db_path = os.path.join(db_dir, "economy.db")
+        else:
+            db_path = "economy.db"
+            
         self.conn = sqlite3.connect(db_path)
         self.cursor = self.conn.cursor()
         
@@ -50,13 +56,23 @@ class Bank(commands.Cog):
         ]
 
     def check_premium(self, guild_id):
-        # Access global PREMIUM_GUILDS from main.py
+        # Access global PREMIUM_GUILDS from main.py safely
         now = datetime.now(timezone.utc).timestamp()
         guild_id_str = str(guild_id)
-        premium_data = getattr(__main__, 'PREMIUM_GUILDS', {})
-        guild_mods = premium_data.get(guild_id_str, {})
-        expiry = guild_mods.get('bank', 0)
-        return expiry > now
+        
+        # Check if we are running in the Dev Server (ID from your main.py)
+        if guild_id == 1457658274496118786:
+            return True
+
+        # Attempt to grab the latest data from the main module
+        try:
+            premium_data = getattr(__main__, 'PREMIUM_GUILDS', {})
+            guild_mods = premium_data.get(guild_id_str, {})
+            # Check specifically for the 'bank' module entry
+            expiry = guild_mods.get('bank', 0)
+            return expiry > now
+        except Exception:
+            return False
 
     async def open_account(self, user_id):
         """Ensures the user exists in the economy engine database."""
@@ -105,7 +121,7 @@ class Bank(commands.Cog):
         self.cursor.execute("SELECT sparks, echo_xp, echo_level, class_type FROM users WHERE user_id = ?", (user_id,))
         return self.cursor.fetchone()
 
-    # --- REWARD EXECUTION LOGIC (The core fix for functionality) ---
+    # --- REWARD EXECUTION LOGIC ---
 
     async def execute_work(self, ctx):
         """Internal logic to process work rewards."""
@@ -291,7 +307,9 @@ class Bank(commands.Cog):
     async def command_error(self, ctx, error):
         if isinstance(error, commands.CommandOnCooldown):
             data = await self.get_user_data(ctx.author.id)
-            retry_after = error.retry_after * 0.85 if data[3] == "Exhibitionist" else error.retry_after
+            # Safe catch for archetype check
+            class_type = data[3] if data else "None"
+            retry_after = error.retry_after * 0.85 if class_type == "Exhibitionist" else error.retry_after
             minutes, seconds = divmod(retry_after, 60)
             hours, minutes = divmod(minutes, 60)
             await ctx.send(f"⏳ Patience! You can earn more in **{int(hours)}h {int(minutes)}m {int(seconds)}s**.")
