@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import sqlite3
 import os
+import random
 import __main__
 from datetime import datetime, timezone
 
@@ -23,6 +24,22 @@ class Bank(commands.Cog):
                                echo_xp INTEGER DEFAULT 0, 
                                echo_level INTEGER DEFAULT 1)''')
         self.conn.commit()
+
+        # Scenarios for immersion
+        self.work_scenarios = [
+            "You spent the morning stabilizing the Echo-Chamber.",
+            "You helped a traveler navigate the Spark-Fields.",
+            "You performed maintenance on the Sanctuary data-nodes.",
+            "You spent hours polishing raw crystals for the market.",
+            "You assisted an Elder in documenting Echo-History."
+        ]
+        self.job_scenarios = [
+            "You completed a high-risk security contract for the Spark-Vault.",
+            "You successfully recalibrated the main Sanctuary Echo-Core.",
+            "You led an expedition deep into the Uncharted Caverns.",
+            "You negotiated a massive trade deal between Sanctuary factions.",
+            "You engineered a new power grid using pure Echo-Energy."
+        ]
 
     def check_premium(self, guild_id):
         # Access global PREMIUM_GUILDS from main.py
@@ -63,10 +80,11 @@ class Bank(commands.Cog):
         xp_needed = lvl * 500
         
         leveled_up = False
-        if new_xp >= xp_needed:
+        while new_xp >= xp_needed:
             new_xp -= xp_needed
             lvl += 1
             leveled_up = True
+            xp_needed = lvl * 500
             
         self.cursor.execute("UPDATE users SET echo_xp = ?, echo_level = ? WHERE user_id = ?", 
                            (new_xp, lvl, user_id))
@@ -109,6 +127,52 @@ class Bank(commands.Cog):
         else:
             embed.set_thumbnail(url=member.display_avatar.url)
             await ctx.send(embed=embed)
+
+    @commands.command(name="work")
+    @commands.cooldown(1, 10800, commands.BucketType.user)
+    async def work(self, ctx):
+        """Earn Sparks and XP through minor tasks (3h CD)"""
+        if not self.check_premium(ctx.guild.id):
+            ctx.command.reset_cooldown(ctx)
+            return await ctx.send("🔒 Unlock the **BANK** module to use the `work` command.")
+        
+        sp_gain = random.randint(100, 3500)
+        xp_gain = 1000
+        
+        await self.update_sparks(ctx.author.id, sp_gain)
+        lvl_up, new_lvl = await self.update_echo_xp(ctx.author.id, xp_gain)
+        
+        embed = discord.Embed(title="⚒️ Work Complete", description=random.choice(self.work_scenarios), color=0x2ecc71)
+        embed.add_field(name="Rewards", value=f"⚡ **{sp_gain}** Sparks\n💠 **{xp_gain}** Echo XP")
+        if lvl_up: embed.add_field(name="✨ Level Up!", value=f"You reached Level **{new_lvl}**!", inline=False)
+        await ctx.send(embed=embed)
+
+    @commands.command(name="job")
+    @commands.cooldown(1, 18000, commands.BucketType.user)
+    async def job(self, ctx):
+        """Earn Sparks and XP through high-tier contracts (5h CD)"""
+        if not self.check_premium(ctx.guild.id):
+            ctx.command.reset_cooldown(ctx)
+            return await ctx.send("🔒 Unlock the **BANK** module to use the `job` command.")
+        
+        sp_gain = random.randint(500, 5000)
+        xp_gain = 2000
+        
+        await self.update_sparks(ctx.author.id, sp_gain)
+        lvl_up, new_lvl = await self.update_echo_xp(ctx.author.id, xp_gain)
+        
+        embed = discord.Embed(title="💼 Job Finished", description=random.choice(self.job_scenarios), color=0x3498db)
+        embed.add_field(name="Rewards", value=f"⚡ **{sp_gain}** Sparks\n💠 **{xp_gain}** Echo XP")
+        if lvl_up: embed.add_field(name="✨ Level Up!", value=f"You reached Level **{new_lvl}**!", inline=False)
+        await ctx.send(embed=embed)
+
+    @work.error
+    @job.error
+    async def command_error(self, ctx, error):
+        if isinstance(error, commands.CommandOnCooldown):
+            minutes, seconds = divmod(error.retry_after, 60)
+            hours, minutes = divmod(minutes, 60)
+            await ctx.send(f"⏳ Patience! You can earn more in **{int(hours)}h {int(minutes)}m {int(seconds)}s**.")
 
 async def setup(bot):
     await bot.add_cog(Bank(bot))
