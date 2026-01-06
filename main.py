@@ -30,9 +30,6 @@ def get_premium_list():
             except: return {}
     return {}
 
-# Shared global variable for the bot instance
-PREMIUM_GUILDS = get_premium_list()
-
 # 3. INITIALIZATION
 intents = discord.Intents.default()
 intents.message_content = True
@@ -41,6 +38,8 @@ intents.members = True
 class MyBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix="!", intents=intents, help_command=None)
+        # Shared global variable for the bot instance moved here
+        self.PREMIUM_GUILDS = get_premium_list()
 
     async def setup_hook(self):
         print("--- Loading Modules ---")
@@ -62,23 +61,22 @@ class MyBot(commands.Bot):
             now = datetime.now(timezone.utc).timestamp()
             changed = False
             
-            global PREMIUM_GUILDS
-            for guild_id in list(PREMIUM_GUILDS.keys()):
+            for guild_id in list(self.PREMIUM_GUILDS.keys()):
                 # Filter out modules where the timestamp is in the past
-                if not isinstance(PREMIUM_GUILDS[guild_id], dict):
+                if not isinstance(self.PREMIUM_GUILDS[guild_id], dict):
                     continue
                     
-                original_count = len(PREMIUM_GUILDS[guild_id])
-                PREMIUM_GUILDS[guild_id] = {
-                    mod: expiry for mod, expiry in PREMIUM_GUILDS[guild_id].items() 
+                original_count = len(self.PREMIUM_GUILDS[guild_id])
+                self.PREMIUM_GUILDS[guild_id] = {
+                    mod: expiry for mod, expiry in self.PREMIUM_GUILDS[guild_id].items() 
                     if expiry > now
                 }
-                if len(PREMIUM_GUILDS[guild_id]) != original_count:
+                if len(self.PREMIUM_GUILDS[guild_id]) != original_count:
                     changed = True
             
             if changed:
                 with open(PREMIUM_FILE, "w") as f:
-                    json.dump(PREMIUM_GUILDS, f)
+                    json.dump(self.PREMIUM_GUILDS, f)
                 print("🧹 Cleaned up expired subscriptions.")
 
     async def start_webhook_server(self):
@@ -111,15 +109,14 @@ class MyBot(commands.Bot):
             expiry_date = datetime.now(timezone.utc) + timedelta(days=days_to_add)
             expiry_timestamp = expiry_date.timestamp()
 
-            global PREMIUM_GUILDS
-            if guild_id_str not in PREMIUM_GUILDS:
-                PREMIUM_GUILDS[guild_id_str] = {} 
+            if guild_id_str not in self.PREMIUM_GUILDS:
+                self.PREMIUM_GUILDS[guild_id_str] = {} 
             
             # Store the module with its specific expiry time
-            PREMIUM_GUILDS[guild_id_str][module_name] = expiry_timestamp
+            self.PREMIUM_GUILDS[guild_id_str][module_name] = expiry_timestamp
             
             with open(PREMIUM_FILE, "w") as f:
-                json.dump(PREMIUM_GUILDS, f)
+                json.dump(self.PREMIUM_GUILDS, f)
             print(f"💎 {days_to_add} DAYS ACTIVATED: {module_name} for {guild_id_str}")
 
             # --- AUTOMATED SUCCESS BROADCAST TO CUSTOMER SERVER ---
@@ -279,8 +276,8 @@ async def premiumstatus(ctx):
     guild_id = str(ctx.guild.id)
     # Get all .py files in cogs to see what's available
     available_modules = [f[:-3] for f in os.listdir('./cogs') if f.endswith('.py')]
-    # Get the dictionary for this server
-    guild_data = PREMIUM_GUILDS.get(guild_id, {})
+    # Get the dictionary for this server from bot instance
+    guild_data = bot.PREMIUM_GUILDS.get(guild_id, {})
 
     embed = discord.Embed(title="⚔️ SERVER MODULE DASHBOARD", color=0xff4500)
     
@@ -333,15 +330,14 @@ async def fieryon(ctx):
     # Set expiry to 10 years in the future for dev server
     dev_expiry = (datetime.now(timezone.utc) + timedelta(days=3650)).timestamp()
 
-    global PREMIUM_GUILDS
-    if guild_id_str not in PREMIUM_GUILDS:
-        PREMIUM_GUILDS[guild_id_str] = {}
+    if guild_id_str not in bot.PREMIUM_GUILDS:
+        bot.PREMIUM_GUILDS[guild_id_str] = {}
 
     for module in available_modules:
-        PREMIUM_GUILDS[guild_id_str][module] = dev_expiry
+        bot.PREMIUM_GUILDS[guild_id_str][module] = dev_expiry
     
     with open(PREMIUM_FILE, "w") as f:
-        json.dump(PREMIUM_GUILDS, f)
+        json.dump(bot.PREMIUM_GUILDS, f)
     
     await ctx.send("🛠️ **DEVELOPER MODE:** All modules activated for this server.")
 
@@ -356,11 +352,10 @@ async def fieryoff(ctx):
 
     guild_id_str = str(ctx.guild.id)
     
-    global PREMIUM_GUILDS
-    if guild_id_str in PREMIUM_GUILDS:
-        PREMIUM_GUILDS[guild_id_str] = {}
+    if guild_id_str in bot.PREMIUM_GUILDS:
+        bot.PREMIUM_GUILDS[guild_id_str] = {}
         with open(PREMIUM_FILE, "w") as f:
-            json.dump(PREMIUM_GUILDS, f)
+            json.dump(bot.PREMIUM_GUILDS, f)
     
     await ctx.send("🛠️ **DEVELOPER MODE:** All modules deactivated for this server.")
 
