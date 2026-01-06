@@ -54,13 +54,18 @@ class Bank(commands.Cog):
         now = datetime.now(timezone.utc).timestamp()
         guild_id_str = str(guild_id)
         
-        # FIXED: Specifically targeting the PREMIUM_GUILDS attached to the bot instance
+        # FIXED: Accessing the shared dictionary from the bot instance to ensure updates are seen
         premium_data = getattr(self.bot, 'PREMIUM_GUILDS', {})
         
         guild_mods = premium_data.get(guild_id_str, {})
         
-        # FIXED: Check for 'bank', 'Bank', or 'bank.py' to ensure it matches your shop
-        expiry = guild_mods.get('bank', 0) or guild_mods.get('Bank', 0)
+        # FIXED: Ensure we handle the value as a float for comparison
+        raw_expiry = guild_mods.get('bank', 0) or guild_mods.get('Bank', 0)
+        
+        try:
+            expiry = float(raw_expiry)
+        except (ValueError, TypeError):
+            expiry = 0
         
         # Developer Server Bypass (from your main.py dev ID)
         if guild_id == 1457658274496118786:
@@ -119,6 +124,7 @@ class Bank(commands.Cog):
 
     async def execute_work(self, ctx):
         """Standardized logic for all work commands."""
+        # Added message if check fails so you know why it's not working
         if not self.check_premium(ctx.guild.id):
             return await ctx.send("🔒 Unlock the **BANK** module to use this command.")
 
