@@ -69,7 +69,7 @@ class Bank(commands.Cog):
             return True
         return False
 
-    # --- INTERNAL ENGINE METHODS (To be called by other Cogs) ---
+    # --- INTERNAL ENGINE METHODS ---
 
     async def update_sparks(self, user_id, amount):
         """Adds or removes Sparks. Amount can be positive or negative."""
@@ -105,10 +105,10 @@ class Bank(commands.Cog):
         self.cursor.execute("SELECT sparks, echo_xp, echo_level, class_type FROM users WHERE user_id = ?", (user_id,))
         return self.cursor.fetchone()
 
-    # --- REWARD EXECUTION LOGIC ---
+    # --- REWARD EXECUTION LOGIC (The core fix for functionality) ---
 
     async def execute_work(self, ctx):
-        """Core logic for all work-based commands."""
+        """Internal logic to process work rewards."""
         if not self.check_premium(ctx.guild.id):
             return await ctx.send("🔒 Unlock the **BANK** module to use this command.")
 
@@ -134,7 +134,7 @@ class Bank(commands.Cog):
         await ctx.send(embed=embed)
 
     async def execute_job(self, ctx):
-        """Core logic for all job-based commands."""
+        """Internal logic to process job rewards."""
         if not self.check_premium(ctx.guild.id):
             return await ctx.send("🔒 Unlock the **BANK** module to use this command.")
 
@@ -177,10 +177,9 @@ class Bank(commands.Cog):
 
     @commands.command(name="profile", aliases=["stats", "sparks"])
     async def profile(self, ctx, member: discord.Member = None):
-        """Displays the user's current Sparks and Echo Experience."""
+        """Displays user profile."""
         if not self.check_premium(ctx.guild.id):
-            embed = discord.Embed(title="🔒 ENGINE LOCKED", color=0xff0000, description="The **ECONOMY ENGINE** is not active.")
-            return await ctx.send(embed=embed)
+            return await ctx.send("🔒 The **ECONOMY ENGINE** is not active.")
         member = member or ctx.author
         sparks, xp, lvl, class_type = await self.get_user_data(member.id)
         xp_needed = lvl * 500
@@ -191,13 +190,10 @@ class Bank(commands.Cog):
         progress = int((xp / xp_needed) * 10)
         bar = "▰" * progress + "▱" * (10 - progress)
         embed.add_field(name="📊 Echo Experience", value=f"{bar} ({xp}/{xp_needed} XP)", inline=False)
-        if os.path.exists("fierylogo.jpg"):
-            file = discord.File("fierylogo.jpg", filename="fierylogo.jpg")
-            embed.set_thumbnail(url="attachment://fierylogo.jpg")
-            await ctx.send(file=file, embed=embed)
-        else:
-            embed.set_thumbnail(url=member.display_avatar.url)
-            await ctx.send(embed=embed)
+        embed.set_thumbnail(url=member.display_avatar.url)
+        await ctx.send(embed=embed)
+
+    # --- WORK CATEGORY COMMANDS ---
 
     @commands.command(name="work")
     @commands.cooldown(1, 10800, commands.BucketType.user)
@@ -205,69 +201,80 @@ class Bank(commands.Cog):
         """Earn Sparks and XP through minor tasks (3h CD)"""
         await self.execute_work(ctx)
 
+    @commands.command(name="clean")
+    @commands.cooldown(1, 10800, commands.BucketType.user)
+    async def clean(self, ctx):
+        """Clean the Sanctuary floors."""
+        await self.execute_work(ctx)
+
+    @commands.command(name="beg")
+    @commands.cooldown(1, 10800, commands.BucketType.user)
+    async def beg(self, ctx):
+        """Beg for Sparks in the Echo-Plaza."""
+        await self.execute_work(ctx)
+
+    @commands.command(name="slut")
+    @commands.cooldown(1, 10800, commands.BucketType.user)
+    async def slut(self, ctx):
+        """Sell your Echo-energy on the street."""
+        await self.execute_work(ctx)
+
+    @commands.command(name="farm")
+    @commands.cooldown(1, 10800, commands.BucketType.user)
+    async def farm(self, ctx):
+        """Harvest resources from the Spark-Fields."""
+        await self.execute_work(ctx)
+
+    @commands.command(name="cook")
+    @commands.cooldown(1, 10800, commands.BucketType.user)
+    async def cook(self, ctx):
+        """Prepare Echo-infused meals for travelers."""
+        await self.execute_work(ctx)
+
+    @commands.command(name="mine")
+    @commands.cooldown(1, 10800, commands.BucketType.user)
+    async def mine(self, ctx):
+        """Extract raw crystals from the Sanctuary mines."""
+        await self.execute_work(ctx)
+
+    # --- JOB CATEGORY COMMANDS ---
+
     @commands.command(name="job")
     @commands.cooldown(1, 18000, commands.BucketType.user)
     async def job(self, ctx):
         """Earn Sparks and XP through high-tier contracts (5h CD)"""
         await self.execute_job(ctx)
 
-    @commands.command(name="clean")
-    @commands.cooldown(1, 10800, commands.BucketType.user)
-    async def clean(self, ctx):
-        await self.execute_work(ctx)
-
-    @commands.command(name="beg")
-    @commands.cooldown(1, 10800, commands.BucketType.user)
-    async def beg(self, ctx):
-        await self.execute_work(ctx)
-
-    @commands.command(name="slut")
-    @commands.cooldown(1, 10800, commands.BucketType.user)
-    async def slut(self, ctx):
-        await self.execute_work(ctx)
-
-    @commands.command(name="farm")
-    @commands.cooldown(1, 10800, commands.BucketType.user)
-    async def farm(self, ctx):
-        await self.execute_work(ctx)
-
-    @commands.command(name="cook")
-    @commands.cooldown(1, 10800, commands.BucketType.user)
-    async def cook(self, ctx):
-        await self.execute_work(ctx)
-
-    @commands.command(name="mine")
-    @commands.cooldown(1, 10800, commands.BucketType.user)
-    async def mine(self, ctx):
-        await self.execute_work(ctx)
-
     @commands.command(name="crime")
     @commands.cooldown(1, 18000, commands.BucketType.user)
     async def crime(self, ctx):
+        """Attempt a high-stakes Echo-heist."""
         await self.execute_job(ctx)
 
     @commands.command(name="pimp")
     @commands.cooldown(1, 18000, commands.BucketType.user)
     async def pimp(self, ctx):
-        await ctx.invoke(self.job)
+        """Manage a ring of Echo-energy sellers."""
+        await self.execute_job(ctx)
 
     @commands.command(name="hack")
     @commands.cooldown(1, 18000, commands.BucketType.user)
     async def hack(self, ctx):
+        """Breach a high-security Sanctuary data-node."""
         await self.execute_job(ctx)
 
     @commands.command(name="assassinate")
     @commands.cooldown(1, 18000, commands.BucketType.user)
     async def assassinate(self, ctx):
+        """Take down a rogue entity threatening the Echo-Chamber."""
         await self.execute_job(ctx)
 
     @commands.command(name="smuggle")
     @commands.cooldown(1, 18000, commands.BucketType.user)
     async def smuggle(self, ctx):
+        """Transport illegal Echo-crystals past Sanctuary guards."""
         await self.execute_job(ctx)
 
-    @setclass.error
-    @profile.error
     @work.error
     @job.error
     @clean.error
