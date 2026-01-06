@@ -165,5 +165,71 @@ class Ship(commands.Cog):
                 print(f"Error in Ship Command: {e}")
                 await ctx.send("⚠️ An error occurred while generating the ship card. Check the console.")
 
+    # --- ADDITION: !matchme command logic ---
+    @commands.command(name="matchme")
+    async def matchme(self, ctx):
+        async with ctx.typing():
+            try:
+                # Use a sample of members to avoid rate limits/heavy processing in large servers
+                members = [m for m in ctx.guild.members if not m.bot and m.id != ctx.author.id]
+                
+                if not members:
+                    return await ctx.send("⚠️ No arena contenders found in this server!")
+
+                # Calculate "Love Tension" (Score) for each member
+                # We use a formula based on IDs and today's date so results stay fixed for 24h
+                matches = []
+                today = datetime.now().strftime("%Y-%m-%d")
+                
+                for member in members:
+                    # Deterministic random seed
+                    seed = f"{ctx.author.id}{member.id}{today}"
+                    random.seed(seed)
+                    score = random.randint(1, 100)
+                    matches.append((member, score))
+                
+                # Sort by highest score and take top 5
+                matches.sort(key=lambda x: x[1], reverse=True)
+                top_5 = matches[:5]
+
+                # --- EMBED BUILDING ---
+                embed = discord.Embed(
+                    title="🔥 ARENA TENSION: TOP 5 MATCHES 🔥",
+                    description=f"Scanning the crowd for **{ctx.author.display_name}**'s perfect match...",
+                    color=0xFF4500 # Fiery Orange
+                )
+                
+                # Add members to the arena list
+                ranking_text = ""
+                medals = ["🥇", "🥈", "🥉", "🏅", "🏅"]
+                
+                for i, (member, score) in enumerate(top_5):
+                    intensity = "MAXIMUM" if score > 90 else "HIGH" if score > 70 else "WARM"
+                    ranking_text += f"{medals[i]} **{member.display_name}** — **{score}%** `{intensity}`\n"
+
+                embed.add_field(name="⚔️ Current Contenders", value=ranking_text, inline=False)
+                
+                # Setup fiery logo/thumbnail (Assumes fierylogo.jpg is in the bot root)
+                if os.path.exists("fierylogo.jpg"):
+                    file = discord.File("fierylogo.jpg", filename="fierylogo.jpg")
+                    embed.set_thumbnail(url="attachment://fierylogo.jpg")
+                else:
+                    embed.set_thumbnail(url=ctx.author.display_avatar.url)
+
+                embed.set_footer(text=f"The Love Arena is burning hot today! • {today}", icon_url=ctx.author.display_avatar.url)
+                
+                # If logo file exists, send it with the embed
+                if os.path.exists("fierylogo.jpg"):
+                    await ctx.send(file=file, embed=embed)
+                else:
+                    await ctx.send(embed=embed)
+                
+                # Reset random seed for other commands
+                random.seed()
+
+            except Exception as e:
+                print(f"Error in MatchMe Command: {e}")
+                await ctx.send("⚠️ The Arena is too hot! Failed to calculate matches.")
+
 async def setup(bot):
     await bot.add_cog(Ship(bot))
