@@ -54,7 +54,7 @@ class Bank(commands.Cog):
         now = datetime.now(timezone.utc).timestamp()
         guild_id_str = str(guild_id)
         
-        # FIXED: Accessing the shared dictionary from the bot instance to ensure updates are seen
+        # FIXED: Specifically targeting the PREMIUM_GUILDS attached to the bot instance
         premium_data = getattr(self.bot, 'PREMIUM_GUILDS', {})
         
         guild_mods = premium_data.get(guild_id_str, {})
