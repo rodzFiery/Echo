@@ -12,42 +12,49 @@ import __main__
 class Ship(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        # 105 Arena Messages Tiered by Percentage
+        # 140 Arena Messages Tiered by Percentage (Expanded)
         self.arena_messages = {
             "0-15": [
                 "The arena is freezing over. Total mismatch.", "Ice cold. Not even a spark found.", "Security is escorting you both to different exits.", "The audience is booing. This is a disaster.", "Error 404: Love not found in this arena.", 
                 "A black hole has more attraction than this.", "The tension is negative. Please stop.", "Even the embers died looking at you two.", "Zero chemistry detected. Move along.", "This isn't a ship, it's a shipwreck.", 
-                "You two are on different planets.", "The arena lights just flickered and died.", "Total silence from the crowd. Awkward.", "A match made in... well, not here.", "Better luck in the next life."
+                "You two are on different planets.", "The arena lights just flickered and died.", "Total silence from the crowd. Awkward.", "A match made in... well, not here.", "Better luck in the next life.",
+                "The Arena announcer is speechless at how bad this is.", "A cactus has a softer touch than this pairing.", "The simulation crashed trying to find compatibility.", "The fire department left because there is zero heat.", "Total system rejection."
             ],
             "16-30": [
                 "Slight friction, but mostly just sparks of annoyance.", "The arena remains mostly dark.", "Maybe try talking? Or maybe don't.", "A very weak connection detected.", "The crowd is checking their phones.", 
                 "Not exactly a power couple.", "Room for improvement... a lot of it.", "The love meter barely moved.", "A flicker in the dark, then nothing.", "You're both better off as solo fighters.", 
-                "The arena floor is still cold.", "Minimal compatibility found.", "Are you even trying?", "The fire is struggling to start.", "A distant 'maybe' at best."
+                "The arena floor is still cold.", "Minimal compatibility found.", "Are you even trying?", "The fire is struggling to start.", "A distant 'maybe' at best.",
+                "The Arena janitor is more excited than you two.", "Static on the line. Too much interference.", "The spotlight is trying to find you, but it's bored.", "Like oil and water in a blender.", "A flicker of hope, but mostly just smoke."
             ],
             "31-45": [
                 "The embers are starting to glow.", "A casual alliance, nothing more.", "The arena is lukewarm.", "Friends with arena benefits?", "Not a total loss, but not a win.", 
                 "The crowd is curious, but not convinced.", "A steady beat, but no rhythm yet.", "You won't kill each other... probably.", "Just enough to keep the lights on.", "The arena is waiting for more.", 
-                "A mild interest detected.", "Stable, but boring.", "The ship is floating, but not moving.", "Testing the waters of the arena.", "A low-level bond."
+                "A mild interest detected.", "Stable, but boring.", "The ship is floating, but not moving.", "Testing the waters of the arena.", "A low-level bond.",
+                "The Arena spectators are leaning in slightly.", "A spark exists, but needs a lot of oxygen.", "Walking the line between friends and fighters.", "The foundation is there, but the house is empty.", "Lukewarm tea levels of passion."
             ],
             "46-60": [
                 "The arena is heating up!", "A solid match for the mid-tier.", "The crowd is starting to cheer.", "Balanced power levels.", "The sparks are consistent now.", 
                 "A dangerous dance in the arena.", "The tension is palpable.", "Halfway to destiny.", "The fire is growing steady.", "You look good together under the lights.", 
-                "A promising future in the arena.", "The chemistry is becoming visible.", "Keep this energy going.", "A match worth watching.", "The arena floor is warming up."
+                "A promising future in the arena.", "The chemistry is becoming visible.", "Keep this energy going.", "A match worth watching.", "The arena floor is warming up.",
+                "The crowd is starting to place bets on you two.", "Synchronized combatants in the game of love.", "A powerful rhythm is taking over the Arena.", "You're making the front row sweat.", "The heat is finally real."
             ],
             "61-75": [
                 "Intense energy flowing through the arena!", "The crowd is on their feet!", "A high-tier pairing detected.", "The sparks are flying everywhere.", "The arena is glowing bright pink.", 
                 "A passionate duel of hearts.", "Almost at the peak of the arena.", "The love tension is rising fast.", "The embers are turning into flames.", "A powerful connection is forming.", 
-                "The stadium is roaring for you two.", "Strongest match of the hour!", "The arena lights are pulsing.", "Destined for something great.", "True arena synergy."
+                "The stadium is roaring for you two.", "Strongest match of the hour!", "The arena lights are pulsing.", "Destined for something great.", "True arena synergy.",
+                "The Arena screens are flashing 'WARNING: HIGH HEAT'.", "Your souls are resonant at a high frequency.", "The ground is literally shaking now.", "A beautiful storm is brewing in the center.", "Pure, unadulterated Arena magnetism."
             ],
             "76-90": [
                 "The arena is on fire!", "A legendary pairing has entered.", "The love tension is reaching critical levels!", "Breathtaking compatibility.", "The crowd is screaming your names!", 
                 "Electric. Passionate. Unstoppable.", "A high-voltage arena match.", "The heat is nearly unbearable!", "Almost perfect. Simply beautiful.", "The stadium is shaking from the tension.", 
-                "A match for the ages.", "Burning brighter than the sun.", "The arena has never seen this before.", "Soulmate territory found.", "Pure arena magic."
+                "A match for the ages.", "Burning brighter than the sun.", "The arena has never seen this before.", "Soulmate territory found.", "Pure arena magic.",
+                "The Arena ceiling is about to blow off!", "Gravity is failing because of your attraction.", "A masterclass in romantic chemistry.", "The embers have become a localized sun.", "Elite tier compatibility achieved."
             ],
             "91-100": [
                 "THE ARENA HAS EXPLODED! TRUE LOVE!", "A DIVINE MATCH MADE IN THE HEAVENS!", "ULTIMATE COMPATIBILITY DETECTED!", "THE LOVE ARENA IS IN TOTAL SHOCK!", "A PERFECT HARMONY OF SOULS!", 
                 "BEYOND LEGENDARY. BEYOND PERFECTION.", "THE DESTINY METER JUST BROKE!", "UNSTOPPABLE ARENA POWER!", "THE CROWD IS WEEPING FROM JOY!", "A MATCH THAT WILL BE REMEMBERED FOREVER!", 
-                "TOTAL ARENA DOMINATION BY LOVE!", "THE EMBERS HAVE TURNED INTO A SUPERNOVA!", "YOU ARE THE KINGS OF THE LOVE ARENA!", "A DIAMOND IN THE ROUGH? NO, A DIAMOND HEART!", "ABSOLUTE PERFECTION FOUND!"
+                "TOTAL ARENA DOMINATION BY LOVE!", "THE EMBERS HAVE TURNED INTO A SUPERNOVA!", "YOU ARE THE KINGS OF THE LOVE ARENA!", "A DIAMOND IN THE ROUGH? NO, A DIAMOND HEART!", "ABSOLUTE PERFECTION FOUND!",
+                "THE LAWS OF PHYSICS NO LONGER APPLY TO THIS COUPLE!", "GOD-TIER CONNECTION CONFIRMED.", "THE ARENA HAS ASCENDED TO A HIGHER PLANE.", "WE ARE WITNESSING A MIRACLE IN THE ARENA.", "INFINITY PERCENT COMPATIBILITY REACHED."
             ]
         }
 
