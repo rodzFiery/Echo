@@ -3,7 +3,6 @@ from discord.ext import commands
 import random
 import io
 import aiohttp
-import sys
 import os
 import sqlite3
 from datetime import datetime, timezone
@@ -50,66 +49,74 @@ class ArenaShip(commands.Cog):
         return False
 
     async def generate_web_ui(self, u1_url, u2_url, percent):
-        """Giant-Scale UI: Massive percentage overlay matching reference imagery."""
+        """Web-style UI: Optimized with Layered Compositing to prevent hanging."""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     if r1.status != 200 or r2.status != 200:
                         return None
-                    img1 = Image.open(io.BytesIO(await r1.read())).convert("RGBA")
-                    img2 = Image.open(io.BytesIO(await r2.read())).convert("RGBA")
+                    img1_raw = await r1.read()
+                    img2_raw = await r2.read()
+                    img1 = Image.open(io.BytesIO(img1_raw)).convert("RGBA")
+                    img2 = Image.open(io.BytesIO(img2_raw)).convert("RGBA")
 
-            # --- CANVAS CONFIGURATION ---
+            # --- CANVAS CONFIG ---
             width, height = 1000, 450
             canvas = Image.new("RGBA", (width, height), (32, 34, 37, 255)) 
             draw = ImageDraw.Draw(canvas)
             
-            # 1. LEFT PINK ACCENT
+            # 1. ACCENT
             draw.rectangle([0, 0, 12, height], fill=(233, 30, 99))
 
-            # 2. AVATAR FORMATTING
+            # 2. AVATARS (Processing fit before paste)
             av_size = 410
+            img1 = ImageOps.fit(img1, (av_size, av_size))
+            img2 = ImageOps.fit(img2, (av_size, av_size))
+            
             mask = Image.new("L", (av_size, av_size), 0)
             ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=60, fill=255)
-            
-            img1 = ImageOps.fit(img1, (av_size, av_size)).convert("RGBA")
-            img2 = ImageOps.fit(img2, (av_size, av_size)).convert("RGBA")
-            img1.putalpha(mask)
-            img2.putalpha(mask)
 
-            # 3. THE CENTRAL METER (BACKGROUND)
+            # 3. THE METER
             meter_w = 120
             meter_x = (width // 2) - (meter_w // 2)
+            # Bg
             draw.rectangle([meter_x, 0, meter_x + meter_w, height], fill=(15, 15, 15))
-            
-            # Dynamic Fill
+            # Fill
             fill_h = (percent / 100) * height
             draw.rectangle([meter_x, height - fill_h, meter_x + meter_w, height], fill=(233, 30, 99))
 
-            # 4. TITANIC TYPOGRAPHY ENGINE (Massive Scale)
-            font_paths = ["arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "DejaVuSans-Bold.ttf"]
-            # Increased font size to 180 for that "Giant" look
-            font = next((ImageFont.truetype(p, 180) for p in font_paths if os.path.exists(p)), ImageFont.load_default())
-
+            # 4. TITANIC TEXT (The Fix: Using a separate layer for massive text)
             score_txt = f"{percent}%"
+            score_layer = Image.new("RGBA", (width, height), (0,0,0,0))
+            score_draw = ImageDraw.Draw(score_layer)
             
-            # Double Shadow for Max Visibility
-            draw.text((width//2 + 6, height//2 + 6), score_txt, fill=(0, 0, 0, 100), anchor="mm", font=font)
-            draw.text((width//2 + 3, height//2 + 3), score_txt, fill=(0, 0, 0, 150), anchor="mm", font=font)
+            font_paths = ["arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "DejaVuSans-Bold.ttf"]
+            font = None
+            for p in font_paths:
+                try:
+                    font = ImageFont.truetype(p, 180)
+                    break
+                except: continue
             
-            # Main Giant Score
-            draw.text((width//2, height//2), score_txt, fill=(255, 255, 255), anchor="mm", font=font)
+            if not font: font = ImageFont.load_default()
 
-            # 5. COMPOSITING (Avatars slightly overlapping meter for depth)
-            canvas.paste(img1, (20, 20), img1)
-            canvas.paste(img2, (width - av_size - 20, 20), img2)
+            # Drawing text on the transparent layer first
+            # Shadow
+            score_draw.text((width//2 + 5, height//2 + 5), score_txt, fill=(0, 0, 0, 180), anchor="mm", font=font)
+            # Main
+            score_draw.text((width//2, height//2), score_txt, fill=(255, 255, 255, 255), anchor="mm", font=font)
+
+            # 5. FINAL MERGE (Layered)
+            canvas.paste(img1, (20, 20), mask)
+            canvas.paste(img2, (width - av_size - 20, 20), mask)
+            canvas = Image.alpha_composite(canvas, score_layer)
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"Titan UI Error: {e}")
+            print(f"PIL/AIOHTTP Error: {e}")
             return None
 
     @commands.command(name="ship")
@@ -124,13 +131,21 @@ class ArenaShip(commands.Cog):
         desc = random.choice(self.lexicon[tier]).format(u1=u1.display_name, u2=u2.display_name)
 
         async with ctx.typing():
-            img = await self.generate_web_ui(u1.display_avatar.url, u2.display_avatar.url, pct)
-            if img:
+            try:
+                # Use generate_web_ui specifically
+                img = await self.generate_web_ui(u1.display_avatar.url, u2.display_avatar.url, pct)
+                
                 embed = discord.Embed(title="❤️ Shipped off & off!", description=f"**{u1.mention} & {u2.mention}**\n*{desc}*", color=0xE91E63)
-                file = discord.File(fp=img, filename="ship.png")
-                embed.set_image(url="attachment://ship.png")
-                embed.set_footer(text="Lies? Reroll tomorrow for a better score! 🫦")
-                await ctx.send(file=file, embed=embed)
+                
+                if img:
+                    file = discord.File(fp=img, filename="ship.png")
+                    embed.set_image(url="attachment://ship.png")
+                    await ctx.send(file=file, embed=embed)
+                else:
+                    # If image fails, don't hang! Send text-only fallback
+                    await ctx.send(content=f"⚠️ Image generation failed, but here is your result:\n**Sync: {pct}%**\n{desc}", embed=embed)
+            except Exception as e:
+                await ctx.send(f"❌ Professional Error: {e}")
 
     @commands.command(name="marry")
     async def marry(self, ctx, member: discord.Member):
