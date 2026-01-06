@@ -20,6 +20,11 @@ class ArenaShip(commands.Cog):
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("CREATE TABLE IF NOT EXISTS ship_users (user_id INTEGER PRIMARY KEY, spouse_id INTEGER, marriage_date TEXT)")
 
+    def get_marriage(self, user_id):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            return conn.execute("SELECT * FROM ship_users WHERE user_id = ?", (user_id,)).fetchone()
+
     async def cog_check(self, ctx):
         if hasattr(__main__, "PREMIUM_GUILDS"):
             guild_id = str(ctx.guild.id)
@@ -30,71 +35,63 @@ class ArenaShip(commands.Cog):
         return False
 
     async def generate_visual(self, u1_url, u2_url, percent):
-        """GARGANTUAN TEXT ENGINE: Forces the % score to be the largest element."""
+        """TITANIC OVERLAY ENGINE: Forces the % score to edge-to-edge size."""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     img1 = Image.open(io.BytesIO(await r1.read())).convert("RGBA")
                     img2 = Image.open(io.BytesIO(await r2.read())).convert("RGBA")
 
-            # --- 1. CANVAS SETUP ---
-            width, height = 1000, 500
+            # --- 1. THE CANVAS (Compact for Scale) ---
+            width, height = 800, 400
             canvas = Image.new("RGBA", (width, height), (25, 25, 25, 255))
             draw = ImageDraw.Draw(canvas)
 
-            # --- 2. SLEEK CENTRAL METER ---
-            meter_w = 180 
+            # --- 2. THE CENTER METER ---
+            meter_w = 160 
             meter_x = (width // 2) - (meter_w // 2)
-            
-            # Meter Base
             draw.rectangle([meter_x, 0, meter_x + meter_w, height], fill=(10, 10, 10))
             
-            # Meter Fill (Pink)
             fill_h = (percent / 100) * height
             draw.rectangle([meter_x, height - fill_h, meter_x + meter_w, height], fill=(233, 30, 99))
 
-            # --- 3. TITANIC FONT SCALING ---
+            # --- 3. TITANIC FONT ENGINE ---
             score_txt = f"{percent}%"
-            # 450pt font on a 500px height is the absolute limit
-            font_size = 450 
+            # 350pt on 400px height is physically as large as a font can get
+            font_size = 350 
             font_paths = ["arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "DejaVuSans-Bold.ttf"]
             font_path = next((p for p in font_paths if os.path.exists(p)), None)
+            font = ImageFont.truetype(font_path, font_size) if font_path else ImageFont.load_default()
 
-            if font_path:
-                font = ImageFont.truetype(font_path, font_size)
-            else:
-                font = ImageFont.load_default()
-
-            # --- 4. RENDER GARGANTUAN SCORE LAYER ---
-            # Separate layer ensures the text isn't constrained by the background draw
-            txt_layer = Image.new("RGBA", (width, height), (0,0,0,0))
-            t_draw = ImageDraw.Draw(txt_layer)
-            
-            # Massive outline for high-contrast visibility
-            t_draw.text((width // 2, height // 2), score_txt, fill=(255, 255, 255, 255), 
-                        anchor="mm", font=font, stroke_width=15, stroke_fill=(0, 0, 0, 255))
-
-            # --- 5. AVATAR PLACEMENT ---
-            av_size = 380
+            # --- 4. AVATAR LAYER ---
+            av_size = 320
             mask = Image.new("L", (av_size, av_size), 0)
             ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=60, fill=255)
             
             img1 = ImageOps.fit(img1, (av_size, av_size))
             img2 = ImageOps.fit(img2, (av_size, av_size))
             
-            canvas.paste(img1, (10, 60), mask)
-            canvas.paste(img2, (width - av_size - 10, 60), mask)
+            canvas.paste(img1, (20, 40), mask)
+            canvas.paste(img2, (width - av_size - 20, 40), mask)
 
-            # --- 6. FINAL ALPHA COMPOSITE ---
-            # This places the giant text layer directly over the center meter and avatars
-            canvas = Image.alpha_composite(canvas, txt_layer)
+            # --- 5. THE TITAN OVERLAY (The Final Fix) ---
+            # We create a final layer to "Stamp" the numbers over everything
+            txt_layer = Image.new("RGBA", (width, height), (0,0,0,0))
+            t_draw = ImageDraw.Draw(txt_layer)
+            
+            # Massive stroke to ensure it cuts through the avatars and the bar
+            t_draw.text((width // 2, height // 2), score_txt, fill=(255, 255, 255, 255), 
+                        anchor="mm", font=font, stroke_width=15, stroke_fill=(0, 0, 0, 255))
+
+            # COMPOSITE MERGE
+            final_output = Image.alpha_composite(canvas, txt_layer)
 
             buf = io.BytesIO()
-            canvas.save(buf, format="PNG")
+            final_output.save(buf, format="PNG")
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"Visual Scaling Error: {e}")
+            print(f"Titan Fix Error: {e}")
             return None
 
     @commands.command(name="ship")
