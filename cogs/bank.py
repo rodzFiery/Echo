@@ -49,29 +49,6 @@ class Bank(commands.Cog):
             "You designed a revolutionary Echo-Interface for the High Council."
         ]
 
-    def check_premium(self, guild_id):
-        # Access shared PREMIUM_GUILDS from main.py via the bot instance
-        now = datetime.now(timezone.utc).timestamp()
-        guild_id_str = str(guild_id)
-        
-        # Pull data directly from the bot memory
-        premium_data = getattr(self.bot, 'PREMIUM_GUILDS', {})
-        guild_mods = premium_data.get(guild_id_str, {})
-        
-        # Check for 'bank' module specifically
-        raw_expiry = guild_mods.get('bank', 0)
-        
-        try:
-            expiry = float(raw_expiry)
-        except (ValueError, TypeError):
-            expiry = 0
-        
-        # Developer Server Bypass (from your main.py dev ID)
-        if guild_id == 1457658274496118786:
-            return True
-            
-        return expiry > now
-
     async def open_account(self, user_id):
         """Ensures the user exists in the economy engine database."""
         self.cursor.execute("SELECT sparks FROM users WHERE user_id = ?", (user_id,))
@@ -123,9 +100,6 @@ class Bank(commands.Cog):
 
     async def execute_work(self, ctx):
         """Standardized logic for all work commands."""
-        if not self.check_premium(ctx.guild.id):
-            return await ctx.send("🔒 Unlock the **BANK** module to use this command.")
-
         data = await self.get_user_data(ctx.author.id)
         class_type = data[3]
         
@@ -152,9 +126,6 @@ class Bank(commands.Cog):
 
     async def execute_job(self, ctx):
         """Standardized logic for all job commands."""
-        if not self.check_premium(ctx.guild.id):
-            return await ctx.send("🔒 Unlock the **BANK** module to use this command.")
-
         data = await self.get_user_data(ctx.author.id)
         class_type = data[3]
 
@@ -210,11 +181,6 @@ class Bank(commands.Cog):
     @commands.command(name="profile", aliases=["stats", "sparks"])
     async def profile(self, ctx, member: discord.Member = None):
         """Displays the user's current Sparks and Echo Experience."""
-        if not self.check_premium(ctx.guild.id):
-            embed = discord.Embed(title="🔒 ENGINE LOCKED", color=0xff0000)
-            embed.description = "The **ECONOMY ENGINE** is not active. An administrator must use `!premium` to unlock."
-            return await ctx.send(embed=embed)
-
         member = member or ctx.author
         sparks, xp, lvl, class_type = await self.get_user_data(member.id)
         xp_needed = lvl * 500
@@ -315,14 +281,6 @@ class Bank(commands.Cog):
     async def smuggle(self, ctx):
         """Job category: Transport illegal Echo-crystals past Sanctuary guards."""
         await self.execute_job(ctx)
-
-    @commands.command(name="bankdebug")
-    async def bankdebug(self, ctx):
-        """Raw view of premium data for this server."""
-        guild_id_str = str(ctx.guild.id)
-        premium_data = getattr(self.bot, 'PREMIUM_GUILDS', {})
-        guild_mods = premium_data.get(guild_id_str, "NO DATA FOUND")
-        await ctx.send(f"🔍 **Memory Check for Guild {guild_id_str}:**\n`{guild_mods}`")
 
     @work.error
     @job.error
