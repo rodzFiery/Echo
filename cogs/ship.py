@@ -13,7 +13,6 @@ class ArenaShip(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.module_name = "ship"
-        self.AUDIT_CHANNEL_ID = 1438810509322223677
         self.db_path = "/app/data/ship_data.db" if os.path.exists("/app/data") else "ship_data.db"
         self._init_db()
 
@@ -49,43 +48,40 @@ class ArenaShip(commands.Cog):
         return False
 
     async def generate_web_ui(self, u1_url, u2_url, percent):
-        """Web-style UI: Optimized with Layered Compositing to prevent hanging."""
+        """LEGENDARY UI: Titanic Score Overlay + Web Designer Compositing."""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
-                    if r1.status != 200 or r2.status != 200:
-                        return None
-                    img1_raw = await r1.read()
-                    img2_raw = await r2.read()
-                    img1 = Image.open(io.BytesIO(img1_raw)).convert("RGBA")
-                    img2 = Image.open(io.BytesIO(img2_raw)).convert("RGBA")
+                    if r1.status != 200 or r2.status != 200: return None
+                    img1 = Image.open(io.BytesIO(await r1.read())).convert("RGBA")
+                    img2 = Image.open(io.BytesIO(await r2.read())).convert("RGBA")
 
-            # --- CANVAS CONFIG ---
-            width, height = 1000, 450
-            canvas = Image.new("RGBA", (width, height), (32, 34, 37, 255)) 
+            # --- CANVAS ENGINE ---
+            width, height = 1200, 550 # Increased canvas for giant display
+            canvas = Image.new("RGBA", (width, height), (20, 22, 25, 255)) 
             draw = ImageDraw.Draw(canvas)
             
-            # 1. ACCENT
-            draw.rectangle([0, 0, 12, height], fill=(233, 30, 99))
+            # 1. SIDE ACCENT
+            draw.rectangle([0, 0, 15, height], fill=(233, 30, 99))
 
-            # 2. AVATARS (Processing fit before paste)
-            av_size = 410
+            # 2. AVATARS (Modern Squircle)
+            av_size = 460
             img1 = ImageOps.fit(img1, (av_size, av_size))
             img2 = ImageOps.fit(img2, (av_size, av_size))
             
             mask = Image.new("L", (av_size, av_size), 0)
-            ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=60, fill=255)
+            ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=80, fill=255)
 
-            # 3. THE METER
-            meter_w = 120
+            # 3. TITANIC METER (The Split)
+            meter_w = 150
             meter_x = (width // 2) - (meter_w // 2)
-            # Bg
-            draw.rectangle([meter_x, 0, meter_x + meter_w, height], fill=(15, 15, 15))
-            # Fill
+            draw.rectangle([meter_x, 0, meter_x + meter_w, height], fill=(10, 10, 10))
+            
             fill_h = (percent / 100) * height
             draw.rectangle([meter_x, height - fill_h, meter_x + meter_w, height], fill=(233, 30, 99))
 
-            # 4. TITANIC TEXT (The Fix: Using a separate layer for massive text)
+            # 4. TITANIC SCORE ENGINE (The Fix)
+            # We use a gigantic 400pt font to act as a central watermark
             score_txt = f"{percent}%"
             score_layer = Image.new("RGBA", (width, height), (0,0,0,0))
             score_draw = ImageDraw.Draw(score_layer)
@@ -94,21 +90,25 @@ class ArenaShip(commands.Cog):
             font = None
             for p in font_paths:
                 try:
-                    font = ImageFont.truetype(p, 180)
+                    font = ImageFont.truetype(p, 400) # GARGANTUAN SCALE
                     break
                 except: continue
             
             if not font: font = ImageFont.load_default()
 
-            # Drawing text on the transparent layer first
-            # Shadow
-            score_draw.text((width//2 + 5, height//2 + 5), score_txt, fill=(0, 0, 0, 180), anchor="mm", font=font)
-            # Main
-            score_draw.text((width//2, height//2), score_txt, fill=(255, 255, 255, 255), anchor="mm", font=font)
+            # Layered Text Rendering (Outer Glow -> Shadow -> Main)
+            # 1. Subtle Outer Glow
+            score_draw.text((width//2, height//2), score_txt, fill=(233, 30, 99, 40), anchor="mm", font=font, stroke_width=20, stroke_fill=(233, 30, 99, 20))
+            # 2. Deep Shadow
+            score_draw.text((width//2 + 8, height//2 + 8), score_txt, fill=(0, 0, 0, 180), anchor="mm", font=font)
+            # 3. Main Titanic Number
+            score_draw.text((width//2, height//2), score_txt, fill=(255, 255, 255, 255), anchor="mm", font=font, stroke_width=2, stroke_fill=(255,255,255,100))
 
-            # 5. FINAL MERGE (Layered)
-            canvas.paste(img1, (20, 20), mask)
-            canvas.paste(img2, (width - av_size - 20, 20), mask)
+            # 5. FINAL ASSEMBLY
+            canvas.paste(img1, (40, 45), mask)
+            canvas.paste(img2, (width - av_size - 40, 45), mask)
+            
+            # Blend the giant text layer over the entire composition
             canvas = Image.alpha_composite(canvas, score_layer)
 
             buf = io.BytesIO()
@@ -116,14 +116,15 @@ class ArenaShip(commands.Cog):
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"PIL/AIOHTTP Error: {e}")
+            print(f"Legendary UI Error: {e}")
             return None
 
     @commands.command(name="ship")
     async def ship(self, ctx, u1: discord.Member, u2: discord.Member = None):
         if u2 is None: u2, u1 = u1, ctx.author
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        random.seed(f"{min(u1.id, u2.id)}{max(u1.id, u2.id)}{today}")
+        
+        seed = f"{min(u1.id, u2.id)}{max(u1.id, u2.id)}{datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
+        random.seed(seed)
         pct = random.randint(0, 100)
         random.seed()
 
@@ -131,21 +132,15 @@ class ArenaShip(commands.Cog):
         desc = random.choice(self.lexicon[tier]).format(u1=u1.display_name, u2=u2.display_name)
 
         async with ctx.typing():
-            try:
-                # Use generate_web_ui specifically
-                img = await self.generate_web_ui(u1.display_avatar.url, u2.display_avatar.url, pct)
-                
-                embed = discord.Embed(title="❤️ Shipped off & off!", description=f"**{u1.mention} & {u2.mention}**\n*{desc}*", color=0xE91E63)
-                
-                if img:
-                    file = discord.File(fp=img, filename="ship.png")
-                    embed.set_image(url="attachment://ship.png")
-                    await ctx.send(file=file, embed=embed)
-                else:
-                    # If image fails, don't hang! Send text-only fallback
-                    await ctx.send(content=f"⚠️ Image generation failed, but here is your result:\n**Sync: {pct}%**\n{desc}", embed=embed)
-            except Exception as e:
-                await ctx.send(f"❌ Professional Error: {e}")
+            img = await self.generate_web_ui(u1.display_avatar.url, u2.display_avatar.url, pct)
+            embed = discord.Embed(title="❤️ Shipped off & off!", description=f"**{u1.mention} & {u2.mention}**\n*{desc}*", color=0xE91E63)
+            
+            if img:
+                file = discord.File(fp=img, filename="ship.png")
+                embed.set_image(url="attachment://ship.png")
+                await ctx.send(file=file, embed=embed)
+            else:
+                await ctx.send(content=f"⚠️ Visual generator error.\n**Sync: {pct}%**\n{desc}", embed=embed)
 
     @commands.command(name="marry")
     async def marry(self, ctx, member: discord.Member):
