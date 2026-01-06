@@ -6,104 +6,109 @@ import aiohttp
 import os
 import sqlite3
 from datetime import datetime, timezone
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 import __main__
 
-class ArenaShip(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-        self.module_name = "ship"
-        self.db_path = "/app/data/ship_data.db" if os.path.exists("/app/data") else "ship_data.db"
-        self._init_db()
+# --- IMAGE GENERATION SECTION (Added logic) ---
 
-    def _init_db(self):
-        db_dir = os.path.dirname(self.db_path)
-        if db_dir and not os.path.exists(db_dir):
-            os.makedirs(db_dir)
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("CREATE TABLE IF NOT EXISTS ship_users (user_id INTEGER PRIMARY KEY, spouse_id INTEGER, marriage_date TEXT)")
+def create_ship_card(avatar1_bytes, avatar2_bytes, percentage):
+    width, height = 1200, 600
+    canvas = Image.new('RGB', (width, height), color='#2c0003')
+    draw = ImageDraw.Draw(canvas, "RGBA")
+    
+    # Background Gradient
+    for i in range(height):
+        r = int(44 + (i / height) * 60)
+        draw.line([(0, i), (width, i)], fill=(r, 0, 3))
 
-    async def cog_check(self, ctx):
-        if hasattr(__main__, "PREMIUM_GUILDS"):
-            guild_id = str(ctx.guild.id)
-            guild_data = __main__.PREMIUM_GUILDS.get(guild_id, {})
-            if guild_data.get(self.module_name):
-                return True
-        await ctx.send("⚔️ **ARENA LICENSE REQUIRED.**")
-        return False
+    # ADDITION: Floating Fire Particles
+    for _ in range(40):
+        p_x = random.randint(0, width)
+        p_y = random.randint(0, height)
+        p_size = random.randint(2, 6)
+        draw.ellipse([p_x, p_y, p_x + p_size, p_y + p_size], fill=(255, 165, 0, 100))
 
-    async def generate_visual(self, u1_url, u2_url, percent):
-        """TITANIC ENGINE: High-density square canvas + 500pt font scaling."""
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(u1_url) as r1, session.get(u2_url) as r2:
-                    img1 = Image.open(io.BytesIO(await r1.read())).convert("RGBA")
-                    img2 = Image.open(io.BytesIO(await r2.read())).convert("RGBA")
+    # Avatar Processing
+    def process_avatar(avatar_bytes):
+        img = Image.open(io.BytesIO(avatar_bytes)).convert("RGBA")
+        img = img.resize((250, 250))
+        # Flame Outline Glow
+        glow = Image.new("RGBA", (280, 280), (0, 0, 0, 0))
+        g_draw = ImageDraw.Draw(glow)
+        color = (255, 69, 0, 180) if percentage > 50 else (100, 100, 100, 150)
+        g_draw.rectangle([0, 0, 280, 280], fill=color)
+        glow = glow.filter(ImageFilter.GaussianBlur(15))
+        return img, glow
 
-            # 1. Square Canvas (600x600 forces the font to appear huge)
-            size = 600
-            canvas = Image.new("RGBA", (size, size), (20, 20, 20, 255))
-            
-            # 2. Avatars (Background Layer)
-            av_size = 300
-            img1 = ImageOps.fit(img1, (av_size, av_size))
-            img2 = ImageOps.fit(img2, (av_size, av_size))
-            
-            # Simple circular mask
-            mask = Image.new("L", (av_size, av_size), 0)
-            ImageDraw.Draw(mask).ellipse((0, 0, av_size, av_size), fill=255)
+    av1, glow1 = process_avatar(avatar1_bytes)
+    av2, glow2 = process_avatar(avatar2_bytes)
 
-            # Paste Avatars behind the text
-            canvas.paste(img1, (0, 150), mask)
-            canvas.paste(img2, (300, 150), mask)
+    canvas.paste(glow1, (85, 160), glow1)
+    canvas.paste(av1, (100, 175), av1)
+    canvas.paste(glow2, (835, 160), glow2)
+    canvas.paste(av2, (850, 175), av2)
 
-            # 3. TITANIC FONT SCALE (500pt)
-            score_txt = f"{percent}%"
-            # Create a dedicated layer for the gargantuan text
-            txt_layer = Image.new("RGBA", (size, size), (0,0,0,0))
-            t_draw = ImageDraw.Draw(txt_layer)
-            
-            font_paths = [
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                "arial.ttf",
-                "DejaVuSans-Bold.ttf"
-            ]
-            
-            font = None
-            for p in font_paths:
-                try:
-                    font = ImageFont.truetype(p, 500) # GARGANTUAN SCALE
-                    break
-                except: continue
-            
-            if not font: font = ImageFont.load_default()
+    # Vertical Compatibility Column
+    bar_x, bar_y, bar_w, bar_h = 540, 100, 120, 400
+    draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(0, 0, 0, 180)) # Darker backing
+    
+    fill_height = int((percentage / 100) * bar_h)
+    fill_top_y = (bar_y + bar_h) - fill_height
+    
+    if fill_height > 5:
+        # Neon Green Fill
+        draw.rectangle([bar_x + 10, fill_top_y, bar_x + bar_w - 10, bar_y + bar_h - 5], fill="#39FF14")
 
-            # 4. RENDER GIANT SCORE
-            # Huge black stroke (20px) ensures readability against the avatars
-            t_draw.text((size // 2, size // 2), score_txt, fill=(255, 255, 255, 255), 
-                        anchor="mm", font=font, stroke_width=20, stroke_fill=(0, 0, 0, 255))
+    # Text & Titles
+    try:
+        font_pct = ImageFont.truetype("arial.ttf", 100)
+        font_sub = ImageFont.truetype("arial.ttf", 40)
+    except:
+        font_pct = ImageFont.load_default()
+        font_sub = ImageFont.load_default()
 
-            # 5. Final Composite
-            final_output = Image.alpha_composite(canvas, txt_layer)
+    draw.text((600, 300), f"{percentage}%", fill="white", font=font_pct, anchor="mm", stroke_width=5, stroke_fill="black")
+    draw.text((600, 50), "SHIP COMPATIBILITY", fill="#FF4500", font=font_sub, anchor="mm")
 
-            buf = io.BytesIO()
-            final_output.save(buf, format="PNG")
-            buf.seek(0)
-            return buf
-        except Exception as e:
-            print(f"Titanic Fix Error: {e}")
-            return None
+    # ADDITION: Low % / High % Icons
+    if percentage < 25:
+        draw.text((600, 540), "💔 IT'S COLD IN HERE 💔", fill="white", font=font_sub, anchor="mm")
+    elif percentage > 85:
+        draw.text((600, 540), "🔥🔥 TRUE LOVE 🔥🔥", fill="#FFD700", font=font_sub, anchor="mm")
 
-    @commands.command(name="ship")
-    async def ship(self, ctx, u1: discord.Member, u2: discord.Member = None):
-        if u2 is None: u2, u1 = u1, ctx.author
+    buffer = io.BytesIO()
+    canvas.save(buffer, format="PNG")
+    buffer.seek(0)
+    return buffer
+
+# --- DISCORD BOT SECTION ---
+
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+@bot.command()
+async def ship(ctx, user1: discord.Member, user2: discord.Member):
+    async with ctx.typing():
+        percentage = random.randint(0, 100)
         
-        pct = random.randint(0, 100)
-        async with ctx.typing():
-            img = await self.generate_visual(u1.display_avatar.url, u2.display_avatar.url, pct)
-            if img:
-                file = discord.File(fp=img, filename="ship.png")
-                await ctx.send(file=file)
+        # Download avatars
+        async with aiohttp.ClientSession() as session:
+            async with session.get(user1.display_avatar.url) as resp1:
+                av1_data = await resp1.read()
+            async with session.get(user2.display_avatar.url) as resp2:
+                av2_data = await resp2.read()
 
-async def setup(bot):
-    await bot.add_cog(ArenaShip(bot))
+        # Generate the card
+        image_buffer = create_ship_card(av1_data, av2_data, percentage)
+        
+        file = discord.File(fp=image_buffer, filename="ship_result.png")
+        embed = discord.Embed(
+            title="💖 Ship Result 💖",
+            description=f"**{user1.display_name}** x **{user2.display_name}**",
+            color=0xff0000
+        )
+        embed.set_image(url="attachment://ship_result.png")
+        await ctx.send(file=file, embed=embed)
+
+# bot.run('YOUR_TOKEN_HERE')
