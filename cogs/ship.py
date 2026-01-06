@@ -33,60 +33,71 @@ class ArenaShip(commands.Cog):
         return False
 
     async def generate_visual(self, u1_url, u2_url, percent):
-        """GROUND ZERO ENGINE: Small Square Canvas + 350pt Font = Massive Result."""
+        """TITANIC ENGINE: High-density square canvas + 500pt font scaling."""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     img1 = Image.open(io.BytesIO(await r1.read())).convert("RGBA")
                     img2 = Image.open(io.BytesIO(await r2.read())).convert("RGBA")
 
-            # 1. Square Canvas (Forces the font to look giant)
+            # 1. Square Canvas (600x600 forces the font to appear huge)
             size = 600
-            canvas = Image.new("RGBA", (size, size), (25, 25, 25, 255))
-            draw = ImageDraw.Draw(canvas)
-
-            # 2. Avatars (Placed as a background layer)
-            av_size = 280
+            canvas = Image.new("RGBA", (size, size), (20, 20, 20, 255))
+            
+            # 2. Avatars (Background Layer)
+            av_size = 300
             img1 = ImageOps.fit(img1, (av_size, av_size))
             img2 = ImageOps.fit(img2, (av_size, av_size))
+            
+            # Simple circular mask
             mask = Image.new("L", (av_size, av_size), 0)
             ImageDraw.Draw(mask).ellipse((0, 0, av_size, av_size), fill=255)
 
-            canvas.paste(img1, (10, 160), mask)
-            canvas.paste(img2, (310, 160), mask)
+            # Paste Avatars behind the text
+            canvas.paste(img1, (0, 150), mask)
+            canvas.paste(img2, (300, 150), mask)
 
-            # 3. Titanic Score Layer (350pt Scale)
+            # 3. TITANIC FONT SCALE (500pt)
             score_txt = f"{percent}%"
-            score_layer = Image.new("RGBA", (size, size), (0,0,0,0))
-            s_draw = ImageDraw.Draw(score_layer)
+            # Create a dedicated layer for the gargantuan text
+            txt_layer = Image.new("RGBA", (size, size), (0,0,0,0))
+            t_draw = ImageDraw.Draw(txt_layer)
             
-            font_paths = ["arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "DejaVuSans-Bold.ttf"]
+            font_paths = [
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                "arial.ttf",
+                "DejaVuSans-Bold.ttf"
+            ]
+            
             font = None
             for p in font_paths:
                 try:
-                    font = ImageFont.truetype(p, 350)
+                    font = ImageFont.truetype(p, 500) # GARGANTUAN SCALE
                     break
                 except: continue
+            
             if not font: font = ImageFont.load_default()
 
-            # Massive stroke makes the numbers cut through the avatars
-            s_draw.text((size // 2, size // 2), score_txt, fill=(255, 255, 255, 255), 
-                        anchor="mm", font=font, stroke_width=15, stroke_fill=(0, 0, 0, 255))
+            # 4. RENDER GIANT SCORE
+            # Huge black stroke (20px) ensures readability against the avatars
+            t_draw.text((size // 2, size // 2), score_txt, fill=(255, 255, 255, 255), 
+                        anchor="mm", font=font, stroke_width=20, stroke_fill=(0, 0, 0, 255))
 
-            # 4. Final Composite
-            final_output = Image.alpha_composite(canvas, score_layer)
+            # 5. Final Composite
+            final_output = Image.alpha_composite(canvas, txt_layer)
 
             buf = io.BytesIO()
             final_output.save(buf, format="PNG")
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"Ground Zero Error: {e}")
+            print(f"Titanic Fix Error: {e}")
             return None
 
     @commands.command(name="ship")
     async def ship(self, ctx, u1: discord.Member, u2: discord.Member = None):
         if u2 is None: u2, u1 = u1, ctx.author
+        
         pct = random.randint(0, 100)
         async with ctx.typing():
             img = await self.generate_visual(u1.display_avatar.url, u2.display_avatar.url, pct)
