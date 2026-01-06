@@ -12,6 +12,44 @@ import __main__
 class Ship(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        # 105 Arena Messages Tiered by Percentage
+        self.arena_messages = {
+            "0-15": [
+                "The arena is freezing over. Total mismatch.", "Ice cold. Not even a spark found.", "Security is escorting you both to different exits.", "The audience is booing. This is a disaster.", "Error 404: Love not found in this arena.", 
+                "A black hole has more attraction than this.", "The tension is negative. Please stop.", "Even the embers died looking at you two.", "Zero chemistry detected. Move along.", "This isn't a ship, it's a shipwreck.", 
+                "You two are on different planets.", "The arena lights just flickered and died.", "Total silence from the crowd. Awkward.", "A match made in... well, not here.", "Better luck in the next life."
+            ],
+            "16-30": [
+                "Slight friction, but mostly just sparks of annoyance.", "The arena remains mostly dark.", "Maybe try talking? Or maybe don't.", "A very weak connection detected.", "The crowd is checking their phones.", 
+                "Not exactly a power couple.", "Room for improvement... a lot of it.", "The love meter barely moved.", "A flicker in the dark, then nothing.", "You're both better off as solo fighters.", 
+                "The arena floor is still cold.", "Minimal compatibility found.", "Are you even trying?", "The fire is struggling to start.", "A distant 'maybe' at best."
+            ],
+            "31-45": [
+                "The embers are starting to glow.", "A casual alliance, nothing more.", "The arena is lukewarm.", "Friends with arena benefits?", "Not a total loss, but not a win.", 
+                "The crowd is curious, but not convinced.", "A steady beat, but no rhythm yet.", "You won't kill each other... probably.", "Just enough to keep the lights on.", "The arena is waiting for more.", 
+                "A mild interest detected.", "Stable, but boring.", "The ship is floating, but not moving.", "Testing the waters of the arena.", "A low-level bond."
+            ],
+            "46-60": [
+                "The arena is heating up!", "A solid match for the mid-tier.", "The crowd is starting to cheer.", "Balanced power levels.", "The sparks are consistent now.", 
+                "A dangerous dance in the arena.", "The tension is palpable.", "Halfway to destiny.", "The fire is growing steady.", "You look good together under the lights.", 
+                "A promising future in the arena.", "The chemistry is becoming visible.", "Keep this energy going.", "A match worth watching.", "The arena floor is warming up."
+            ],
+            "61-75": [
+                "Intense energy flowing through the arena!", "The crowd is on their feet!", "A high-tier pairing detected.", "The sparks are flying everywhere.", "The arena is glowing bright pink.", 
+                "A passionate duel of hearts.", "Almost at the peak of the arena.", "The love tension is rising fast.", "The embers are turning into flames.", "A powerful connection is forming.", 
+                "The stadium is roaring for you two.", "Strongest match of the hour!", "The arena lights are pulsing.", "Destined for something great.", "True arena synergy."
+            ],
+            "76-90": [
+                "The arena is on fire!", "A legendary pairing has entered.", "The love tension is reaching critical levels!", "Breathtaking compatibility.", "The crowd is screaming your names!", 
+                "Electric. Passionate. Unstoppable.", "A high-voltage arena match.", "The heat is nearly unbearable!", "Almost perfect. Simply beautiful.", "The stadium is shaking from the tension.", 
+                "A match for the ages.", "Burning brighter than the sun.", "The arena has never seen this before.", "Soulmate territory found.", "Pure arena magic."
+            ],
+            "91-100": [
+                "THE ARENA HAS EXPLODED! TRUE LOVE!", "A DIVINE MATCH MADE IN THE HEAVENS!", "ULTIMATE COMPATIBILITY DETECTED!", "THE LOVE ARENA IS IN TOTAL SHOCK!", "A PERFECT HARMONY OF SOULS!", 
+                "BEYOND LEGENDARY. BEYOND PERFECTION.", "THE DESTINY METER JUST BROKE!", "UNSTOPPABLE ARENA POWER!", "THE CROWD IS WEEPING FROM JOY!", "A MATCH THAT WILL BE REMEMBERED FOREVER!", 
+                "TOTAL ARENA DOMINATION BY LOVE!", "THE EMBERS HAVE TURNED INTO A SUPERNOVA!", "YOU ARE THE KINGS OF THE LOVE ARENA!", "A DIAMOND IN THE ROUGH? NO, A DIAMOND HEART!", "ABSOLUTE PERFECTION FOUND!"
+            ]
+        }
 
     def create_ship_card(self, avatar1_bytes, avatar2_bytes, percentage):
         width, height = 1200, 600
@@ -59,43 +97,31 @@ class Ship(commands.Cog):
         canvas.paste(glow2, (785, 75), glow2)
         canvas.paste(av2, (820, 110), av2)
 
-        # 4. REFINED: High-Intensity Dynamic Column - SOFT PINK CRYSTAL
+        # 4. REDESIGNED: Organic Light-Filled Column
         bar_x, bar_y, bar_w, bar_h = 420, 20, 360, 560
         
-        # Inner column glow (Soft Pink Hue)
         col_glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         cg_draw = ImageDraw.Draw(col_glow)
-        cg_draw.rectangle([bar_x-15, bar_y, bar_x+bar_w+15, bar_y+bar_h], fill=(255, 182, 193, 30))
+        cg_draw.rectangle([bar_x-20, bar_y-10, bar_x+bar_w+20, bar_y+bar_h+10], fill=(255, 50, 50, 40))
         col_glow = col_glow.filter(ImageFilter.GaussianBlur(20))
         canvas.paste(col_glow, (0, 0), col_glow)
 
-        # Translucent glass backing (Darker to make pink pop)
-        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(20, 5, 10, 190)) 
+        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(255, 255, 255, 15)) 
         
         fill_height = int((percentage / 100) * bar_h)
         fill_top_y = (bar_y + bar_h) - fill_height
         
-        # Fixed Color: Soft Romantic Pink
-        main_color = (255, 182, 193) # Light Pink
-
         if fill_height > 5:
-            # Multi-layered "Liquid Light" Fill
             for i in range(fill_top_y, bar_y + bar_h):
-                # Shimmer effect for a liquid crystal look
-                shimmer = int(30 * random.random())
-                r, g, b = main_color
-                draw.line([(bar_x + 10, i), (bar_x + bar_w - 10, i)], fill=(r, g + shimmer, b + shimmer, 240))
+                intensity = int(180 + (i - fill_top_y) / (fill_height + 1) * 75)
+                draw.line([(bar_x + 5, i), (bar_x + bar_w - 5, i)], fill=(100, intensity, 50, 200))
 
-            # ADDITION: Bright Core Pulse Beam
-            core_w = bar_w // 5
-            draw.rectangle([bar_x + (bar_w//2) - core_w, fill_top_y, bar_x + (bar_w//2) + core_w, bar_y + bar_h], fill=(255, 255, 255, 110))
-
-        # 5. REFINED: NEON PERCENTAGE DISPLAY (Zoomed & Pink Glow)
+        # 5. MEGA ZOOMED PERCENTAGE LOGIC
         text_str = f"{percentage}%"
         text_canvas = Image.new('RGBA', (1000, 550), (0, 0, 0, 0))
         t_draw = ImageDraw.Draw(text_canvas)
         
-        f_size = 450 
+        f_size = 380 
         try:
             font_pct = ImageFont.truetype("arial.ttf", f_size)
         except:
@@ -104,22 +130,16 @@ class Ship(commands.Cog):
             except:
                 font_pct = ImageFont.load_default()
 
-        # Neon Glow Layer for Text - Soft Pink Aura
-        glow_color = (255, 182, 193, 140)
-        t_draw.text((500, 270), text_str, fill=glow_color, font=font_pct, anchor="mm", stroke_width=35)
-        text_canvas = text_canvas.filter(ImageFilter.GaussianBlur(15))
-        
-        # Sharp White Core Text
-        t_draw = ImageDraw.Draw(text_canvas)
-        t_draw.text((500, 270), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=20, stroke_fill="black")
+        t_draw.text((508, 278), text_str, fill=(255, 255, 255, 50), font=font_pct, anchor="mm")
+        t_draw.text((500, 270), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=16, stroke_fill="black")
         
         if font_pct.getbbox(text_str)[2] < 100: 
             text_canvas = text_canvas.resize((3000, 1600), Image.Resampling.NEAREST)
             canvas.paste(text_canvas, (-900, -500), text_canvas) 
         else:
-            canvas.paste(text_canvas, (100, 25), text_canvas)
+            canvas.paste(text_canvas, (100, 50), text_canvas)
 
-        # 6. 100% Special Heart Icon
+        # 6. ADDITION: 100% Special Heart Icon
         if percentage == 100:
             heart_layer = Image.new('RGBA', (width, height), (0, 0, 0, 0))
             h_draw = ImageDraw.Draw(heart_layer)
@@ -162,6 +182,18 @@ class Ship(commands.Cog):
                 embed = discord.Embed(title="⚔️ The Ship Arena Result ⚔️", color=0xff0000)
                 embed.set_image(url="attachment://ship_result.png")
 
+                # Tiered Message Logic
+                if percentage <= 15: tier = "0-15"
+                elif percentage <= 30: tier = "16-30"
+                elif percentage <= 45: tier = "31-45"
+                elif percentage <= 60: tier = "46-60"
+                elif percentage <= 75: tier = "61-75"
+                elif percentage <= 90: tier = "76-90"
+                else: tier = "91-100"
+                
+                selected_msg = random.choice(self.arena_messages[tier])
+                embed.description = f"**{selected_msg}**"
+
                 if percentage == 0: status = "🧊 Absolute Zero - Ice Cold"
                 elif percentage < 25: status = "💔 Broken Bonds - No Match"
                 elif percentage < 50: status = "🤝 Just Friends - Casual"
@@ -170,7 +202,6 @@ class Ship(commands.Cog):
                 else: status = "💎 UNSTOPPABLE DESTINY 💎"
                 
                 embed.set_footer(text=f"Arena Status: {status}")
-                
                 await ctx.send(file=file, embed=embed)
                 
             except Exception as e:
