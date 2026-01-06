@@ -105,30 +105,72 @@ class Bank(commands.Cog):
         self.cursor.execute("SELECT sparks, echo_xp, echo_level, class_type FROM users WHERE user_id = ?", (user_id,))
         return self.cursor.fetchone()
 
+    # --- REWARD EXECUTION LOGIC ---
+
+    async def execute_work(self, ctx):
+        """Core logic for all work-based commands."""
+        if not self.check_premium(ctx.guild.id):
+            return await ctx.send("🔒 Unlock the **BANK** module to use this command.")
+
+        data = await self.get_user_data(ctx.author.id)
+        class_type = data[3]
+        sp_gain = random.randint(100, 3500)
+        xp_gain = 1000
+
+        if class_type == "Dominant": xp_gain = int(xp_gain * 1.2)
+        elif class_type == "Submissive": sp_gain = int(sp_gain * 1.2)
+        elif class_type == "Switch":
+            xp_gain = int(xp_gain * 1.1)
+            sp_gain = int(sp_gain * 1.1)
+
+        await self.update_sparks(ctx.author.id, sp_gain)
+        lvl_up, new_lvl = await self.update_echo_xp(ctx.author.id, xp_gain)
+        updated_data = await self.get_user_data(ctx.author.id)
+
+        embed = discord.Embed(title="⚒️ Work Complete", description=random.choice(self.work_scenarios), color=0x2ecc71)
+        embed.add_field(name="Rewards", value=f"⚡ **+{sp_gain}** Sparks\n💠 **+{xp_gain}** Echo XP")
+        embed.add_field(name="💰 New Balance", value=f"**{updated_data[0]:,}** Sparks", inline=False)
+        if lvl_up: embed.add_field(name="✨ Level Up!", value=f"You reached Level **{new_lvl}**!", inline=False)
+        await ctx.send(embed=embed)
+
+    async def execute_job(self, ctx):
+        """Core logic for all job-based commands."""
+        if not self.check_premium(ctx.guild.id):
+            return await ctx.send("🔒 Unlock the **BANK** module to use this command.")
+
+        data = await self.get_user_data(ctx.author.id)
+        class_type = data[3]
+        sp_gain = random.randint(500, 5000)
+        xp_gain = 2000
+
+        if class_type == "Dominant": xp_gain = int(xp_gain * 1.2)
+        elif class_type == "Submissive": sp_gain = int(sp_gain * 1.2)
+        elif class_type == "Switch":
+            xp_gain = int(xp_gain * 1.1)
+            sp_gain = int(sp_gain * 1.1)
+
+        await self.update_sparks(ctx.author.id, sp_gain)
+        lvl_up, new_lvl = await self.update_echo_xp(ctx.author.id, xp_gain)
+        updated_data = await self.get_user_data(ctx.author.id)
+
+        embed = discord.Embed(title="💼 Job Finished", description=random.choice(self.job_scenarios), color=0x3498db)
+        embed.add_field(name="Rewards", value=f"⚡ **+{sp_gain}** Sparks\n💠 **+{xp_gain}** Echo XP")
+        embed.add_field(name="💰 New Balance", value=f"**{updated_data[0]:,}** Sparks", inline=False)
+        if lvl_up: embed.add_field(name="✨ Level Up!", value=f"You reached Level **{new_lvl}**!", inline=False)
+        await ctx.send(embed=embed)
+
     # --- USER COMMANDS ---
 
     @commands.command(name="setclass")
     async def setclass(self, ctx, choice: str = None):
         """Choose your Class (Dominant, Submissive, Switch, Exhibitionist)"""
         await self.open_account(ctx.author.id)
-        classes = {
-            "dominant": "Dominant", 
-            "submissive": "Submissive", 
-            "switch": "Switch", 
-            "exhibitionist": "Exhibitionist"
-        }
-        
+        classes = {"dominant": "Dominant", "submissive": "Submissive", "switch": "Switch", "exhibitionist": "Exhibitionist"}
         if choice is None or choice.lower() not in classes:
             embed = discord.Embed(title="💠 Choose Your Echo Archetype", color=0x00fbff)
-            embed.description = (
-                "**Dominant**: +20% Echo XP Bonus\n"
-                "**Submissive**: +20% Sparks Bonus\n"
-                "**Switch**: +10% Sparks & XP Bonus\n"
-                "**Exhibitionist**: 15% Faster Cooldowns"
-            )
+            embed.description = "**Dominant**: +20% Echo XP Bonus\n**Submissive**: +20% Sparks Bonus\n**Switch**: +10% Sparks & XP Bonus\n**Exhibitionist**: 15% Faster Cooldowns"
             embed.set_footer(text="Use !setclass <name>")
             return await ctx.send(embed=embed)
-
         self.cursor.execute("UPDATE users SET class_type = ? WHERE user_id = ?", (classes[choice.lower()], ctx.author.id))
         self.conn.commit()
         await ctx.send(f"✨ Your soul has harmonized with the **{classes[choice.lower()]}** archetype!")
@@ -137,24 +179,18 @@ class Bank(commands.Cog):
     async def profile(self, ctx, member: discord.Member = None):
         """Displays the user's current Sparks and Echo Experience."""
         if not self.check_premium(ctx.guild.id):
-            embed = discord.Embed(title="🔒 ENGINE LOCKED", color=0xff0000)
-            embed.description = "The **ECONOMY ENGINE** is not active. An administrator must use `!premium` to unlock."
+            embed = discord.Embed(title="🔒 ENGINE LOCKED", color=0xff0000, description="The **ECONOMY ENGINE** is not active.")
             return await ctx.send(embed=embed)
-
         member = member or ctx.author
         sparks, xp, lvl, class_type = await self.get_user_data(member.id)
         xp_needed = lvl * 500
-
         embed = discord.Embed(title=f"✨ {member.display_name}'s Profile", color=0x00fbff)
         embed.add_field(name="🛡️ Archetype", value=f"**{class_type}**", inline=False)
         embed.add_field(name="⚡ Sparks", value=f"**{sparks:,}**", inline=True)
         embed.add_field(name="💠 Echo Level", value=f"Level **{lvl}**", inline=True)
-        
-        # Visual Progress Bar for Echo XP
         progress = int((xp / xp_needed) * 10)
         bar = "▰" * progress + "▱" * (10 - progress)
         embed.add_field(name="📊 Echo Experience", value=f"{bar} ({xp}/{xp_needed} XP)", inline=False)
-        
         if os.path.exists("fierylogo.jpg"):
             file = discord.File("fierylogo.jpg", filename="fierylogo.jpg")
             embed.set_thumbnail(url="attachment://fierylogo.jpg")
@@ -167,127 +203,71 @@ class Bank(commands.Cog):
     @commands.cooldown(1, 10800, commands.BucketType.user)
     async def work(self, ctx):
         """Earn Sparks and XP through minor tasks (3h CD)"""
-        if not self.check_premium(ctx.guild.id):
-            # FIXED: Reset cooldown if premium check fails so they don't lose their turn
-            self.work.reset_cooldown(ctx)
-            return await ctx.send("🔒 Unlock the **BANK** module to use the `work` command.")
-        
-        data = await self.get_user_data(ctx.author.id)
-        class_type = data[3]
-        
-        sp_gain = random.randint(100, 3500)
-        xp_gain = 1000
-        
-        # Apply Class Bonuses
-        if class_type == "Dominant": xp_gain = int(xp_gain * 1.2)
-        elif class_type == "Submissive": sp_gain = int(sp_gain * 1.2)
-        elif class_type == "Switch":
-            xp_gain = int(xp_gain * 1.1)
-            sp_gain = int(sp_gain * 1.1)
-        
-        await self.update_sparks(ctx.author.id, sp_gain)
-        lvl_up, new_lvl = await self.update_echo_xp(ctx.author.id, xp_gain)
-        
-        updated_data = await self.get_user_data(ctx.author.id)
-        new_balance = updated_data[0]
-        
-        embed = discord.Embed(title="⚒️ Work Complete", description=random.choice(self.work_scenarios), color=0x2ecc71)
-        embed.add_field(name="Rewards", value=f"⚡ **+{sp_gain}** Sparks\n💠 **+{xp_gain}** Echo XP")
-        embed.add_field(name="💰 New Balance", value=f"**{new_balance:,}** Sparks", inline=False)
-        if lvl_up: embed.add_field(name="✨ Level Up!", value=f"You reached Level **{new_lvl}**!", inline=False)
-        await ctx.send(embed=embed)
+        await self.execute_work(ctx)
 
     @commands.command(name="job")
     @commands.cooldown(1, 18000, commands.BucketType.user)
     async def job(self, ctx):
         """Earn Sparks and XP through high-tier contracts (5h CD)"""
-        if not self.check_premium(ctx.guild.id):
-            self.job.reset_cooldown(ctx)
-            return await ctx.send("🔒 Unlock the **BANK** module to use the `job` command.")
-        
-        data = await self.get_user_data(ctx.author.id)
-        class_type = data[3]
-
-        sp_gain = random.randint(500, 5000)
-        xp_gain = 2000
-        
-        # Apply Class Bonuses
-        if class_type == "Dominant": xp_gain = int(xp_gain * 1.2)
-        elif class_type == "Submissive": sp_gain = int(sp_gain * 1.2)
-        elif class_type == "Switch":
-            xp_gain = int(xp_gain * 1.1)
-            sp_gain = int(sp_gain * 1.1)
-        
-        await self.update_sparks(ctx.author.id, sp_gain)
-        lvl_up, new_lvl = await self.update_echo_xp(ctx.author.id, xp_gain)
-
-        updated_data = await self.get_user_data(ctx.author.id)
-        new_balance = updated_data[0]
-        
-        embed = discord.Embed(title="💼 Job Finished", description=random.choice(self.job_scenarios), color=0x3498db)
-        embed.add_field(name="Rewards", value=f"⚡ **+{sp_gain}** Sparks\n💠 **+{xp_gain}** Echo XP")
-        embed.add_field(name="💰 New Balance", value=f"**{new_balance:,}** Sparks", inline=False)
-        if lvl_up: embed.add_field(name="✨ Level Up!", value=f"You reached Level **{new_lvl}**!", inline=False)
-        await ctx.send(embed=embed)
-
-    # --- EXPANDED COMMANDS (Categorized as Work or Job) ---
+        await self.execute_job(ctx)
 
     @commands.command(name="clean")
+    @commands.cooldown(1, 10800, commands.BucketType.user)
     async def clean(self, ctx):
-        """Work category: Clean the Sanctuary floors."""
-        # FIXED: Directly invoke the work logic
-        await self.work(ctx)
+        await self.execute_work(ctx)
 
     @commands.command(name="beg")
+    @commands.cooldown(1, 10800, commands.BucketType.user)
     async def beg(self, ctx):
-        """Work category: Beg for Sparks in the Echo-Plaza."""
-        await self.work(ctx)
+        await self.execute_work(ctx)
 
     @commands.command(name="slut")
+    @commands.cooldown(1, 10800, commands.BucketType.user)
     async def slut(self, ctx):
-        """Work category: Sell your Echo-energy on the street."""
-        await self.work(ctx)
+        await self.execute_work(ctx)
 
     @commands.command(name="farm")
+    @commands.cooldown(1, 10800, commands.BucketType.user)
     async def farm(self, ctx):
-        """Work category: Harvest resources from the Spark-Fields."""
-        await self.work(ctx)
+        await self.execute_work(ctx)
 
     @commands.command(name="cook")
+    @commands.cooldown(1, 10800, commands.BucketType.user)
     async def cook(self, ctx):
-        """Work category: Prepare Echo-infused meals for travelers."""
-        await self.work(ctx)
+        await self.execute_work(ctx)
 
     @commands.command(name="mine")
+    @commands.cooldown(1, 10800, commands.BucketType.user)
     async def mine(self, ctx):
-        """Work category: Extract raw crystals from the Sanctuary mines."""
-        await self.work(ctx)
+        await self.execute_work(ctx)
 
     @commands.command(name="crime")
+    @commands.cooldown(1, 18000, commands.BucketType.user)
     async def crime(self, ctx):
-        """Job category: Attempt a high-stakes Echo-heist."""
-        await self.job(ctx)
+        await self.execute_job(ctx)
 
     @commands.command(name="pimp")
+    @commands.cooldown(1, 18000, commands.BucketType.user)
     async def pimp(self, ctx):
-        """Job category: Manage a ring of Echo-energy sellers."""
-        await self.job(ctx)
+        await ctx.invoke(self.job)
 
     @commands.command(name="hack")
+    @commands.cooldown(1, 18000, commands.BucketType.user)
     async def hack(self, ctx):
-        """Job category: Breach a high-security Sanctuary data-node."""
-        await self.job(ctx)
+        await self.execute_job(ctx)
 
     @commands.command(name="assassinate")
+    @commands.cooldown(1, 18000, commands.BucketType.user)
     async def assassinate(self, ctx):
-        """Job category: Take down a rogue entity threatening the Echo-Chamber."""
-        await self.job(ctx)
+        await self.execute_job(ctx)
 
     @commands.command(name="smuggle")
+    @commands.cooldown(1, 18000, commands.BucketType.user)
     async def smuggle(self, ctx):
-        """Job category: Transport illegal Echo-crystals past Sanctuary guards."""
-        await self.job(ctx)
+        await self.execute_job(ctx)
 
+    @setclass.error
+    @profile.error
     @work.error
     @job.error
     @clean.error
@@ -304,13 +284,7 @@ class Bank(commands.Cog):
     async def command_error(self, ctx, error):
         if isinstance(error, commands.CommandOnCooldown):
             data = await self.get_user_data(ctx.author.id)
-            class_type = data[3]
-            retry_after = error.retry_after
-            
-            # Apply Exhibitionist 15% reduction to the cooldown message
-            if class_type == "Exhibitionist":
-                retry_after *= 0.85
-
+            retry_after = error.retry_after * 0.85 if data[3] == "Exhibitionist" else error.retry_after
             minutes, seconds = divmod(retry_after, 60)
             hours, minutes = divmod(minutes, 60)
             await ctx.send(f"⏳ Patience! You can earn more in **{int(hours)}h {int(minutes)}m {int(seconds)}s**.")
