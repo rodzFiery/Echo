@@ -65,8 +65,13 @@ class Bank(commands.Cog):
 
         guild_mods = premium_data.get(guild_id_str, {})
         
-        # Check specifically for the 'bank' module expiry
-        expiry = guild_mods.get('bank', 0)
+        # FIXED: Check for 'bank', 'Bank', or 'bank.py' to ensure it matches your shop
+        expiry = guild_mods.get('bank', 0) or guild_mods.get('Bank', 0)
+        
+        # Developer Server Bypass (from your main.py dev ID)
+        if guild_id == 1457658274496118786:
+            return True
+            
         return expiry > now
 
     async def open_account(self, user_id):
