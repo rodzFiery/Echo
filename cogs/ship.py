@@ -41,7 +41,6 @@ class ArenaShip(commands.Cog):
 
     async def cog_check(self, ctx):
         guild_id = str(ctx.guild.id)
-        # This syncs with the PREMIUM_GUILDS dictionary in your main.py
         if hasattr(__main__, "PREMIUM_GUILDS"):
             guild_data = __main__.PREMIUM_GUILDS.get(guild_id, {})
             expiry = guild_data.get(self.module_name)
@@ -59,38 +58,56 @@ class ArenaShip(commands.Cog):
                     img1 = Image.open(io.BytesIO(await r1.read())).convert("RGBA")
                     img2 = Image.open(io.BytesIO(await r2.read())).convert("RGBA")
 
-            canvas = Image.new("RGBA", (1000, 450), (30, 31, 34, 255)) 
+            # --- CANVAS ENGINE (Web Designer Pro Ratio) ---
+            width, height = 1000, 450
+            canvas = Image.new("RGBA", (width, height), (32, 34, 37, 255)) # Discord Dark
             draw = ImageDraw.Draw(canvas)
-            av_size = 400
+            
+            # 1. THE PINK ACCENT LINE (Left Side)
+            draw.rectangle([0, 0, 10, height], fill=(233, 30, 99))
+
+            # 2. AVATAR FORMATTING (Pro Rounded Corners)
+            av_size = 380
             mask = Image.new("L", (av_size, av_size), 0)
-            ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=40, fill=255)
+            ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=60, fill=255)
             
             img1 = ImageOps.fit(img1, (av_size, av_size)).convert("RGBA")
             img2 = ImageOps.fit(img2, (av_size, av_size)).convert("RGBA")
             img1.putalpha(mask)
             img2.putalpha(mask)
 
-            bar_color = (255, 45, 85) if percent > 60 else (255, 215, 0) if percent > 30 else (150, 150, 150)
-            meter_x, meter_y, meter_w, meter_h = 450, 50, 100, 350
+            # 3. THE CENTER METER ENGINE
+            meter_w, meter_h = 110, height - 100
+            meter_x = (width // 2) - (meter_w // 2)
+            meter_y = 50
+            
+            # Background
             draw.rectangle([meter_x, meter_y, meter_x + meter_w, meter_y + meter_h], fill=(15, 15, 15))
+            
+            # Dynamic Fill (Professional Pink)
             fill_h = (percent / 100) * meter_h
-            draw.rectangle([meter_x, (meter_y + meter_h) - fill_h, meter_x + meter_w, meter_y + meter_h], fill=bar_color)
+            draw.rectangle([meter_x, (meter_y + meter_h) - fill_h, meter_x + meter_w, meter_y + meter_h], fill=(233, 30, 99))
 
+            # 4. TYPOGRAPHY ENGINE (TITANIC CENTER)
             font_paths = ["arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "DejaVuSans-Bold.ttf"]
-            font = next((ImageFont.truetype(p, 65) for p in font_paths if os.path.exists(p)), ImageFont.load_default())
+            font = next((ImageFont.truetype(p, 85) for p in font_paths if os.path.exists(p)), ImageFont.load_default())
 
             score_txt = f"{percent}%"
-            draw.text((500, 225), score_txt, fill=(255, 255, 255), anchor="mm", font=font, stroke_width=4, stroke_fill=(0,0,0))
+            # Text Shadow for Depth
+            draw.text((width//2 + 4, height//2 + 4), score_txt, fill=(0, 0, 0, 180), anchor="mm", font=font)
+            # Main Score
+            draw.text((width//2, height//2), score_txt, fill=(255, 255, 255), anchor="mm", font=font)
 
-            canvas.paste(img1, (25, 25), img1)
-            canvas.paste(img2, (575, 25), img2)
+            # 5. COMPOSITING
+            canvas.paste(img1, (40, 35), img1)
+            canvas.paste(img2, (580, 35), img2)
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"UI Error: {e}")
+            print(f"Professional UI Error: {e}")
             return None
 
     @commands.command(name="ship")
@@ -107,18 +124,17 @@ class ArenaShip(commands.Cog):
         async with ctx.typing():
             img = await self.generate_web_ui(u1.display_avatar.url, u2.display_avatar.url, pct)
             if img:
-                embed = discord.Embed(title="❤️ Shipped off & off!", description=f"**{u1.mention} & {u2.mention}**\n*{desc}*", color=0xFF2D55)
+                embed = discord.Embed(title="❤️ Shipped off & off!", description=f"**{u1.mention} & {u2.mention}**\n*{desc}*", color=0xE91E63)
                 file = discord.File(fp=img, filename="ship.png")
                 embed.set_image(url="attachment://ship.png")
+                embed.set_footer(text="Lies? Reroll tomorrow for a better score! 🫦")
                 await ctx.send(file=file, embed=embed)
 
     @commands.command(name="marry")
     async def marry(self, ctx, member: discord.Member):
         if member.id == ctx.author.id: return await ctx.send("❌ You cannot marry yourself.")
-        
         u1_data = self.get_marriage(ctx.author.id)
         u2_data = self.get_marriage(member.id)
-        
         if (u1_data and u1_data['spouse_id']) or (u2_data and u2_data['spouse_id']):
             return await ctx.send("❌ One of you is already married!")
 
@@ -140,7 +156,6 @@ class ArenaShip(commands.Cog):
     async def divorce(self, ctx):
         data = self.get_marriage(ctx.author.id)
         if not data or not data['spouse_id']: return await ctx.send("❌ You are not married.")
-        
         spouse_id = data['spouse_id']
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("UPDATE ship_users SET spouse_id = NULL WHERE user_id = ?", (ctx.author.id,))
