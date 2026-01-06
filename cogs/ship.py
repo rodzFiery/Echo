@@ -48,72 +48,67 @@ class ArenaShip(commands.Cog):
         return False
 
     async def generate_web_ui(self, u1_url, u2_url, percent):
-        """LEGENDARY FINAL VERSION: Blurred Background + Gargantuan Typography."""
+        """TITANIC SCORE VERSION: Fixes the small number issue by using a high-impact layout."""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     if r1.status != 200 or r2.status != 200: return None
-                    img1_raw = await r1.read()
-                    img2_raw = await r2.read()
-                    img1 = Image.open(io.BytesIO(img1_raw)).convert("RGBA")
-                    img2 = Image.open(io.BytesIO(img2_raw)).convert("RGBA")
+                    img1_data = await r1.read()
+                    img2_data = await r2.read()
+                    img1 = Image.open(io.BytesIO(img1_data)).convert("RGBA")
+                    img2 = Image.open(io.BytesIO(img2_data)).convert("RGBA")
 
-            # --- CANVAS ENGINE ---
-            width, height = 1200, 600
-            # 1. PROFESSIONAL BLURRED BACKGROUND
-            bg_base = Image.new("RGBA", (width, height), (20, 22, 25, 255))
-            
-            # Create blurred background from avatars
-            back_av1 = img1.resize((600, 600)).filter(ImageFilter.GaussianBlur(40))
-            back_av2 = img2.resize((600, 600)).filter(ImageFilter.GaussianBlur(40))
-            bg_base.paste(back_av1, (-100, 0), back_av1)
-            bg_base.paste(back_av2, (700, 0), back_av2)
-            
-            # Darken the background for text contrast
-            dark_overlay = Image.new("RGBA", (width, height), (0, 0, 0, 160))
-            canvas = Image.alpha_composite(bg_base, dark_overlay)
+            # --- CANVAS ENGINE (Optimized for high-impact text) ---
+            width, height = 900, 400
+            canvas = Image.new("RGBA", (width, height), (32, 34, 37, 255)) 
             draw = ImageDraw.Draw(canvas)
             
-            # 2. SIDE ACCENT
-            draw.rectangle([0, 0, 15, height], fill=(233, 30, 99))
+            # 1. ACCENT LINE
+            draw.rectangle([0, 0, 10, height], fill=(233, 30, 99))
 
-            # 3. AVATARS (Modern Squircle)
-            av_size = 460
-            img1_final = ImageOps.fit(img1, (av_size, av_size))
-            img2_final = ImageOps.fit(img2, (av_size, av_size))
+            # 2. AVATAR FORMATTING
+            av_size = 350
+            img1 = ImageOps.fit(img1, (av_size, av_size))
+            img2 = ImageOps.fit(img2, (av_size, av_size))
             
             mask = Image.new("L", (av_size, av_size), 0)
-            ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=100, fill=255)
+            ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=50, fill=255)
 
-            # 4. TITANIC METER (The Split)
-            meter_w = 160
+            # 3. CENTRAL METER (BACKGROUND)
+            meter_w = 140
             meter_x = (width // 2) - (meter_w // 2)
-            draw.rectangle([meter_x, 0, meter_x + meter_w, height], fill=(10, 10, 10, 200))
+            draw.rectangle([meter_x, 0, meter_x + meter_w, height], fill=(15, 15, 15))
             
+            # Dynamic Fill
             fill_h = (percent / 100) * height
             draw.rectangle([meter_x, height - fill_h, meter_x + meter_w, height], fill=(233, 30, 99))
 
-            # 5. TITANIC SCORE ENGINE (400pt Scale)
+            # 4. TITANIC FONT SCALE (This is the fix)
             score_txt = f"{percent}%"
-            score_layer = Image.new("RGBA", (width, height), (0,0,0,0))
-            score_draw = ImageDraw.Draw(score_layer)
-            
+            # We use 280pt on a 400px height canvas - it will be GIGANTIC
             font_paths = ["arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "DejaVuSans-Bold.ttf"]
             font = None
             for p in font_paths:
                 try:
-                    font = ImageFont.truetype(p, 420) 
+                    font = ImageFont.truetype(p, 280) 
                     break
                 except: continue
             if not font: font = ImageFont.load_default()
 
-            # Layered Text Rendering (Outer Glow -> Main)
-            score_draw.text((width//2, height//2), score_txt, fill=(233, 30, 99, 60), anchor="mm", font=font, stroke_width=25, stroke_fill=(233, 30, 99, 30))
+            # 5. RENDER SCORE AS TOP LAYER
+            score_layer = Image.new("RGBA", (width, height), (0,0,0,0))
+            score_draw = ImageDraw.Draw(score_layer)
+            
+            # Black shadow for readability
+            score_draw.text((width//2 + 5, height//2 + 5), score_txt, fill=(0, 0, 0, 180), anchor="mm", font=font)
+            # Bright white massive text
             score_draw.text((width//2, height//2), score_txt, fill=(255, 255, 255, 255), anchor="mm", font=font)
 
-            # 6. FINAL ASSEMBLY
-            canvas.paste(img1_final, (50, 70), mask)
-            canvas.paste(img2_final, (width - av_size - 50, 70), mask)
+            # 6. FINAL ASSEMBLY (Avatars -> Meter -> Giant Text)
+            canvas.paste(img1, (25, 25), mask)
+            canvas.paste(img2, (width - av_size - 25, 25), mask)
+            
+            # Apply the giant text layer over everything
             canvas = Image.alpha_composite(canvas, score_layer)
 
             buf = io.BytesIO()
@@ -121,7 +116,7 @@ class ArenaShip(commands.Cog):
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"Legendary Engine Error: {e}")
+            print(f"Titan Error: {e}")
             return None
 
     @commands.command(name="ship")
@@ -138,14 +133,13 @@ class ArenaShip(commands.Cog):
 
         async with ctx.typing():
             img = await self.generate_web_ui(u1.display_avatar.url, u2.display_avatar.url, pct)
-            embed = discord.Embed(title="❤️ Shipped off & off!", description=f"**{u1.mention} & {u2.mention}**\n*{desc}*", color=0xE91E63)
-            
             if img:
+                embed = discord.Embed(title="❤️ Shipped off & off!", description=f"**{u1.mention} & {u2.mention}**\n*{desc}*", color=0xE91E63)
                 file = discord.File(fp=img, filename="ship.png")
                 embed.set_image(url="attachment://ship.png")
                 await ctx.send(file=file, embed=embed)
             else:
-                await ctx.send(content=f"⚠️ Visual Error. Result: **Sync: {pct}%**", embed=embed)
+                await ctx.send(f"⚠️ UI Generation Failed. Score: {pct}%")
 
     @commands.command(name="marry")
     async def marry(self, ctx, member: discord.Member):
