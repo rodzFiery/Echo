@@ -5,13 +5,20 @@ import io
 import aiohttp
 import os
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 import __main__
 
 class Ship(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        # Database Setup for Top Ships
+        self.conn = sqlite3.connect('ships.db')
+        self.cursor = self.conn.cursor()
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS ship_history 
+                              (user_id INTEGER, target_id INTEGER, target_name TEXT, percentage INTEGER, timestamp DATETIME)''')
+        self.conn.commit()
+
         # 175 Heartfelt Messages Tiered by Percentage (Expanded Again)
         self.arena_messages = {
             "0-15": [
@@ -130,34 +137,27 @@ class Ship(commands.Cog):
         canvas.paste(av2, (820, 110), av2)
 
         # 4. REFINED: High-Intensity Dynamic Column - SOFT PINK CRYSTAL
-        # ADJUSTED: Width reduced from 360 to 220. Centered at 490.
         bar_x, bar_y, bar_w, bar_h = 490, 20, 220, 560
         
-        # Inner column glow (Soft Pink Hue)
         col_glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         cg_draw = ImageDraw.Draw(col_glow)
         cg_draw.rectangle([bar_x-15, bar_y, bar_x+bar_w+15, bar_y+bar_h], fill=(255, 182, 193, 30))
         col_glow = col_glow.filter(ImageFilter.GaussianBlur(20))
         canvas.paste(col_glow, (0, 0), col_glow)
 
-        # Translucent glass backing (Darker to make pink pop)
         draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(20, 5, 10, 190)) 
         
         fill_height = int((percentage / 100) * bar_h)
         fill_top_y = (bar_y + bar_h) - fill_height
         
-        # Fixed Color: Soft Romantic Pink
         main_color = (255, 182, 193) # Light Pink
 
         if fill_height > 5:
-            # Multi-layered "Liquid Light" Fill
             for i in range(fill_top_y, bar_y + bar_h):
-                # Shimmer effect for a liquid crystal look
                 shimmer = int(30 * random.random())
                 r, g, b = main_color
                 draw.line([(bar_x + 10, i), (bar_x + bar_w - 10, i)], fill=(r, g + shimmer, b + shimmer, 240))
 
-            # ADDITION: Bright Core Pulse Beam
             core_w = bar_w // 5
             draw.rectangle([bar_x + (bar_w//2) - core_w, fill_top_y, bar_x + (bar_w//2) + core_w, bar_y + bar_h], fill=(255, 255, 255, 110))
 
@@ -175,12 +175,10 @@ class Ship(commands.Cog):
             except:
                 font_pct = ImageFont.load_default()
 
-        # Neon Glow Layer for Text - Soft Pink Aura
         glow_color = (255, 20, 147, 160) if percentage == 69 else (255, 182, 193, 140)
         t_draw.text((500, 270), text_str, fill=glow_color, font=font_pct, anchor="mm", stroke_width=35)
         text_canvas = text_canvas.filter(ImageFilter.GaussianBlur(15))
         
-        # Sharp White Core Text
         t_draw = ImageDraw.Draw(text_canvas)
         t_draw.text((500, 270), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=20, stroke_fill="black")
         
@@ -224,6 +222,11 @@ class Ship(commands.Cog):
         async with ctx.typing():
             try:
                 percentage = random.randint(0, 100)
+
+                # Log to History for !topship
+                self.cursor.execute("INSERT INTO ship_history VALUES (?, ?, ?, ?, ?)", 
+                                   (ctx.author.id, user2.id, user2.display_name, percentage, datetime.now()))
+                self.conn.commit()
                 
                 async with aiohttp.ClientSession() as session:
                     async with session.get(str(user1.display_avatar.url)) as resp1:
@@ -239,7 +242,6 @@ class Ship(commands.Cog):
                 embed = discord.Embed(title="💕 The Love Sanctuary Result 💕", color=0xff69b4)
                 embed.set_image(url="attachment://ship_result.png")
 
-                # Tiered Message Logic
                 if percentage <= 15: tier = "0-15"
                 elif percentage <= 30: tier = "16-30"
                 elif percentage <= 45: tier = "31-45"
@@ -249,8 +251,6 @@ class Ship(commands.Cog):
                 else: tier = "91-100"
                 
                 selected_msg = random.choice(self.arena_messages[tier])
-                
-                # Manual Override for 69%
                 if percentage == 69:
                     selected_msg = "A mischievous spark is in the air! Naughty and nice in perfect balance. 😏"
                 
@@ -265,19 +265,49 @@ class Ship(commands.Cog):
                 else: status = "💎 SOULMATE SUPREME - UNSTOPPABLE DESTINY 💎"
                 
                 embed.set_footer(text=f"Sanctuary Status: {status}")
-                
                 await ctx.send(file=file, embed=embed)
                 
             except Exception as e:
                 print(f"Error in Ship Command: {e}")
-                await ctx.send("⚠️ An error occurred while generating the love card. Check the console.")
+                await ctx.send("⚠️ An error occurred while generating the love card.")
 
-    @commands.command(name="matchme")
-    async def matchme(self, ctx):
+    @commands.command(name="topship")
+    async def topship(self, ctx):
         # PREMIUM CHECK
         if not self.check_premium(ctx.guild.id):
             embed = discord.Embed(title="🔒 MODULE LOCKED", color=0xff0000)
-            embed.description = "The **LOVE** module is not active for this server. An administrator must use `!premium` to unlock high-tier sanctuary features."
+            embed.description = "The **LOVE** module is not active for this server. Use `!premium` to unlock."
+            return await ctx.send(embed=embed)
+
+        async with ctx.typing():
+            try:
+                thirty_days_ago = datetime.now() - timedelta(days=30)
+                self.cursor.execute("""SELECT target_name, MAX(percentage) FROM ship_history 
+                                     WHERE user_id = ? AND timestamp > ? 
+                                     GROUP BY target_id ORDER BY MAX(percentage) DESC LIMIT 5""", 
+                                  (ctx.author.id, thirty_days_ago))
+                results = self.cursor.fetchall()
+
+                embed = discord.Embed(title="💖 YOUR TOP CONNECTIONS (30 DAYS) 💖", color=0xff69b4)
+                if not results:
+                    embed.description = "You haven't set sail with anyone in the Sanctuary yet!"
+                else:
+                    medals = ["🥇", "🥈", "🥉", "✨", "✨"]
+                    text = ""
+                    for i, (name, pct) in enumerate(results):
+                        text += f"{medals[i]} **{name}** — **{pct}%**\n"
+                    embed.description = text
+                
+                await ctx.send(embed=embed)
+            except Exception as e:
+                print(f"Topship Error: {e}")
+                await ctx.send("⚠️ Unable to retrieve your Sanctuary history.")
+
+    @commands.command(name="matchme")
+    async def matchme(self, ctx):
+        if not self.check_premium(ctx.guild.id):
+            embed = discord.Embed(title="🔒 MODULE LOCKED", color=0xff0000)
+            embed.description = "The **LOVE** module is not active for this server. Use `!premium` to unlock."
             return await ctx.send(embed=embed)
 
         async with ctx.typing():
@@ -312,5 +342,7 @@ class Ship(commands.Cog):
                 print(f"Error: {e}")
                 await ctx.send("⚠️ The Sanctuary is too warm!")
 
+async def setup(bot):
+    await bot.add_cog(Ship(bot))
 async def setup(bot):
     await bot.add_cog(Ship(bot))
