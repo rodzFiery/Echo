@@ -124,7 +124,8 @@ class Ship(commands.Cog):
         canvas.paste(av2, (820, 110), av2)
 
         # 4. REFINED: High-Intensity Dynamic Column - SOFT PINK CRYSTAL
-        bar_x, bar_y, bar_w, bar_h = 420, 20, 360, 560
+        # ADJUSTED: Width reduced from 360 to 220. Centered at 490.
+        bar_x, bar_y, bar_w, bar_h = 490, 20, 220, 560
         
         # Inner column glow (Soft Pink Hue)
         col_glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
