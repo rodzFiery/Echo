@@ -59,37 +59,46 @@ class Ship(commands.Cog):
         canvas.paste(glow2, (785, 75), glow2)
         canvas.paste(av2, (820, 110), av2)
 
-        # 4. REDESIGNED: Organic Light-Filled Column
-        # Filling the full space between top/bottom and avatars
+        # 4. REFINED: High-Intensity Dynamic Column
         bar_x, bar_y, bar_w, bar_h = 420, 20, 360, 560
         
-        # Soft outer glow for the column (Non-robotic look)
+        # Inner column glow
         col_glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         cg_draw = ImageDraw.Draw(col_glow)
-        cg_draw.rectangle([bar_x-20, bar_y-10, bar_x+bar_w+20, bar_y+bar_h+10], fill=(255, 50, 50, 40))
-        col_glow = col_glow.filter(ImageFilter.GaussianBlur(20))
+        cg_draw.rectangle([bar_x-10, bar_y, bar_x+bar_w+10, bar_y+bar_h], fill=(255, 255, 255, 20))
+        col_glow = col_glow.filter(ImageFilter.GaussianBlur(15))
         canvas.paste(col_glow, (0, 0), col_glow)
 
         # Translucent glass backing
-        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(255, 255, 255, 15)) 
+        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(10, 0, 0, 180)) 
         
         fill_height = int((percentage / 100) * bar_h)
         fill_top_y = (bar_y + bar_h) - fill_height
         
-        if fill_height > 5:
-            # Multi-layered light fill (Inner Glow)
-            for i in range(fill_top_y, bar_y + bar_h):
-                # Smooth transition from lime to bright white-green
-                intensity = int(180 + (i - fill_top_y) / (fill_height + 1) * 75)
-                # Drawing a slightly wider beam for a "light" effect
-                draw.line([(bar_x + 5, i), (bar_x + bar_w - 5, i)], fill=(100, intensity, 50, 200))
+        # Determine Dynamic Color: Shifting from Red-Orange to Neon Green
+        if percentage < 50:
+            main_color = (255, 100, 0) # Fire Orange
+        else:
+            main_color = (57, 255, 20) # Neon Green
 
-        # 5. MEGA ZOOMED PERCENTAGE LOGIC
+        if fill_height > 5:
+            # Multi-layered "Liquid Light" Fill
+            for i in range(fill_top_y, bar_y + bar_h):
+                # Gradient shimmer effect
+                shimmer = int(20 * random.random())
+                r, g, b = main_color
+                draw.line([(bar_x + 8, i), (bar_x + bar_w - 8, i)], fill=(r, g + shimmer, b, 230))
+
+            # ADDITION: Bright Core Beam (The "Pulse")
+            core_w = bar_w // 4
+            draw.rectangle([bar_x + (bar_w//2) - core_w, fill_top_y, bar_x + (bar_w//2) + core_w, bar_y + bar_h], fill=(255, 255, 255, 100))
+
+        # 5. REFINED: NEON PERCENTAGE DISPLAY
         text_str = f"{percentage}%"
         text_canvas = Image.new('RGBA', (1000, 550), (0, 0, 0, 0))
         t_draw = ImageDraw.Draw(text_canvas)
         
-        f_size = 380 
+        f_size = 400 # Slightly bigger
         try:
             font_pct = ImageFont.truetype("arial.ttf", f_size)
         except:
@@ -98,8 +107,14 @@ class Ship(commands.Cog):
             except:
                 font_pct = ImageFont.load_default()
 
-        t_draw.text((508, 278), text_str, fill=(255, 255, 255, 50), font=font_pct, anchor="mm")
-        t_draw.text((500, 270), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=16, stroke_fill="black")
+        # Neon Glow Layer for Text
+        glow_color = (main_color[0], main_color[1], main_color[2], 120)
+        t_draw.text((500, 270), text_str, fill=glow_color, font=font_pct, anchor="mm", stroke_width=25)
+        text_canvas = text_canvas.filter(ImageFilter.GaussianBlur(10))
+        
+        # Sharp White Core Text
+        t_draw = ImageDraw.Draw(text_canvas)
+        t_draw.text((500, 270), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=18, stroke_fill="black")
         
         if font_pct.getbbox(text_str)[2] < 100: 
             text_canvas = text_canvas.resize((3000, 1600), Image.Resampling.NEAREST)
@@ -107,7 +122,7 @@ class Ship(commands.Cog):
         else:
             canvas.paste(text_canvas, (100, 50), text_canvas)
 
-        # 6. ADDITION: 100% Special Heart Icon
+        # 6. 100% Special Heart Icon
         if percentage == 100:
             heart_layer = Image.new('RGBA', (width, height), (0, 0, 0, 0))
             h_draw = ImageDraw.Draw(heart_layer)
@@ -165,71 +180,39 @@ class Ship(commands.Cog):
                 print(f"Error in Ship Command: {e}")
                 await ctx.send("⚠️ An error occurred while generating the ship card. Check the console.")
 
-    # --- ADDITION: !matchme command logic ---
     @commands.command(name="matchme")
     async def matchme(self, ctx):
         async with ctx.typing():
             try:
-                # Use a sample of members to avoid rate limits/heavy processing in large servers
                 members = [m for m in ctx.guild.members if not m.bot and m.id != ctx.author.id]
-                
-                if not members:
-                    return await ctx.send("⚠️ No arena contenders found in this server!")
-
-                # Calculate "Love Tension" (Score) for each member
-                # We use a formula based on IDs and today's date so results stay fixed for 24h
+                if not members: return await ctx.send("⚠️ No arena contenders found!")
                 matches = []
                 today = datetime.now().strftime("%Y-%m-%d")
-                
                 for member in members:
-                    # Deterministic random seed
                     seed = f"{ctx.author.id}{member.id}{today}"
                     random.seed(seed)
                     score = random.randint(1, 100)
                     matches.append((member, score))
-                
-                # Sort by highest score and take top 5
                 matches.sort(key=lambda x: x[1], reverse=True)
                 top_5 = matches[:5]
-
-                # --- EMBED BUILDING ---
-                embed = discord.Embed(
-                    title="🔥 ARENA TENSION: TOP 5 MATCHES 🔥",
-                    description=f"Scanning the crowd for **{ctx.author.display_name}**'s perfect match...",
-                    color=0xFF4500 # Fiery Orange
-                )
-                
-                # Add members to the arena list
+                embed = discord.Embed(title="🔥 ARENA TENSION: TOP 5 MATCHES 🔥", description=f"Scanning the crowd for **{ctx.author.display_name}**'s perfect match...", color=0xFF4500)
                 ranking_text = ""
                 medals = ["🥇", "🥈", "🥉", "🏅", "🏅"]
-                
                 for i, (member, score) in enumerate(top_5):
                     intensity = "MAXIMUM" if score > 90 else "HIGH" if score > 70 else "WARM"
                     ranking_text += f"{medals[i]} **{member.display_name}** — **{score}%** `{intensity}`\n"
-
                 embed.add_field(name="⚔️ Current Contenders", value=ranking_text, inline=False)
-                
-                # Setup fiery logo/thumbnail (Assumes fierylogo.jpg is in the bot root)
                 if os.path.exists("fierylogo.jpg"):
                     file = discord.File("fierylogo.jpg", filename="fierylogo.jpg")
                     embed.set_thumbnail(url="attachment://fierylogo.jpg")
-                else:
-                    embed.set_thumbnail(url=ctx.author.display_avatar.url)
-
-                embed.set_footer(text=f"The Love Arena is burning hot today! • {today}", icon_url=ctx.author.display_avatar.url)
-                
-                # If logo file exists, send it with the embed
-                if os.path.exists("fierylogo.jpg"):
                     await ctx.send(file=file, embed=embed)
                 else:
+                    embed.set_thumbnail(url=ctx.author.display_avatar.url)
                     await ctx.send(embed=embed)
-                
-                # Reset random seed for other commands
                 random.seed()
-
             except Exception as e:
-                print(f"Error in MatchMe Command: {e}")
-                await ctx.send("⚠️ The Arena is too hot! Failed to calculate matches.")
+                print(f"Error: {e}")
+                await ctx.send("⚠️ The Arena is too hot!")
 
 async def setup(bot):
     await bot.add_cog(Ship(bot))
