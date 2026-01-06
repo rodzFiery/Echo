@@ -60,7 +60,7 @@ class Ship(commands.Cog):
                 "THE SANCTUARY HAS EXPLODED! TRUE LOVE!", "A DIVINE MATCH MADE IN THE HEAVENS!", "ULTIMATE COMPATIBILITY DETECTED!", "THE LOVE SANCTUARY IS IN TOTAL SHOCK!", "A PERFECT HARMONY OF SOULS!", 
                 "BEYOND LEGENDARY. BEYOND PERFECTION.", "THE DESTINY METER JUST BROKE!", "UNSTOPPABLE SOUL POWER!", "THE HEARTS ARE WEEPING FROM JOY!", "A MATCH THAT WILL BE REMEMBERED FOREVER!", 
                 "TOTAL SANCTUARY DOMINATION BY LOVE!", "THE EMBERS HAVE TURNED INTO A SUPERNOVA!", "YOU ARE THE KINGS OF THE LOVE SANCTUARY!", "A DIAMOND IN THE ROUGH? NO, A DIAMOND HEART!", "ABSOLUTE PERFECTION FOUND!",
-                "THE LAWS OF PHYSICS NO LONGER APPLY TO THIS COUPLE!", "GOD-TIER CONNECTION CONFIRMED.", "THE ARENA HAS ASCENDED TO A HIGHER PLANE.", "WE ARE WITNESSING A MIRACLE IN THE SANCTUARY.", "INFINITY PERCENT COMPATIBILITY REACHED.",
+                "THE LAWS OF PHYSICS NO LONADY APPLY TO THIS COUPLE!", "GOD-TIER CONNECTION CONFIRMED.", "THE ARENA HAS ASCENDED TO A HIGHER PLANE.", "WE ARE WITNESSING A MIRACLE IN THE SANCTUARY.", "INFINITY PERCENT COMPATIBILITY REACHED.",
                 "THE SANCTUARY IS MELTING INTO PURE GOLD.", "THE HEARTS OF THE AUDIENCE HAVE BECOME ONE WITH YOURS.", "A MATCH SO BRIGHT IT BLINDS THE SPECTATORS.", "ETERNAL CHAMPIONS OF THE HEART.", "THE UNIVERSE ITSELF CHEERS FOR YOU TWO."
             ]
         }
@@ -110,7 +110,13 @@ class Ship(commands.Cog):
             img = img.resize((380, 380)) 
             glow = Image.new("RGBA", (450, 450), (0, 0, 0, 0))
             g_draw = ImageDraw.Draw(glow)
-            glow_color = (255, 105, 180, 220) if percentage > 50 else (180, 0, 255, 160)
+            
+            # Special logic for 69% (Mischievous Glow)
+            if percentage == 69:
+                glow_color = (255, 20, 147, 230) 
+            else:
+                glow_color = (255, 105, 180, 220) if percentage > 50 else (180, 0, 255, 160)
+                
             g_draw.ellipse([0, 0, 450, 450], fill=glow_color)
             glow = glow.filter(ImageFilter.GaussianBlur(35))
             return img, glow
@@ -170,7 +176,7 @@ class Ship(commands.Cog):
                 font_pct = ImageFont.load_default()
 
         # Neon Glow Layer for Text - Soft Pink Aura
-        glow_color = (255, 182, 193, 140)
+        glow_color = (255, 20, 147, 160) if percentage == 69 else (255, 182, 193, 140)
         t_draw.text((500, 270), text_str, fill=glow_color, font=font_pct, anchor="mm", stroke_width=35)
         text_canvas = text_canvas.filter(ImageFilter.GaussianBlur(15))
         
@@ -243,14 +249,20 @@ class Ship(commands.Cog):
                 else: tier = "91-100"
                 
                 selected_msg = random.choice(self.arena_messages[tier])
+                
+                # Manual Override for 69%
+                if percentage == 69:
+                    selected_msg = "A mischievous spark is in the air! Naughty and nice in perfect balance. 😏"
+                
                 embed.description = f"**{selected_msg}**"
 
                 if percentage == 0: status = "🧊 Absolute Zero - Ice Cold"
+                elif percentage == 69: status = "😏 MISCHIEVOUS SPARK - OH MY! 😏"
                 elif percentage < 25: status = "💔 Broken Bonds - No Match"
                 elif percentage < 50: status = "🤝 Just Friends - Casual"
                 elif percentage < 75: status = "💖 Growing Spark - Sweet"
                 elif percentage < 100: status = "🔥 Eternal Flames - Perfection"
-                else: status = "💎 UNSTOPPABLE DESTINY 💎"
+                else: status = "💎 SOULMATE SUPREME - UNSTOPPABLE DESTINY 💎"
                 
                 embed.set_footer(text=f"Sanctuary Status: {status}")
                 
