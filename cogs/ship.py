@@ -46,18 +46,20 @@ class Ship(commands.Cog):
         def process_avatar(avatar_bytes):
             img = Image.open(io.BytesIO(avatar_bytes)).convert("RGBA")
             img = img.resize((250, 250))
-            # ENHANCED: Multi-layer Glow (Flame Aura)
+            # ENHANCED: Multi-layer Glow (Flame Aura) - No borders
             glow = Image.new("RGBA", (320, 320), (0, 0, 0, 0))
             g_draw = ImageDraw.Draw(glow)
-            # Fiery outer aura
+            # Fiery outer aura centered
             glow_color = (255, 69, 0, 200) if percentage > 50 else (180, 0, 255, 150)
-            g_draw.rectangle([0, 0, 320, 320], fill=glow_color)
+            # Draw a blurred circle instead of a rectangle to remove box borders
+            g_draw.ellipse([10, 10, 310, 310], fill=glow_color)
             glow = glow.filter(ImageFilter.GaussianBlur(25))
             return img, glow
 
         av1, glow1 = process_avatar(avatar1_bytes)
         av2, glow2 = process_avatar(avatar2_bytes)
 
+        # Pasting glows first, then avatars on top
         canvas.paste(glow1, (65, 140), glow1)
         canvas.paste(av1, (100, 175), av1)
         canvas.paste(glow2, (815, 140), glow2)
@@ -80,12 +82,14 @@ class Ship(commands.Cog):
                 intensity = int(150 + (i - fill_top_y) / (fill_height + 1) * 105)
                 draw.line([(bar_x + 10, i), (bar_x + bar_w - 10, i)], fill=(57, intensity, 20, 255))
 
-        # 5. MEGA ZOOMED PERCENTAGE LOGIC (TRIPLE SIZE)
+        # 5. MEGA ZOOMED PERCENTAGE LOGIC (ULTRA SIZE)
         text_str = f"{percentage}%"
-        text_canvas = Image.new('RGBA', (800, 400), (0, 0, 0, 0))
+        # Increased text_canvas size for even larger font
+        text_canvas = Image.new('RGBA', (1000, 500), (0, 0, 0, 0))
         t_draw = ImageDraw.Draw(text_canvas)
         
-        f_size = 250 
+        # Increased font size to 350 for massive visibility
+        f_size = 350 
         try:
             font_pct = ImageFont.truetype("arial.ttf", f_size)
         except:
@@ -95,14 +99,16 @@ class Ship(commands.Cog):
                 font_pct = ImageFont.load_default()
 
         # ENHANCED: Add a neon shadow to the text layer
-        t_draw.text((404, 204), text_str, fill=(255, 0, 0, 100), font=font_pct, anchor="mm")
-        t_draw.text((400, 200), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=10, stroke_fill="black")
+        t_draw.text((504, 254), text_str, fill=(255, 0, 0, 100), font=font_pct, anchor="mm")
+        t_draw.text((500, 250), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=12, stroke_fill="black")
         
+        # Logic to scale if the font is small/default
         if font_pct.getbbox(text_str)[2] < 100: 
-            text_canvas = text_canvas.resize((2400, 1200), Image.Resampling.NEAREST)
-            canvas.paste(text_canvas, (-600, -300), text_canvas) 
+            text_canvas = text_canvas.resize((3000, 1500), Image.Resampling.NEAREST)
+            canvas.paste(text_canvas, (-900, -500), text_canvas) 
         else:
-            canvas.paste(text_canvas, (200, 100), text_canvas)
+            # Shifted slightly to center the larger 1000px canvas on the 1200px background
+            canvas.paste(text_canvas, (100, 50), text_canvas)
 
         # 6. ADDITION: 100% Special Heart Icon
         if percentage == 100:
