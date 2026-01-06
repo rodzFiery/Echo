@@ -48,67 +48,62 @@ class ArenaShip(commands.Cog):
         return False
 
     async def generate_web_ui(self, u1_url, u2_url, percent):
-        """TITANIC SCORE VERSION: Fixes the small number issue by using a high-impact layout."""
+        """LEGENDARY FIX: Shrunk canvas + Titanic 300pt font for Image 1 accuracy."""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
                     if r1.status != 200 or r2.status != 200: return None
-                    img1_data = await r1.read()
-                    img2_data = await r2.read()
-                    img1 = Image.open(io.BytesIO(img1_data)).convert("RGBA")
-                    img2 = Image.open(io.BytesIO(img2_data)).convert("RGBA")
+                    img1 = Image.open(io.BytesIO(await r1.read())).convert("RGBA")
+                    img2 = Image.open(io.BytesIO(await r2.read())).convert("RGBA")
 
-            # --- CANVAS ENGINE (Optimized for high-impact text) ---
-            width, height = 900, 400
+            # --- CANVAS CONFIG (Shrunk for higher density text) ---
+            width, height = 850, 380 
             canvas = Image.new("RGBA", (width, height), (32, 34, 37, 255)) 
             draw = ImageDraw.Draw(canvas)
             
-            # 1. ACCENT LINE
+            # 1. SIDE ACCENT
             draw.rectangle([0, 0, 10, height], fill=(233, 30, 99))
 
             # 2. AVATAR FORMATTING
-            av_size = 350
+            av_size = 330
             img1 = ImageOps.fit(img1, (av_size, av_size))
             img2 = ImageOps.fit(img2, (av_size, av_size))
             
             mask = Image.new("L", (av_size, av_size), 0)
-            ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=50, fill=255)
+            ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=60, fill=255)
 
-            # 3. CENTRAL METER (BACKGROUND)
-            meter_w = 140
+            # 3. CENTRAL METER
+            meter_w = 150
             meter_x = (width // 2) - (meter_w // 2)
             draw.rectangle([meter_x, 0, meter_x + meter_w, height], fill=(15, 15, 15))
             
-            # Dynamic Fill
             fill_h = (percent / 100) * height
             draw.rectangle([meter_x, height - fill_h, meter_x + meter_w, height], fill=(233, 30, 99))
 
-            # 4. TITANIC FONT SCALE (This is the fix)
+            # 4. GARGANTUAN FONT ENGINE (The 100% Fix)
             score_txt = f"{percent}%"
-            # We use 280pt on a 400px height canvas - it will be GIGANTIC
+            # 300pt font on a 380px high canvas will be GIGANTIC
             font_paths = ["arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "DejaVuSans-Bold.ttf"]
             font = None
             for p in font_paths:
                 try:
-                    font = ImageFont.truetype(p, 280) 
+                    font = ImageFont.truetype(p, 300) 
                     break
                 except: continue
             if not font: font = ImageFont.load_default()
 
-            # 5. RENDER SCORE AS TOP LAYER
+            # 5. OVERLAY LAYER (Prevents clipping)
             score_layer = Image.new("RGBA", (width, height), (0,0,0,0))
-            score_draw = ImageDraw.Draw(score_layer)
+            s_draw = ImageDraw.Draw(score_layer)
             
-            # Black shadow for readability
-            score_draw.text((width//2 + 5, height//2 + 5), score_txt, fill=(0, 0, 0, 180), anchor="mm", font=font)
-            # Bright white massive text
-            score_draw.text((width//2, height//2), score_txt, fill=(255, 255, 255, 255), anchor="mm", font=font)
+            # Massive Shadow
+            s_draw.text((width//2 + 5, height//2 + 5), score_txt, fill=(0, 0, 0, 200), anchor="mm", font=font)
+            # Main Giant White Text
+            s_draw.text((width//2, height//2), score_txt, fill=(255, 255, 255, 255), anchor="mm", font=font)
 
-            # 6. FINAL ASSEMBLY (Avatars -> Meter -> Giant Text)
+            # 6. COMPOSITING
             canvas.paste(img1, (25, 25), mask)
             canvas.paste(img2, (width - av_size - 25, 25), mask)
-            
-            # Apply the giant text layer over everything
             canvas = Image.alpha_composite(canvas, score_layer)
 
             buf = io.BytesIO()
@@ -116,7 +111,7 @@ class ArenaShip(commands.Cog):
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"Titan Error: {e}")
+            print(f"Final Fix Error: {e}")
             return None
 
     @commands.command(name="ship")
@@ -139,7 +134,7 @@ class ArenaShip(commands.Cog):
                 embed.set_image(url="attachment://ship.png")
                 await ctx.send(file=file, embed=embed)
             else:
-                await ctx.send(f"⚠️ UI Generation Failed. Score: {pct}%")
+                await ctx.send(f"❌ Error generating UI. Score: {pct}%")
 
     @commands.command(name="marry")
     async def marry(self, ctx, member: discord.Member):
