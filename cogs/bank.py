@@ -1,5 +1,4 @@
 import discord
-from discord.ext import commandsimport discord
 from discord.ext import commands
 import sqlite3
 import os
@@ -51,15 +50,15 @@ class Bank(commands.Cog):
         ]
 
     def check_premium(self, guild_id):
-        # Access global PREMIUM_GUILDS from main.py safely
+        # Access shared PREMIUM_GUILDS from main.py via the bot instance
         now = datetime.now(timezone.utc).timestamp()
         guild_id_str = str(guild_id)
         
-        # Pull data directly from the bot instance memory
+        # Pull data directly from the bot memory
         premium_data = getattr(self.bot, 'PREMIUM_GUILDS', {})
         guild_mods = premium_data.get(guild_id_str, {})
         
-        # FIXED: Ensure expiry is treated as a float to prevent comparison errors
+        # Check for 'bank' module specifically
         raw_expiry = guild_mods.get('bank', 0)
         
         try:
@@ -124,10 +123,7 @@ class Bank(commands.Cog):
 
     async def execute_work(self, ctx):
         """Standardized logic for all work commands."""
-        # FIXED: Added print to logs to verify if check is passing
-        is_premium = self.check_premium(ctx.guild.id)
-        
-        if not is_premium:
+        if not self.check_premium(ctx.guild.id):
             return await ctx.send("🔒 Unlock the **BANK** module to use this command.")
 
         data = await self.get_user_data(ctx.author.id)
