@@ -242,8 +242,45 @@ class Bank(commands.Cog):
         if lvl_up: embed.add_field(name="✨ Level Up!", value=f"You reached Level **{new_lvl}**!", inline=False)
         await ctx.send(embed=embed)
 
+    # --- EXPANDED COMMANDS (Categorized as Work or Job) ---
+
+    @commands.command(name="clean")
+    async def clean(self, ctx):
+        """Work category: Clean the Sanctuary floors."""
+        self.work.reset_cooldown(ctx) # Shared cooldown with work
+        await self.work(ctx)
+
+    @commands.command(name="beg")
+    async def beg(self, ctx):
+        """Work category: Beg for Sparks in the Echo-Plaza."""
+        self.work.reset_cooldown(ctx)
+        await self.work(ctx)
+
+    @commands.command(name="slut")
+    async def slut(self, ctx):
+        """Work category: Sell your Echo-energy on the street."""
+        self.work.reset_cooldown(ctx)
+        await self.work(ctx)
+
+    @commands.command(name="crime")
+    async def crime(self, ctx):
+        """Job category: Attempt a high-stakes Echo-heist."""
+        self.job.reset_cooldown(ctx) # Shared cooldown with job
+        await self.job(ctx)
+
+    @commands.command(name="pimp")
+    async def pimp(self, ctx):
+        """Job category: Manage a ring of Echo-energy sellers."""
+        self.job.reset_cooldown(ctx)
+        await self.job(ctx)
+
     @work.error
     @job.error
+    @clean.error
+    @beg.error
+    @slut.error
+    @crime.error
+    @pimp.error
     async def command_error(self, ctx, error):
         if isinstance(error, commands.CommandOnCooldown):
             minutes, seconds = divmod(error.retry_after, 60)
