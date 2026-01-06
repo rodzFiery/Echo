@@ -50,6 +50,7 @@ class ArenaShip(commands.Cog):
         return False
 
     async def generate_web_ui(self, u1_url, u2_url, percent):
+        """Giant-Scale UI: Massive percentage overlay matching reference imagery."""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
@@ -58,16 +59,16 @@ class ArenaShip(commands.Cog):
                     img1 = Image.open(io.BytesIO(await r1.read())).convert("RGBA")
                     img2 = Image.open(io.BytesIO(await r2.read())).convert("RGBA")
 
-            # --- CANVAS ENGINE (Web Designer Pro Ratio) ---
+            # --- CANVAS CONFIGURATION ---
             width, height = 1000, 450
-            canvas = Image.new("RGBA", (width, height), (32, 34, 37, 255)) # Discord Dark
+            canvas = Image.new("RGBA", (width, height), (32, 34, 37, 255)) 
             draw = ImageDraw.Draw(canvas)
             
-            # 1. THE PINK ACCENT LINE (Left Side)
-            draw.rectangle([0, 0, 10, height], fill=(233, 30, 99))
+            # 1. LEFT PINK ACCENT
+            draw.rectangle([0, 0, 12, height], fill=(233, 30, 99))
 
-            # 2. AVATAR FORMATTING (Pro Rounded Corners)
-            av_size = 380
+            # 2. AVATAR FORMATTING
+            av_size = 410
             mask = Image.new("L", (av_size, av_size), 0)
             ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=60, fill=255)
             
@@ -76,38 +77,39 @@ class ArenaShip(commands.Cog):
             img1.putalpha(mask)
             img2.putalpha(mask)
 
-            # 3. THE CENTER METER ENGINE
-            meter_w, meter_h = 110, height - 100
+            # 3. THE CENTRAL METER (BACKGROUND)
+            meter_w = 120
             meter_x = (width // 2) - (meter_w // 2)
-            meter_y = 50
+            draw.rectangle([meter_x, 0, meter_x + meter_w, height], fill=(15, 15, 15))
             
-            # Background
-            draw.rectangle([meter_x, meter_y, meter_x + meter_w, meter_y + meter_h], fill=(15, 15, 15))
-            
-            # Dynamic Fill (Professional Pink)
-            fill_h = (percent / 100) * meter_h
-            draw.rectangle([meter_x, (meter_y + meter_h) - fill_h, meter_x + meter_w, meter_y + meter_h], fill=(233, 30, 99))
+            # Dynamic Fill
+            fill_h = (percent / 100) * height
+            draw.rectangle([meter_x, height - fill_h, meter_x + meter_w, height], fill=(233, 30, 99))
 
-            # 4. TYPOGRAPHY ENGINE (TITANIC CENTER)
+            # 4. TITANIC TYPOGRAPHY ENGINE (Massive Scale)
             font_paths = ["arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "DejaVuSans-Bold.ttf"]
-            font = next((ImageFont.truetype(p, 85) for p in font_paths if os.path.exists(p)), ImageFont.load_default())
+            # Increased font size to 180 for that "Giant" look
+            font = next((ImageFont.truetype(p, 180) for p in font_paths if os.path.exists(p)), ImageFont.load_default())
 
             score_txt = f"{percent}%"
-            # Text Shadow for Depth
-            draw.text((width//2 + 4, height//2 + 4), score_txt, fill=(0, 0, 0, 180), anchor="mm", font=font)
-            # Main Score
+            
+            # Double Shadow for Max Visibility
+            draw.text((width//2 + 6, height//2 + 6), score_txt, fill=(0, 0, 0, 100), anchor="mm", font=font)
+            draw.text((width//2 + 3, height//2 + 3), score_txt, fill=(0, 0, 0, 150), anchor="mm", font=font)
+            
+            # Main Giant Score
             draw.text((width//2, height//2), score_txt, fill=(255, 255, 255), anchor="mm", font=font)
 
-            # 5. COMPOSITING
-            canvas.paste(img1, (40, 35), img1)
-            canvas.paste(img2, (580, 35), img2)
+            # 5. COMPOSITING (Avatars slightly overlapping meter for depth)
+            canvas.paste(img1, (20, 20), img1)
+            canvas.paste(img2, (width - av_size - 20, 20), img2)
 
             buf = io.BytesIO()
             canvas.save(buf, format="PNG")
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"Professional UI Error: {e}")
+            print(f"Titan UI Error: {e}")
             return None
 
     @commands.command(name="ship")
