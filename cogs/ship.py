@@ -30,7 +30,7 @@ class ArenaShip(commands.Cog):
         return False
 
     async def generate_visual(self, u1_url, u2_url, percent):
-        """TITANIC TEXT ENGINE: Focused on maximum font scale for the % score."""
+        """GARGANTUAN TEXT ENGINE: Forces the % score to be the largest element."""
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(u1_url) as r1, session.get(u2_url) as r2:
@@ -42,18 +42,21 @@ class ArenaShip(commands.Cog):
             canvas = Image.new("RGBA", (width, height), (25, 25, 25, 255))
             draw = ImageDraw.Draw(canvas)
 
-            # --- 2. PERFECTED CENTRAL METER ---
-            meter_w = 180 # Kept as requested
+            # --- 2. SLEEK CENTRAL METER ---
+            meter_w = 180 
             meter_x = (width // 2) - (meter_w // 2)
             
+            # Meter Base
             draw.rectangle([meter_x, 0, meter_x + meter_w, height], fill=(10, 10, 10))
+            
+            # Meter Fill (Pink)
             fill_h = (percent / 100) * height
             draw.rectangle([meter_x, height - fill_h, meter_x + meter_w, height], fill=(233, 30, 99))
 
-            # --- 3. TITANIC FONT SCALING (THE FIX) ---
+            # --- 3. TITANIC FONT SCALING ---
             score_txt = f"{percent}%"
-            # Pushing font size to extreme limits relative to 500px height
-            font_size = 420 
+            # 450pt font on a 500px height is the absolute limit
+            font_size = 450 
             font_paths = ["arial.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "DejaVuSans-Bold.ttf"]
             font_path = next((p for p in font_paths if os.path.exists(p)), None)
 
@@ -62,32 +65,28 @@ class ArenaShip(commands.Cog):
             else:
                 font = ImageFont.load_default()
 
-            # --- 4. RENDER GARGANTUAN SCORE ---
-            # Create a transparent overlay specifically for the giant text
+            # --- 4. RENDER GARGANTUAN SCORE LAYER ---
+            # Separate layer ensures the text isn't constrained by the background draw
             txt_layer = Image.new("RGBA", (width, height), (0,0,0,0))
             t_draw = ImageDraw.Draw(txt_layer)
             
-            # Layered rendering for maximum readability at giant scale
-            # Layer A: Massive black drop-shadow/stroke (Width 15)
-            t_draw.text((width // 2, height // 2), score_txt, fill=(0, 0, 0, 255), 
-                        anchor="mm", font=font, stroke_width=15, stroke_fill=(0, 0, 0, 255))
-            
-            # Layer B: Clean white focal text
+            # Massive outline for high-contrast visibility
             t_draw.text((width // 2, height // 2), score_txt, fill=(255, 255, 255, 255), 
-                        anchor="mm", font=font)
+                        anchor="mm", font=font, stroke_width=15, stroke_fill=(0, 0, 0, 255))
 
             # --- 5. AVATAR PLACEMENT ---
-            av_size = 380 # Slightly larger for better balance
+            av_size = 380
             mask = Image.new("L", (av_size, av_size), 0)
-            ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=50, fill=255)
+            ImageDraw.Draw(mask).rounded_rectangle([0, 0, av_size, av_size], radius=60, fill=255)
             
             img1 = ImageOps.fit(img1, (av_size, av_size))
             img2 = ImageOps.fit(img2, (av_size, av_size))
             
-            canvas.paste(img1, (15, 60), mask)
-            canvas.paste(img2, (width - av_size - 15, 60), mask)
+            canvas.paste(img1, (10, 60), mask)
+            canvas.paste(img2, (width - av_size - 10, 60), mask)
 
-            # --- 6. MERGE TEXT OVER EVERYTHING ---
+            # --- 6. FINAL ALPHA COMPOSITE ---
+            # This places the giant text layer directly over the center meter and avatars
             canvas = Image.alpha_composite(canvas, txt_layer)
 
             buf = io.BytesIO()
@@ -95,7 +94,7 @@ class ArenaShip(commands.Cog):
             buf.seek(0)
             return buf
         except Exception as e:
-            print(f"Titan UI Error: {e}")
+            print(f"Visual Scaling Error: {e}")
             return None
 
     @commands.command(name="ship")
