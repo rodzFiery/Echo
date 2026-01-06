@@ -13,7 +13,6 @@ class Ship(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # --- IMAGE GENERATION SECTION ---
     def create_ship_card(self, avatar1_bytes, avatar2_bytes, percentage):
         width, height = 1200, 600
         canvas = Image.new('RGB', (width, height), color='#2c0003')
@@ -24,7 +23,7 @@ class Ship(commands.Cog):
             r = int(44 + (i / height) * 60)
             draw.line([(0, i), (width, i)], fill=(r, 0, 3))
 
-        # ADDITION: Floating Fire Particles
+        # Floating Fire Particles
         for _ in range(40):
             p_x = random.randint(0, width)
             p_y = random.randint(0, height)
@@ -35,7 +34,6 @@ class Ship(commands.Cog):
         def process_avatar(avatar_bytes):
             img = Image.open(io.BytesIO(avatar_bytes)).convert("RGBA")
             img = img.resize((250, 250))
-            # Flame Outline Glow
             glow = Image.new("RGBA", (280, 280), (0, 0, 0, 0))
             g_draw = ImageDraw.Draw(glow)
             color = (255, 69, 0, 180) if percentage > 50 else (100, 100, 100, 150)
@@ -61,57 +59,64 @@ class Ship(commands.Cog):
         if fill_height > 5:
             draw.rectangle([bar_x + 10, fill_top_y, bar_x + bar_w - 10, bar_y + bar_h - 5], fill="#39FF14")
 
-        # Text & Titles
+        # --- ADDED: ZOOMED PERCENTAGE LOGIC ---
+        # This creates the text as a separate image and "zooms" it to ensure it is huge
+        text_str = f"{percentage}%"
+        
         try:
-            # Note: Ensure arial.ttf is in your project folder or use a system path
-            font_pct = ImageFont.truetype("arial.ttf", 100)
-            font_sub = ImageFont.truetype("arial.ttf", 40)
+            # Attempting to load a system font (works on most Windows/Linux)
+            # You can also use "DejaVuSans-Bold.ttf" or "LiberationSans-Bold.ttf" for Linux
+            font_pct = ImageFont.truetype("arial.ttf", 120)
         except:
+            # FALLBACK: If font fails, we use the default but SCALE the image
             font_pct = ImageFont.load_default()
-            font_sub = ImageFont.load_default()
 
-        draw.text((600, 300), f"{percentage}%", fill="white", font=font_pct, anchor="mm", stroke_width=5, stroke_fill="black")
-        draw.text((600, 50), "SHIP COMPATIBILITY", fill="#FF4500", font=font_sub, anchor="mm")
+        # Create a temporary transparent canvas for the text to "Zoom" it
+        text_canvas = Image.new('RGBA', (400, 200), (0, 0, 0, 0))
+        t_draw = ImageDraw.Draw(text_canvas)
+        
+        # Draw the text on the temp canvas
+        t_draw.text((200, 100), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=2, stroke_fill="black")
+        
+        # If we are using the tiny default font, resize (zoom) the text image
+        if font_pct.getsize(text_str)[0] < 50: # Check if it's the tiny default
+            text_canvas = text_canvas.resize((800, 400), Image.Resampling.LANCZOS)
+        
+        # Paste the "Zoomed" text onto the main canvas
+        canvas.paste(text_canvas, (400, 200), text_canvas)
 
-        if percentage < 25:
-            draw.text((600, 540), "💔 IT'S COLD IN HERE 💔", fill="white", font=font_sub, anchor="mm")
-        elif percentage > 85:
-            draw.text((600, 540), "🔥🔥 TRUE LOVE 🔥🔥", fill="#FFD700", font=font_sub, anchor="mm")
+        # Additional descriptive text
+        try:
+            font_sub = ImageFont.truetype("arial.ttf", 40)
+            draw.text((600, 50), "SHIP COMPATIBILITY", fill="#FF4500", font=font_sub, anchor="mm")
+        except:
+            draw.text((600, 50), "SHIP COMPATIBILITY", fill="#FF4500", anchor="mm")
 
         buffer = io.BytesIO()
         canvas.save(buffer, format="PNG")
         buffer.seek(0)
         return buffer
 
-    # --- COMMAND SECTION ---
     @commands.command(name="ship")
     async def ship(self, ctx, user1: discord.Member, user2: discord.Member = None):
-        # If only one user is mentioned, ship the author with that user
         if user2 is None:
             user2 = user1
             user1 = ctx.author
 
         async with ctx.typing():
             percentage = random.randint(0, 100)
-            
             async with aiohttp.ClientSession() as session:
                 async with session.get(user1.display_avatar.url) as resp1:
                     av1_data = await resp1.read()
                 async with session.get(user2.display_avatar.url) as resp2:
                     av2_data = await resp2.read()
 
-            # Call the internal method using self
             image_buffer = self.create_ship_card(av1_data, av2_data, percentage)
-            
             file = discord.File(fp=image_buffer, filename="ship_result.png")
-            embed = discord.Embed(
-                title="💖 Ship Result 💖",
-                description=f"**{user1.display_name}** x **{user2.display_name}**",
-                color=0xff0000
-            )
+            
+            embed = discord.Embed(title="💖 Ship Result 💖", color=0xff0000)
             embed.set_image(url="attachment://ship_result.png")
             await ctx.send(file=file, embed=embed)
 
-# ADDITION: Setup function for Cogs
 async def setup(bot):
     await bot.add_cog(Ship(bot))
