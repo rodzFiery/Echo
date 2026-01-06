@@ -75,30 +75,36 @@ class Ship(commands.Cog):
         fill_height = int((percentage / 100) * bar_h)
         fill_top_y = (bar_y + bar_h) - fill_height
         
-        # Determine Dynamic Color: Shifting from Red-Orange to Neon Green
+        # --- DYNAMIC COLOR SHIFT ADDITION ---
+        # Transitions from Red (low) to Yellow (mid) to Neon Green (high)
         if percentage < 50:
-            main_color = (255, 100, 0) # Fire Orange
+            r_fill = 255
+            g_fill = int((percentage / 50) * 255)
+            b_fill = 0
         else:
-            main_color = (57, 255, 20) # Neon Green
+            r_fill = int(255 - ((percentage - 50) / 50) * 198)
+            g_fill = 255
+            b_fill = int(((percentage - 50) / 50) * 20)
+        
+        main_fill_color = (r_fill, g_fill, b_fill)
 
         if fill_height > 5:
-            # Multi-layered "Liquid Light" Fill
+            # Multi-layered "Liquid Light" Fill using the new dynamic color
             for i in range(fill_top_y, bar_y + bar_h):
                 # Gradient shimmer effect
-                shimmer = int(20 * random.random())
-                r, g, b = main_color
-                draw.line([(bar_x + 8, i), (bar_x + bar_w - 8, i)], fill=(r, g + shimmer, b, 230))
+                shimmer = int(25 * random.random())
+                draw.line([(bar_x + 8, i), (bar_x + bar_w - 8, i)], fill=(r_fill, g_fill + shimmer if g_fill + shimmer <= 255 else 255, b_fill, 230))
 
             # ADDITION: Bright Core Beam (The "Pulse")
             core_w = bar_w // 4
-            draw.rectangle([bar_x + (bar_w//2) - core_w, fill_top_y, bar_x + (bar_w//2) + core_w, bar_y + bar_h], fill=(255, 255, 255, 100))
+            draw.rectangle([bar_x + (bar_w//2) - core_w, fill_top_y, bar_x + (bar_w//2) + core_w, bar_y + bar_h], fill=(255, 255, 255, 120))
 
         # 5. REFINED: NEON PERCENTAGE DISPLAY
         text_str = f"{percentage}%"
         text_canvas = Image.new('RGBA', (1000, 550), (0, 0, 0, 0))
         t_draw = ImageDraw.Draw(text_canvas)
         
-        f_size = 400 # Slightly bigger
+        f_size = 450 # Increased for even bigger display
         try:
             font_pct = ImageFont.truetype("arial.ttf", f_size)
         except:
@@ -107,20 +113,21 @@ class Ship(commands.Cog):
             except:
                 font_pct = ImageFont.load_default()
 
-        # Neon Glow Layer for Text
-        glow_color = (main_color[0], main_color[1], main_color[2], 120)
-        t_draw.text((500, 270), text_str, fill=glow_color, font=font_pct, anchor="mm", stroke_width=25)
-        text_canvas = text_canvas.filter(ImageFilter.GaussianBlur(10))
+        # Neon Glow Layer for Text - Matches the fill color
+        glow_color_text = (r_fill, g_fill, b_fill, 130)
+        t_draw.text((500, 270), text_str, fill=glow_color_text, font=font_pct, anchor="mm", stroke_width=30)
+        text_canvas = text_canvas.filter(ImageFilter.GaussianBlur(12))
         
         # Sharp White Core Text
         t_draw = ImageDraw.Draw(text_canvas)
-        t_draw.text((500, 270), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=18, stroke_fill="black")
+        t_draw.text((500, 270), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=20, stroke_fill="black")
         
         if font_pct.getbbox(text_str)[2] < 100: 
             text_canvas = text_canvas.resize((3000, 1600), Image.Resampling.NEAREST)
             canvas.paste(text_canvas, (-900, -500), text_canvas) 
         else:
-            canvas.paste(text_canvas, (100, 50), text_canvas)
+            # Adjusted position to center on the new 420x20 column
+            canvas.paste(text_canvas, (100, 25), text_canvas)
 
         # 6. 100% Special Heart Icon
         if percentage == 100:
