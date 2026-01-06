@@ -330,6 +330,7 @@ async def fieryon(ctx):
     # Set expiry to 10 years in the future for dev server
     dev_expiry = (datetime.now(timezone.utc) + timedelta(days=3650)).timestamp()
 
+    # CRITICAL FIX: Directly update the shared instance within the bot
     if guild_id_str not in bot.PREMIUM_GUILDS:
         bot.PREMIUM_GUILDS[guild_id_str] = {}
 
@@ -352,6 +353,7 @@ async def fieryoff(ctx):
 
     guild_id_str = str(ctx.guild.id)
     
+    # CRITICAL FIX: Directly update the shared instance within the bot
     if guild_id_str in bot.PREMIUM_GUILDS:
         bot.PREMIUM_GUILDS[guild_id_str] = {}
         with open(PREMIUM_FILE, "w") as f:
