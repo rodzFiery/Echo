@@ -40,35 +40,36 @@ class Ship(commands.Cog):
             p_color = random.choice([(255, 200, 0, 160), (255, 80, 0, 180), (255, 255, 255, 120)])
             draw.ellipse([p_x, p_y, p_x + p_size, p_y + p_size], fill=p_color)
 
-        # 3. Avatar Processing - ZOOMED & BIGGER (350x350)
+        # 3. Avatar Processing - ZOOMED & NO BORDERS (380x380)
         def process_avatar(avatar_bytes):
             img = Image.open(io.BytesIO(avatar_bytes)).convert("RGBA")
-            img = img.resize((350, 350)) # Increased from 250
-            # ENHANCED: Multi-layer Glow (Flame Aura)
-            glow = Image.new("RGBA", (420, 420), (0, 0, 0, 0))
+            img = img.resize((380, 380)) # Zoomed in further
+            # ENHANCED: Circular Glow (Flame Aura) - No rectangle borders
+            glow = Image.new("RGBA", (450, 450), (0, 0, 0, 0))
             g_draw = ImageDraw.Draw(glow)
-            glow_color = (255, 69, 0, 200) if percentage > 50 else (180, 0, 255, 150)
-            g_draw.rectangle([0, 0, 420, 420], fill=glow_color)
-            glow = glow.filter(ImageFilter.GaussianBlur(30))
+            glow_color = (255, 69, 0, 220) if percentage > 50 else (180, 0, 255, 160)
+            # Use ellipse instead of rectangle to remove borders
+            g_draw.ellipse([0, 0, 450, 450], fill=glow_color)
+            glow = glow.filter(ImageFilter.GaussianBlur(35))
             return img, glow
 
         av1, glow1 = process_avatar(avatar1_bytes)
         av2, glow2 = process_avatar(avatar2_bytes)
 
-        # Adjusted positions for bigger avatars
-        canvas.paste(glow1, (10, 90), glow1)
-        canvas.paste(av1, (45, 125), av1)
-        canvas.paste(glow2, (770, 90), glow2)
-        canvas.paste(av2, (805, 125), av2)
+        # Adjusted positions for the ultra-zoom feel
+        canvas.paste(glow1, (-35, 75), glow1)
+        canvas.paste(av1, (0, 110), av1)
+        canvas.paste(glow2, (785, 75), glow2)
+        canvas.paste(av2, (820, 110), av2)
 
         # 4. ENHANCED: Bigger Glass-Morphism Compatibility Column
-        # Width increased to 160, height occupies more vertical space
-        bar_x, bar_y, bar_w, bar_h = 520, 80, 160, 450
+        # Width 180 for more impact, zoomed height
+        bar_x, bar_y, bar_w, bar_h = 510, 60, 180, 480
         
         # Column Border/Frame
-        draw.rectangle([bar_x-5, bar_y-5, bar_x+bar_w+5, bar_y+bar_h+5], outline=(255, 255, 255, 80), width=3)
+        draw.rectangle([bar_x-5, bar_y-5, bar_x+bar_w+5, bar_y+bar_h+5], outline=(255, 255, 255, 90), width=3)
         # Deep translucent backing
-        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(0, 0, 0, 220)) 
+        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(0, 0, 0, 230)) 
         
         fill_height = int((percentage / 100) * bar_h)
         fill_top_y = (bar_y + bar_h) - fill_height
@@ -79,14 +80,13 @@ class Ship(commands.Cog):
                 intensity = int(150 + (i - fill_top_y) / (fill_height + 1) * 105)
                 draw.line([(bar_x + 15, i), (bar_x + bar_w - 15, i)], fill=(57, intensity, 20, 255))
 
-        # 5. MEGA ZOOMED PERCENTAGE LOGIC (TRIPLE SIZE +)
+        # 5. MEGA ZOOMED PERCENTAGE LOGIC
         text_str = f"{percentage}%"
-        # Canvas widened to fit the bigger font
-        text_canvas = Image.new('RGBA', (1000, 500), (0, 0, 0, 0))
+        text_canvas = Image.new('RGBA', (1000, 550), (0, 0, 0, 0))
         t_draw = ImageDraw.Draw(text_canvas)
         
-        # Increased font size to 320 for the "Ultra Zoom" look
-        f_size = 320 
+        # Increased font size to 380 for the Ultra-Zoom effect
+        f_size = 380 
         try:
             font_pct = ImageFont.truetype("arial.ttf", f_size)
         except:
@@ -96,15 +96,15 @@ class Ship(commands.Cog):
                 font_pct = ImageFont.load_default()
 
         # ENHANCED: Add a neon shadow to the text layer
-        t_draw.text((506, 256), text_str, fill=(255, 0, 0, 120), font=font_pct, anchor="mm")
-        t_draw.text((500, 250), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=14, stroke_fill="black")
+        t_draw.text((508, 278), text_str, fill=(255, 0, 0, 130), font=font_pct, anchor="mm")
+        t_draw.text((500, 270), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=16, stroke_fill="black")
         
         if font_pct.getbbox(text_str)[2] < 100: 
-            text_canvas = text_canvas.resize((3000, 1500), Image.Resampling.NEAREST)
-            canvas.paste(text_canvas, (-900, -450), text_canvas) 
+            text_canvas = text_canvas.resize((3000, 1600), Image.Resampling.NEAREST)
+            canvas.paste(text_canvas, (-900, -500), text_canvas) 
         else:
-            # Center the massive text canvas over the widened column
-            canvas.paste(text_canvas, (100, 80), text_canvas)
+            # Centered over the widened column
+            canvas.paste(text_canvas, (100, 50), text_canvas)
 
         # 6. ADDITION: 100% Special Heart Icon
         if percentage == 100:
@@ -115,10 +115,10 @@ class Ship(commands.Cog):
 
         # Final labels with Fiery Color
         try:
-            font_sub = ImageFont.truetype("arial.ttf", 55) # Slightly bigger title
-            draw.text((600, 45), "❤️ LOVE ARENA ❤️", fill="#FFCC00", font=font_sub, anchor="mm", stroke_width=4, stroke_fill="black")
+            font_sub = ImageFont.truetype("arial.ttf", 60)
+            draw.text((600, 40), "❤️ LOVE ARENA ❤️", fill="#FFCC00", font=font_sub, anchor="mm", stroke_width=5, stroke_fill="black")
         except:
-            draw.text((600, 45), "LOVE ARENA", fill="#FFCC00", anchor="mm")
+            draw.text((600, 40), "LOVE ARENA", fill="#FFCC00", anchor="mm")
 
         buffer = io.BytesIO()
         canvas.save(buffer, format="PNG")
