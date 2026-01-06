@@ -191,8 +191,13 @@ class Bank(commands.Cog):
         await self.update_sparks(ctx.author.id, sp_gain)
         lvl_up, new_lvl = await self.update_echo_xp(ctx.author.id, xp_gain)
         
+        # Fetch NEW balance for the response
+        updated_data = await self.get_user_data(ctx.author.id)
+        new_balance = updated_data[0]
+        
         embed = discord.Embed(title="⚒️ Work Complete", description=random.choice(self.work_scenarios), color=0x2ecc71)
-        embed.add_field(name="Rewards", value=f"⚡ **{sp_gain}** Sparks\n💠 **{xp_gain}** Echo XP")
+        embed.add_field(name="Rewards", value=f"⚡ **+{sp_gain}** Sparks\n💠 **+{xp_gain}** Echo XP")
+        embed.add_field(name="💰 New Balance", value=f"**{new_balance:,}** Sparks", inline=False)
         if lvl_up: embed.add_field(name="✨ Level Up!", value=f"You reached Level **{new_lvl}**!", inline=False)
         await ctx.send(embed=embed)
 
@@ -226,9 +231,14 @@ class Bank(commands.Cog):
         
         await self.update_sparks(ctx.author.id, sp_gain)
         lvl_up, new_lvl = await self.update_echo_xp(ctx.author.id, xp_gain)
+
+        # Fetch NEW balance for the response
+        updated_data = await self.get_user_data(ctx.author.id)
+        new_balance = updated_data[0]
         
         embed = discord.Embed(title="💼 Job Finished", description=random.choice(self.job_scenarios), color=0x3498db)
-        embed.add_field(name="Rewards", value=f"⚡ **{sp_gain}** Sparks\n💠 **{xp_gain}** Echo XP")
+        embed.add_field(name="Rewards", value=f"⚡ **+{sp_gain}** Sparks\n💠 **+{xp_gain}** Echo XP")
+        embed.add_field(name="💰 New Balance", value=f"**{new_balance:,}** Sparks", inline=False)
         if lvl_up: embed.add_field(name="✨ Level Up!", value=f"You reached Level **{new_lvl}**!", inline=False)
         await ctx.send(embed=embed)
 
