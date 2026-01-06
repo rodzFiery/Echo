@@ -168,14 +168,13 @@ class Bank(commands.Cog):
     async def work(self, ctx):
         """Earn Sparks and XP through minor tasks (3h CD)"""
         if not self.check_premium(ctx.guild.id):
+            # FIXED: Reset cooldown if premium check fails so they don't lose their turn
             self.work.reset_cooldown(ctx)
             return await ctx.send("🔒 Unlock the **BANK** module to use the `work` command.")
         
-        # Cooldown Logic with Exhibitionist Bonus
         data = await self.get_user_data(ctx.author.id)
         class_type = data[3]
         
-        # Manual Cooldown Check (Note: Decorator handles standard, logic below handles rewards)
         sp_gain = random.randint(100, 3500)
         xp_gain = 1000
         
@@ -189,7 +188,6 @@ class Bank(commands.Cog):
         await self.update_sparks(ctx.author.id, sp_gain)
         lvl_up, new_lvl = await self.update_echo_xp(ctx.author.id, xp_gain)
         
-        # Fetch NEW balance for the response
         updated_data = await self.get_user_data(ctx.author.id)
         new_balance = updated_data[0]
         
@@ -223,7 +221,6 @@ class Bank(commands.Cog):
         await self.update_sparks(ctx.author.id, sp_gain)
         lvl_up, new_lvl = await self.update_echo_xp(ctx.author.id, xp_gain)
 
-        # Fetch NEW balance for the response
         updated_data = await self.get_user_data(ctx.author.id)
         new_balance = updated_data[0]
         
@@ -238,68 +235,58 @@ class Bank(commands.Cog):
     @commands.command(name="clean")
     async def clean(self, ctx):
         """Work category: Clean the Sanctuary floors."""
-        cmd = self.bot.get_command('work')
-        await ctx.invoke(cmd)
+        # FIXED: Directly invoke the work logic
+        await self.work(ctx)
 
     @commands.command(name="beg")
     async def beg(self, ctx):
         """Work category: Beg for Sparks in the Echo-Plaza."""
-        cmd = self.bot.get_command('work')
-        await ctx.invoke(cmd)
+        await self.work(ctx)
 
     @commands.command(name="slut")
     async def slut(self, ctx):
         """Work category: Sell your Echo-energy on the street."""
-        cmd = self.bot.get_command('work')
-        await ctx.invoke(cmd)
+        await self.work(ctx)
 
     @commands.command(name="farm")
     async def farm(self, ctx):
         """Work category: Harvest resources from the Spark-Fields."""
-        cmd = self.bot.get_command('work')
-        await ctx.invoke(cmd)
+        await self.work(ctx)
 
     @commands.command(name="cook")
     async def cook(self, ctx):
         """Work category: Prepare Echo-infused meals for travelers."""
-        cmd = self.bot.get_command('work')
-        await ctx.invoke(cmd)
+        await self.work(ctx)
 
     @commands.command(name="mine")
     async def mine(self, ctx):
         """Work category: Extract raw crystals from the Sanctuary mines."""
-        cmd = self.bot.get_command('work')
-        await ctx.invoke(cmd)
+        await self.work(ctx)
 
     @commands.command(name="crime")
     async def crime(self, ctx):
         """Job category: Attempt a high-stakes Echo-heist."""
-        cmd = self.bot.get_command('job')
-        await ctx.invoke(cmd)
+        await self.job(ctx)
 
     @commands.command(name="pimp")
     async def pimp(self, ctx):
         """Job category: Manage a ring of Echo-energy sellers."""
-        cmd = self.bot.get_command('job')
-        await ctx.invoke(cmd)
+        await self.job(ctx)
 
     @commands.command(name="hack")
     async def hack(self, ctx):
         """Job category: Breach a high-security Sanctuary data-node."""
-        cmd = self.bot.get_command('job')
-        await ctx.invoke(cmd)
+        await self.job(ctx)
 
     @commands.command(name="assassinate")
     async def assassinate(self, ctx):
         """Job category: Take down a rogue entity threatening the Echo-Chamber."""
-        cmd = self.bot.get_command('job')
-        await ctx.invoke(cmd)
+        await self.job(ctx)
 
     @commands.command(name="smuggle")
     async def smuggle(self, ctx):
         """Job category: Transport illegal Echo-crystals past Sanctuary guards."""
-        cmd = self.bot.get_command('job')
-        await ctx.invoke(cmd)
+        await self.job(ctx)
 
     @work.error
     @job.error
