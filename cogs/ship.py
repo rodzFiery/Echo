@@ -43,12 +43,10 @@ class Ship(commands.Cog):
         # 3. Avatar Processing - ZOOMED & NO BORDERS (380x380)
         def process_avatar(avatar_bytes):
             img = Image.open(io.BytesIO(avatar_bytes)).convert("RGBA")
-            img = img.resize((380, 380)) # Zoomed in further
-            # ENHANCED: Circular Glow (Flame Aura) - No rectangle borders
+            img = img.resize((380, 380)) 
             glow = Image.new("RGBA", (450, 450), (0, 0, 0, 0))
             g_draw = ImageDraw.Draw(glow)
             glow_color = (255, 69, 0, 220) if percentage > 50 else (180, 0, 255, 160)
-            # Use ellipse instead of rectangle to remove borders
             g_draw.ellipse([0, 0, 450, 450], fill=glow_color)
             glow = glow.filter(ImageFilter.GaussianBlur(35))
             return img, glow
@@ -56,36 +54,41 @@ class Ship(commands.Cog):
         av1, glow1 = process_avatar(avatar1_bytes)
         av2, glow2 = process_avatar(avatar2_bytes)
 
-        # Adjusted positions for the ultra-zoom feel
         canvas.paste(glow1, (-35, 75), glow1)
         canvas.paste(av1, (0, 110), av1)
         canvas.paste(glow2, (785, 75), glow2)
         canvas.paste(av2, (820, 110), av2)
 
-        # 4. ENHANCED: Bigger Glass-Morphism Compatibility Column
-        # Width 180 for more impact, zoomed height
-        bar_x, bar_y, bar_w, bar_h = 510, 60, 180, 480
+        # 4. REDESIGNED: Organic Light-Filled Column
+        # Filling the full space between top/bottom and avatars
+        bar_x, bar_y, bar_w, bar_h = 420, 20, 360, 560
         
-        # Column Border/Frame
-        draw.rectangle([bar_x-5, bar_y-5, bar_x+bar_w+5, bar_y+bar_h+5], outline=(255, 255, 255, 90), width=3)
-        # Deep translucent backing
-        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(0, 0, 0, 230)) 
+        # Soft outer glow for the column (Non-robotic look)
+        col_glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        cg_draw = ImageDraw.Draw(col_glow)
+        cg_draw.rectangle([bar_x-20, bar_y-10, bar_x+bar_w+20, bar_y+bar_h+10], fill=(255, 50, 50, 40))
+        col_glow = col_glow.filter(ImageFilter.GaussianBlur(20))
+        canvas.paste(col_glow, (0, 0), col_glow)
+
+        # Translucent glass backing
+        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(255, 255, 255, 15)) 
         
         fill_height = int((percentage / 100) * bar_h)
         fill_top_y = (bar_y + bar_h) - fill_height
         
         if fill_height > 5:
-            # ADDITION: Gradient Fill for the Bar (Electric Green)
+            # Multi-layered light fill (Inner Glow)
             for i in range(fill_top_y, bar_y + bar_h):
-                intensity = int(150 + (i - fill_top_y) / (fill_height + 1) * 105)
-                draw.line([(bar_x + 15, i), (bar_x + bar_w - 15, i)], fill=(57, intensity, 20, 255))
+                # Smooth transition from lime to bright white-green
+                intensity = int(180 + (i - fill_top_y) / (fill_height + 1) * 75)
+                # Drawing a slightly wider beam for a "light" effect
+                draw.line([(bar_x + 5, i), (bar_x + bar_w - 5, i)], fill=(100, intensity, 50, 200))
 
         # 5. MEGA ZOOMED PERCENTAGE LOGIC
         text_str = f"{percentage}%"
         text_canvas = Image.new('RGBA', (1000, 550), (0, 0, 0, 0))
         t_draw = ImageDraw.Draw(text_canvas)
         
-        # Increased font size to 380 for the Ultra-Zoom effect
         f_size = 380 
         try:
             font_pct = ImageFont.truetype("arial.ttf", f_size)
@@ -95,15 +98,13 @@ class Ship(commands.Cog):
             except:
                 font_pct = ImageFont.load_default()
 
-        # ENHANCED: Add a neon shadow to the text layer
-        t_draw.text((508, 278), text_str, fill=(255, 0, 0, 130), font=font_pct, anchor="mm")
+        t_draw.text((508, 278), text_str, fill=(255, 255, 255, 50), font=font_pct, anchor="mm")
         t_draw.text((500, 270), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=16, stroke_fill="black")
         
         if font_pct.getbbox(text_str)[2] < 100: 
             text_canvas = text_canvas.resize((3000, 1600), Image.Resampling.NEAREST)
             canvas.paste(text_canvas, (-900, -500), text_canvas) 
         else:
-            # Centered over the widened column
             canvas.paste(text_canvas, (100, 50), text_canvas)
 
         # 6. ADDITION: 100% Special Heart Icon
@@ -113,7 +114,7 @@ class Ship(commands.Cog):
             h_draw.text((600, 310), "💎❤️💎", fill="white", font=font_pct, anchor="mm")
             canvas.paste(heart_layer, (0, 0), heart_layer)
 
-        # Final labels with Fiery Color
+        # Final labels
         try:
             font_sub = ImageFont.truetype("arial.ttf", 60)
             draw.text((600, 40), "❤️ LOVE ARENA ❤️", fill="#FFCC00", font=font_sub, anchor="mm", stroke_width=5, stroke_fill="black")
@@ -148,6 +149,15 @@ class Ship(commands.Cog):
                 file = discord.File(fp=image_buffer, filename="ship_result.png")
                 embed = discord.Embed(title="⚔️ The Ship Arena Result ⚔️", color=0xff0000)
                 embed.set_image(url="attachment://ship_result.png")
+
+                if percentage == 0: status = "🧊 Absolute Zero - Ice Cold"
+                elif percentage < 25: status = "💔 Broken Bonds - No Match"
+                elif percentage < 50: status = "🤝 Just Friends - Casual"
+                elif percentage < 75: status = "💖 Growing Spark - Hot"
+                elif percentage < 100: status = "🔥 Eternal Flames - Perfection"
+                else: status = "💎 UNSTOPPABLE DESTINY 💎"
+                
+                embed.set_footer(text=f"Arena Status: {status}")
                 
                 await ctx.send(file=file, embed=embed)
                 
