@@ -5,7 +5,6 @@ import io
 import aiohttp
 import os
 import sqlite3
-import json
 from datetime import datetime, timezone
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 import __main__
@@ -66,18 +65,17 @@ class Ship(commands.Cog):
             ]
         }
 
-    def is_premium(self, guild_id):
-        """Checks if the current guild has an active subscription for the ship module"""
-        # Accessing the shared PREMIUM_GUILDS from main.py
-        premium_data = getattr(__main__, 'PREMIUM_GUILDS', {})
-        guild_id_str = str(guild_id)
+    def check_premium(self, guild_id):
+        # Access global PREMIUM_GUILDS from main.py
         now = datetime.now(timezone.utc).timestamp()
+        guild_id_str = str(guild_id)
+        premium_data = getattr(__main__, 'PREMIUM_GUILDS', {})
         
-        if guild_id_str in premium_data:
-            expiry = premium_data[guild_id_str].get("ship")
-            if expiry and float(expiry) > now:
-                return True
-        return False
+        # Check if guild is in list and if 'ship' module is active and not expired
+        guild_mods = premium_data.get(guild_id_str, {})
+        expiry = guild_mods.get('ship', 0)
+        
+        return expiry > now
 
     def create_ship_card(self, avatar1_bytes, avatar2_bytes, percentage):
         width, height = 1200, 600
@@ -125,31 +123,43 @@ class Ship(commands.Cog):
         canvas.paste(glow2, (785, 75), glow2)
         canvas.paste(av2, (820, 110), av2)
 
-        # 4. REDESIGNED: Organic Light-Filled Column
+        # 4. REFINED: High-Intensity Dynamic Column - SOFT PINK CRYSTAL
         bar_x, bar_y, bar_w, bar_h = 420, 20, 360, 560
         
+        # Inner column glow (Soft Pink Hue)
         col_glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         cg_draw = ImageDraw.Draw(col_glow)
-        cg_draw.rectangle([bar_x-20, bar_y-10, bar_x+bar_w+20, bar_y+bar_h+10], fill=(255, 50, 50, 40))
+        cg_draw.rectangle([bar_x-15, bar_y, bar_x+bar_w+15, bar_y+bar_h], fill=(255, 182, 193, 30))
         col_glow = col_glow.filter(ImageFilter.GaussianBlur(20))
         canvas.paste(col_glow, (0, 0), col_glow)
 
-        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(255, 255, 255, 15)) 
+        # Translucent glass backing (Darker to make pink pop)
+        draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(20, 5, 10, 190)) 
         
         fill_height = int((percentage / 100) * bar_h)
         fill_top_y = (bar_y + bar_h) - fill_height
         
-        if fill_height > 5:
-            for i in range(fill_top_y, bar_y + bar_h):
-                intensity = int(180 + (i - fill_top_y) / (fill_height + 1) * 75)
-                draw.line([(bar_x + 5, i), (bar_x + bar_w - 5, i)], fill=(100, intensity, 50, 200))
+        # Fixed Color: Soft Romantic Pink
+        main_color = (255, 182, 193) # Light Pink
 
-        # 5. MEGA ZOOMED PERCENTAGE LOGIC
+        if fill_height > 5:
+            # Multi-layered "Liquid Light" Fill
+            for i in range(fill_top_y, bar_y + bar_h):
+                # Shimmer effect for a liquid crystal look
+                shimmer = int(30 * random.random())
+                r, g, b = main_color
+                draw.line([(bar_x + 10, i), (bar_x + bar_w - 10, i)], fill=(r, g + shimmer, b + shimmer, 240))
+
+            # ADDITION: Bright Core Pulse Beam
+            core_w = bar_w // 5
+            draw.rectangle([bar_x + (bar_w//2) - core_w, fill_top_y, bar_x + (bar_w//2) + core_w, bar_y + bar_h], fill=(255, 255, 255, 110))
+
+        # 5. REFINED: NEON PERCENTAGE DISPLAY (Zoomed & Pink Glow)
         text_str = f"{percentage}%"
         text_canvas = Image.new('RGBA', (1000, 550), (0, 0, 0, 0))
         t_draw = ImageDraw.Draw(text_canvas)
         
-        f_size = 380 
+        f_size = 450 
         try:
             font_pct = ImageFont.truetype("arial.ttf", f_size)
         except:
@@ -158,16 +168,22 @@ class Ship(commands.Cog):
             except:
                 font_pct = ImageFont.load_default()
 
-        t_draw.text((508, 278), text_str, fill=(255, 255, 255, 50), font=font_pct, anchor="mm")
-        t_draw.text((500, 270), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=16, stroke_fill="black")
+        # Neon Glow Layer for Text - Soft Pink Aura
+        glow_color = (255, 182, 193, 140)
+        t_draw.text((500, 270), text_str, fill=glow_color, font=font_pct, anchor="mm", stroke_width=35)
+        text_canvas = text_canvas.filter(ImageFilter.GaussianBlur(15))
+        
+        # Sharp White Core Text
+        t_draw = ImageDraw.Draw(text_canvas)
+        t_draw.text((500, 270), text_str, fill="white", font=font_pct, anchor="mm", stroke_width=20, stroke_fill="black")
         
         if font_pct.getbbox(text_str)[2] < 100: 
             text_canvas = text_canvas.resize((3000, 1600), Image.Resampling.NEAREST)
             canvas.paste(text_canvas, (-900, -500), text_canvas) 
         else:
-            canvas.paste(text_canvas, (100, 50), text_canvas)
+            canvas.paste(text_canvas, (100, 25), text_canvas)
 
-        # 6. ADDITION: 100% Special Heart Icon
+        # 6. 100% Special Heart Icon
         if percentage == 100:
             heart_layer = Image.new('RGBA', (width, height), (0, 0, 0, 0))
             h_draw = ImageDraw.Draw(heart_layer)
@@ -188,12 +204,11 @@ class Ship(commands.Cog):
 
     @commands.command(name="ship")
     async def ship(self, ctx, user1: discord.Member, user2: discord.Member = None):
-        # --- PREMIUM CHECK ---
-        if not self.is_premium(ctx.guild.id):
+        # PREMIUM CHECK
+        if not self.check_premium(ctx.guild.id):
             embed = discord.Embed(title="🔒 MODULE LOCKED", color=0xff0000)
             embed.description = "The **SHIP** module is not active for this server. An administrator must use `!premium` to unlock high-tier arena features."
             return await ctx.send(embed=embed)
-        # ---------------------
 
         if user2 is None:
             user2 = user1
@@ -237,6 +252,7 @@ class Ship(commands.Cog):
                 else: status = "💎 UNSTOPPABLE DESTINY 💎"
                 
                 embed.set_footer(text=f"Arena Status: {status}")
+                
                 await ctx.send(file=file, embed=embed)
                 
             except Exception as e:
@@ -245,12 +261,11 @@ class Ship(commands.Cog):
 
     @commands.command(name="matchme")
     async def matchme(self, ctx):
-        # --- PREMIUM CHECK ---
-        if not self.is_premium(ctx.guild.id):
+        # PREMIUM CHECK
+        if not self.check_premium(ctx.guild.id):
             embed = discord.Embed(title="🔒 MODULE LOCKED", color=0xff0000)
             embed.description = "The **SHIP** module is not active for this server. An administrator must use `!premium` to unlock high-tier arena features."
             return await ctx.send(embed=embed)
-        # ---------------------
 
         async with ctx.typing():
             try:
