@@ -50,17 +50,16 @@ class Bank(commands.Cog):
         ]
 
     def check_premium(self, guild_id):
-        # Access global PREMIUM_GUILDS from main.py safely
+        # Access shared PREMIUM_GUILDS from main.py via the bot instance
         now = datetime.now(timezone.utc).timestamp()
         guild_id_str = str(guild_id)
         
-        # FIXED: Accessing the shared dictionary from the bot instance to ensure updates are seen
+        # Pull data directly from the bot memory
         premium_data = getattr(self.bot, 'PREMIUM_GUILDS', {})
-        
         guild_mods = premium_data.get(guild_id_str, {})
         
-        # FIXED: Ensure we handle the value as a float for comparison
-        raw_expiry = guild_mods.get('bank', 0) or guild_mods.get('Bank', 0)
+        # Check for 'bank' module specifically
+        raw_expiry = guild_mods.get('bank', 0)
         
         try:
             expiry = float(raw_expiry)
@@ -120,11 +119,10 @@ class Bank(commands.Cog):
         self.cursor.execute("SELECT sparks, echo_xp, echo_level, class_type FROM users WHERE user_id = ?", (user_id,))
         return self.cursor.fetchone()
 
-    # --- REWARD EXECUTION LOGIC (Added to fix silent failure) ---
+    # --- REWARD EXECUTION LOGIC ---
 
     async def execute_work(self, ctx):
         """Standardized logic for all work commands."""
-        # Added message if check fails so you know why it's not working
         if not self.check_premium(ctx.guild.id):
             return await ctx.send("🔒 Unlock the **BANK** module to use this command.")
 
@@ -226,7 +224,6 @@ class Bank(commands.Cog):
         embed.add_field(name="⚡ Sparks", value=f"**{sparks:,}**", inline=True)
         embed.add_field(name="💠 Echo Level", value=f"Level **{lvl}**", inline=True)
         
-        # Visual Progress Bar for Echo XP
         progress = int((xp / xp_needed) * 10)
         bar = "▰" * progress + "▱" * (10 - progress)
         embed.add_field(name="📊 Echo Experience", value=f"{bar} ({xp}/{xp_needed} XP)", inline=False)
@@ -319,7 +316,6 @@ class Bank(commands.Cog):
         """Job category: Transport illegal Echo-crystals past Sanctuary guards."""
         await self.execute_job(ctx)
 
-    # --- DEBUGGING COMMAND ---
     @commands.command(name="bankdebug")
     async def bankdebug(self, ctx):
         """Raw view of premium data for this server."""
@@ -346,11 +342,8 @@ class Bank(commands.Cog):
             data = await self.get_user_data(ctx.author.id)
             class_type = data[3]
             retry_after = error.retry_after
-            
-            # Apply Exhibitionist 15% reduction to the cooldown message
             if class_type == "Exhibitionist":
                 retry_after *= 0.85
-
             minutes, seconds = divmod(retry_after, 60)
             hours, minutes = divmod(minutes, 60)
             await ctx.send(f"⏳ Patience! You can earn more in **{int(hours)}h {int(minutes)}m {int(seconds)}s**.")
