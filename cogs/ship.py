@@ -60,22 +60,28 @@ class Ship(commands.Cog):
         canvas.paste(av2, (820, 110), av2)
 
         # 4. REDESIGNED: Organic Light-Filled Column
+        # Filling the full space between top/bottom and avatars
         bar_x, bar_y, bar_w, bar_h = 420, 20, 360, 560
         
+        # Soft outer glow for the column (Non-robotic look)
         col_glow = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         cg_draw = ImageDraw.Draw(col_glow)
         cg_draw.rectangle([bar_x-20, bar_y-10, bar_x+bar_w+20, bar_y+bar_h+10], fill=(255, 50, 50, 40))
         col_glow = col_glow.filter(ImageFilter.GaussianBlur(20))
         canvas.paste(col_glow, (0, 0), col_glow)
 
+        # Translucent glass backing
         draw.rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], fill=(255, 255, 255, 15)) 
         
         fill_height = int((percentage / 100) * bar_h)
         fill_top_y = (bar_y + bar_h) - fill_height
         
         if fill_height > 5:
+            # Multi-layered light fill (Inner Glow)
             for i in range(fill_top_y, bar_y + bar_h):
+                # Smooth transition from lime to bright white-green
                 intensity = int(180 + (i - fill_top_y) / (fill_height + 1) * 75)
+                # Drawing a slightly wider beam for a "light" effect
                 draw.line([(bar_x + 5, i), (bar_x + bar_w - 5, i)], fill=(100, intensity, 50, 200))
 
         # 5. MEGA ZOOMED PERCENTAGE LOGIC
@@ -144,7 +150,6 @@ class Ship(commands.Cog):
                 embed = discord.Embed(title="⚔️ The Ship Arena Result ⚔️", color=0xff0000)
                 embed.set_image(url="attachment://ship_result.png")
 
-                # --- ADDITION: DYNAMIC SHIP STATUS FOOTER ---
                 if percentage == 0: status = "🧊 Absolute Zero - Ice Cold"
                 elif percentage < 25: status = "💔 Broken Bonds - No Match"
                 elif percentage < 50: status = "🤝 Just Friends - Casual"
@@ -153,7 +158,6 @@ class Ship(commands.Cog):
                 else: status = "💎 UNSTOPPABLE DESTINY 💎"
                 
                 embed.set_footer(text=f"Arena Status: {status}")
-                # ---------------------------------------------
                 
                 await ctx.send(file=file, embed=embed)
                 
