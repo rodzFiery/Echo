@@ -54,15 +54,9 @@ class Bank(commands.Cog):
         now = datetime.now(timezone.utc).timestamp()
         guild_id_str = str(guild_id)
         
-        # We look at the bot's own main module to find the dictionary
-        premium_data = getattr(__main__, 'PREMIUM_GUILDS', {})
+        # FIXED: Accessing the shared dictionary directly from the bot instance
+        premium_data = getattr(self.bot, 'PREMIUM_GUILDS', {})
         
-        # Fallback if __main__ isn't resolving correctly
-        if not premium_data:
-            import sys
-            main_module = sys.modules.get('__main__')
-            premium_data = getattr(main_module, 'PREMIUM_GUILDS', {})
-
         guild_mods = premium_data.get(guild_id_str, {})
         
         # FIXED: Check for 'bank', 'Bank', or 'bank.py' to ensure it matches your shop
