@@ -12,56 +12,56 @@ import __main__
 class Ship(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        # 175 Arena Messages Tiered by Percentage (Expanded Again)
+        # 175 Heartfelt Messages Tiered by Percentage (Expanded Again)
         self.arena_messages = {
             "0-15": [
-                "The arena is freezing over. Total mismatch.", "Ice cold. Not even a spark found.", "Security is escorting you both to different exits.", "The audience is booing. This is a disaster.", "Error 404: Love not found in this arena.", 
-                "A black hole has more attraction than this.", "The tension is negative. Please stop.", "Even the embers died looking at you two.", "Zero chemistry detected. Move along.", "This isn't a ship, it's a shipwreck.", 
-                "You two are on different planets.", "The arena lights just flickered and died.", "Total silence from the crowd. Awkward.", "A match made in... well, not here.", "Better luck in the next life.",
-                "The Arena announcer is speechless at how bad this is.", "A cactus has a softer touch than this pairing.", "The simulation crashed trying to find compatibility.", "The fire department left because there is zero heat.", "Total system rejection.",
-                "The crowd is throwing tomatoes. Please leave.", "A magnetic field of identical poles. Total repulsion.", "The ship sank before it even left the dock.", "Absolute zero. Science cannot explain this void.", "Even the bot feels second-hand embarrassment."
+                "The sanctuary is freezing over. Total mismatch.", "Ice cold. Not even a spark found.", "Kindness is escorting you both to different paths.", "The angels are sighing. This is a distance.", "Error 404: Love not found in this sanctuary.", 
+                "A black hole has more attraction than this.", "The tension is quiet. Please stop.", "Even the heartbeats slowed looking at you two.", "Zero chemistry detected. Move along.", "This isn't a ship, it's a quiet harbor.", 
+                "You two are on different planets.", "The sanctuary candles just flickered and died.", "Total silence from the souls. Awkward.", "A bond made in... well, not here.", "Better luck in the next life.",
+                "The Love announcer is speechless at how quiet this is.", "A cactus has a softer touch than this pairing.", "The simulation crashed trying to find connection.", "The matchmakers left because there is zero heat.", "Total soul rejection.",
+                "The hearts are turning away. Please leave.", "A magnetic field of identical poles. Total repulsion.", "The ship sank before it even left the dock.", "Absolute zero. Science cannot explain this void.", "Even the bot feels second-hand sadness."
             ],
             "16-30": [
-                "Slight friction, but mostly just sparks of annoyance.", "The arena remains mostly dark.", "Maybe try talking? Or maybe don't.", "A very weak connection detected.", "The crowd is checking their phones.", 
-                "Not exactly a power couple.", "Room for improvement... a lot of it.", "The love meter barely moved.", "A flicker in the dark, then nothing.", "You're both better off as solo fighters.", 
-                "The arena floor is still cold.", "Minimal compatibility found.", "Are you even trying?", "The fire is struggling to start.", "A distant 'maybe' at best.",
-                "The Arena janitor is more excited than you two.", "Static on the line. Too much interference.", "The spotlight is trying to find you, but it's bored.", "Like oil and water in a blender.", "A flicker of hope, but mostly just smoke.",
-                "The sparks are trying, but the fuel is damp.", "A very quiet day in the Love Arena.", "Compatibility level: Casual acquaintances.", "You're both in the friendzone's basement.", "The Arena lights are dimming in disappointment."
+                "Slight friction, but mostly just sparks of shyness.", "The sanctuary remains mostly dark.", "Maybe try talking? Or maybe don't.", "A very weak connection detected.", "The hearts are drifting elsewhere.", 
+                "Not exactly a dream couple.", "Room for improvement... a lot of it.", "The love meter barely moved.", "A flicker in the dark, then nothing.", "You're both better off as solo travelers.", 
+                "The sanctuary floor is still cold.", "Minimal compatibility found.", "Are you even trying?", "The fire is struggling to start.", "A distant 'maybe' at best.",
+                "The Sanctuary gardener is more excited than you two.", "Static on the line. Too much interference.", "The moonlight is trying to find you, but it's bored.", "Like oil and water in a blender.", "A flicker of hope, but mostly just smoke.",
+                "The sparks are trying, but the fuel is damp.", "A very quiet day in the Love Sanctuary.", "Connection level: Casual acquaintances.", "You're both in the friendzone's basement.", "The Sanctuary lights are dimming in disappointment."
             ],
             "31-45": [
-                "The embers are starting to glow.", "A casual alliance, nothing more.", "The arena is lukewarm.", "Friends with arena benefits?", "Not a total loss, but not a win.", 
-                "The crowd is curious, but not convinced.", "A steady beat, but no rhythm yet.", "You won't kill each other... probably.", "Just enough to keep the lights on.", "The arena is waiting for more.", 
-                "A mild interest detected.", "Stable, but boring.", "The ship is floating, but not moving.", "Testing the waters of the arena.", "A low-level bond.",
-                "The Arena spectators are leaning in slightly.", "A spark exists, but needs a lot of oxygen.", "Walking the line between friends and fighters.", "The foundation is there, but the house is empty.", "Lukewarm tea levels of passion.",
-                "The tension is starting to crackle.", "A decent team-up, but is it love?", "The Arena radar is picking up a signal.", "Moderately compatible, mostly just polite.", "The embers are whispering, not shouting."
+                "The embers are starting to glow.", "A gentle friendship, nothing more.", "The sanctuary is lukewarm.", "Friends with sweet benefits?", "Not a total loss, but not a win.", 
+                "The hearts are curious, but not convinced.", "A steady beat, but no rhythm yet.", "You won't break each other... probably.", "Just enough to keep the lights on.", "The sanctuary is waiting for more.", 
+                "A mild interest detected.", "Stable, but soft.", "The ship is floating, but not moving.", "Testing the waters of the heart.", "A low-level bond.",
+                "The Sanctuary spectators are leaning in slightly.", "A spark exists, but needs a lot of oxygen.", "Walking the line between friends and admirers.", "The foundation is there, but the house is empty.", "Lukewarm tea levels of passion.",
+                "The tension is starting to crackle.", "A decent team-up, but is it love?", "The Sanctuary radar is picking up a signal.", "Moderately compatible, mostly just polite.", "The embers are whispering, not shouting."
             ],
             "46-60": [
-                "The arena is heating up!", "A solid match for the mid-tier.", "The crowd is starting to cheer.", "Balanced power levels.", "The sparks are consistent now.", 
-                "A dangerous dance in the arena.", "The tension is palpable.", "Halfway to destiny.", "The fire is growing steady.", "You look good together under the lights.", 
-                "A promising future in the arena.", "The chemistry is becoming visible.", "Keep this energy going.", "A match worth watching.", "The arena floor is warming up.",
-                "The crowd is starting to place bets on you two.", "Synchronized combatants in the game of love.", "A powerful rhythm is taking over the Arena.", "You're making the front row sweat.", "The heat is finally real.",
-                "The Love Arena is officially interested.", "A strong foundation for an Arena power couple.", "The sparks are becoming small flames.", "Consistency is key, and you've got it.", "The stadium hums with your combined energy."
+                "The sanctuary is heating up!", "A solid match for the mid-tier.", "The hearts are starting to cheer.", "Balanced soul levels.", "The sparks are consistent now.", 
+                "A beautiful dance in the sanctuary.", "The tension is palpable.", "Halfway to destiny.", "The fire is growing steady.", "You look good together under the lights.", 
+                "A promising future in the sanctuary.", "The chemistry is becoming visible.", "Keep this energy going.", "A match worth watching.", "The sanctuary floor is warming up.",
+                "The souls are starting to celebrate you two.", "Synchronized hearts in the game of love.", "A powerful rhythm is taking over the Sanctuary.", "You're making the front row smile.", "The heat is finally real.",
+                "The Love Sanctuary is officially interested.", "A strong foundation for a Sanctuary power couple.", "The sparks are becoming small flames.", "Consistency is key, and you've got it.", "The stadium hums with your combined energy."
             ],
             "61-75": [
-                "Intense energy flowing through the arena!", "The crowd is on their feet!", "A high-tier pairing detected.", "The sparks are flying everywhere.", "The arena is glowing bright pink.", 
-                "A passionate duel of hearts.", "Almost at the peak of the arena.", "The love tension is rising fast.", "The embers are turning into flames.", "A powerful connection is forming.", 
-                "The stadium is roaring for you two.", "Strongest match of the hour!", "The arena lights are pulsing.", "Destined for something great.", "True arena synergy.",
-                "The Arena screens are flashing 'WARNING: HIGH HEAT'.", "Your souls are resonant at a high frequency.", "The ground is literally shaking now.", "A beautiful storm is brewing in the center.", "Pure, unadulterated Arena magnetism.",
-                "The Arena is glowing with your potential.", "A high-voltage connection that lights up the sky.", "Passion is the primary fuel here.", "The judges are giving you a standing ovation.", "A match that threatens to melt the Arena floor."
+                "Intense energy flowing through the sanctuary!", "The hearts are on their feet!", "A high-tier pairing detected.", "The sparks are flying everywhere.", "The sanctuary is glowing bright pink.", 
+                "A passionate dance of hearts.", "Almost at the peak of the sanctuary.", "The love tension is rising fast.", "The embers are turning into flames.", "A powerful connection is forming.", 
+                "The stadium is roaring for you two.", "Strongest match of the hour!", "The sanctuary lights are pulsing.", "Destined for something great.", "True love synergy.",
+                "The Sanctuary screens are flashing 'WARNING: RADIANT LOVE'.", "Your souls are resonant at a high frequency.", "The ground is literally shaking now.", "A beautiful storm is brewing in the center.", "Pure, unadulterated heart magnetism.",
+                "The Sanctuary is glowing with your potential.", "A high-voltage connection that lights up the sky.", "Passion is the primary fuel here.", "The angels are giving you a standing ovation.", "A match that threatens to melt the Sanctuary floor."
             ],
             "76-90": [
-                "The arena is on fire!", "A legendary pairing has entered.", "The love tension is reaching critical levels!", "Breathtaking compatibility.", "The crowd is screaming your names!", 
-                "Electric. Passionate. Unstoppable.", "A high-voltage arena match.", "The heat is nearly unbearable!", "Almost perfect. Simply beautiful.", "The stadium is shaking from the tension.", 
-                "A match for the ages.", "Burning brighter than the sun.", "The arena has never seen this before.", "Soulmate territory found.", "Pure arena magic.",
-                "The Arena ceiling is about to blow off!", "Gravity is failing because of your attraction.", "A masterclass in romantic chemistry.", "The embers have become a localized sun.", "Elite tier compatibility achieved.",
-                "The Love Arena hasn't seen this much heat in years!", "A connection so strong it's distorting the spotlight.", "Absolute fireworks in every direction.", "You are the undisputed champions of the night.", "A bond forged in the hottest Arena fires."
+                "The sanctuary is on fire!", "A legendary pairing has entered.", "The love tension is reaching critical levels!", "Breathtaking compatibility.", "The hearts are calling your names!", 
+                "Electric. Passionate. Unstoppable.", "A high-voltage soul match.", "The heat is nearly unbearable!", "Almost perfect. Simply beautiful.", "The stadium is shaking from the tension.", 
+                "A match for the ages.", "Burning brighter than the sun.", "The sanctuary has never seen this before.", "Soulmate territory found.", "Pure heart magic.",
+                "The Sanctuary ceiling is about to blow off!", "Gravity is failing because of your attraction.", "A masterclass in romantic chemistry.", "The embers have become a localized sun.", "Elite tier compatibility achieved.",
+                "The Love Sanctuary hasn't seen this much heat in years!", "A connection so strong it's distorting the spotlight.", "Absolute fireworks in every direction.", "You are the undisputed champions of the night.", "A bond forged in the hottest Sanctuary fires."
             ],
             "91-100": [
-                "THE ARENA HAS EXPLODED! TRUE LOVE!", "A DIVINE MATCH MADE IN THE HEAVENS!", "ULTIMATE COMPATIBILITY DETECTED!", "THE LOVE ARENA IS IN TOTAL SHOCK!", "A PERFECT HARMONY OF SOULS!", 
-                "BEYOND LEGENDARY. BEYOND PERFECTION.", "THE DESTINY METER JUST BROKE!", "UNSTOPPABLE ARENA POWER!", "THE CROWD IS WEEPING FROM JOY!", "A MATCH THAT WILL BE REMEMBERED FOREVER!", 
-                "TOTAL ARENA DOMINATION BY LOVE!", "THE EMBERS HAVE TURNED INTO A SUPERNOVA!", "YOU ARE THE KINGS OF THE LOVE ARENA!", "A DIAMOND IN THE ROUGH? NO, A DIAMOND HEART!", "ABSOLUTE PERFECTION FOUND!",
-                "THE LAWS OF PHYSICS NO LONGER APPLY TO THIS COUPLE!", "GOD-TIER CONNECTION CONFIRMED.", "THE ARENA HAS ASCENDED TO A HIGHER PLANE.", "WE ARE WITNESSING A MIRACLE IN THE ARENA.", "INFINITY PERCENT COMPATIBILITY REACHED.",
-                "THE ARENA IS MELTING INTO PURE GOLD.", "THE HEARTS OF THE AUDIENCE HAVE BECOME ONE WITH YOURS.", "A MATCH SO BRIGHT IT BLINDS THE SPECTATORS.", "ETERNAL CHAMPIONS OF THE HEART.", "THE UNIVERSE ITSELF CHEERS FOR YOU TWO."
+                "THE SANCTUARY HAS EXPLODED! TRUE LOVE!", "A DIVINE MATCH MADE IN THE HEAVENS!", "ULTIMATE COMPATIBILITY DETECTED!", "THE LOVE SANCTUARY IS IN TOTAL SHOCK!", "A PERFECT HARMONY OF SOULS!", 
+                "BEYOND LEGENDARY. BEYOND PERFECTION.", "THE DESTINY METER JUST BROKE!", "UNSTOPPABLE SOUL POWER!", "THE HEARTS ARE WEEPING FROM JOY!", "A MATCH THAT WILL BE REMEMBERED FOREVER!", 
+                "TOTAL SANCTUARY DOMINATION BY LOVE!", "THE EMBERS HAVE TURNED INTO A SUPERNOVA!", "YOU ARE THE KINGS OF THE LOVE SANCTUARY!", "A DIAMOND IN THE ROUGH? NO, A DIAMOND HEART!", "ABSOLUTE PERFECTION FOUND!",
+                "THE LAWS OF PHYSICS NO LONGER APPLY TO THIS COUPLE!", "GOD-TIER CONNECTION CONFIRMED.", "THE ARENA HAS ASCENDED TO A HIGHER PLANE.", "WE ARE WITNESSING A MIRACLE IN THE SANCTUARY.", "INFINITY PERCENT COMPATIBILITY REACHED.",
+                "THE SANCTUARY IS MELTING INTO PURE GOLD.", "THE HEARTS OF THE AUDIENCE HAVE BECOME ONE WITH YOURS.", "A MATCH SO BRIGHT IT BLINDS THE SPECTATORS.", "ETERNAL CHAMPIONS OF THE HEART.", "THE UNIVERSE ITSELF CHEERS FOR YOU TWO."
             ]
         }
 
@@ -82,13 +82,13 @@ class Ship(commands.Cog):
         canvas = Image.new('RGB', (width, height), color='#2c0003')
         draw = ImageDraw.Draw(canvas, "RGBA")
         
-        # 1. ENHANCED: Background Love Arena Gradient
+        # 1. ENHANCED: Background Love Sanctuary Gradient
         for i in range(height):
             r = int(40 + (i / height) * 90)
             g = int(0 + (i / height) * 20)
             draw.line([(0, i), (width, i)], fill=(r, g, 10))
 
-        # ADDITION: Center Spotlight Glow (Arena Effect)
+        # ADDITION: Center Spotlight Glow (Sanctuary Effect)
         spotlight = Image.new('RGBA', (width, height), (0, 0, 0, 0))
         s_draw = ImageDraw.Draw(spotlight)
         for r in range(1, 500, 5):
@@ -96,12 +96,12 @@ class Ship(commands.Cog):
             s_draw.ellipse([600-r, 300-r, 600+r, 300+r], outline=(255, 50, 50, alpha))
         canvas.paste(spotlight, (0, 0), spotlight)
 
-        # 2. ENHANCED: High-Intensity Fire Particles (Embers)
+        # 2. ENHANCED: High-Intensity Love Particles (Embers)
         for _ in range(80): 
             p_x = random.randint(0, width)
             p_y = random.randint(0, height)
             p_size = random.randint(2, 8)
-            p_color = random.choice([(255, 200, 0, 160), (255, 80, 0, 180), (255, 255, 255, 120)])
+            p_color = random.choice([(255, 182, 193, 160), (255, 105, 180, 180), (255, 255, 255, 120)])
             draw.ellipse([p_x, p_y, p_x + p_size, p_y + p_size], fill=p_color)
 
         # 3. Avatar Processing - ZOOMED & NO BORDERS (380x380)
@@ -110,7 +110,7 @@ class Ship(commands.Cog):
             img = img.resize((380, 380)) 
             glow = Image.new("RGBA", (450, 450), (0, 0, 0, 0))
             g_draw = ImageDraw.Draw(glow)
-            glow_color = (255, 69, 0, 220) if percentage > 50 else (180, 0, 255, 160)
+            glow_color = (255, 105, 180, 220) if percentage > 50 else (180, 0, 255, 160)
             g_draw.ellipse([0, 0, 450, 450], fill=glow_color)
             glow = glow.filter(ImageFilter.GaussianBlur(35))
             return img, glow
@@ -193,9 +193,9 @@ class Ship(commands.Cog):
         # Final labels
         try:
             font_sub = ImageFont.truetype("arial.ttf", 60)
-            draw.text((600, 40), "❤️ LOVE ARENA ❤️", fill="#FFCC00", font=font_sub, anchor="mm", stroke_width=5, stroke_fill="black")
+            draw.text((600, 40), "❤️ LOVE SANCTUARY ❤️", fill="#FFCC00", font=font_sub, anchor="mm", stroke_width=5, stroke_fill="black")
         except:
-            draw.text((600, 40), "LOVE ARENA", fill="#FFCC00", anchor="mm")
+            draw.text((600, 40), "LOVE SANCTUARY", fill="#FFCC00", anchor="mm")
 
         buffer = io.BytesIO()
         canvas.save(buffer, format="PNG")
@@ -207,7 +207,7 @@ class Ship(commands.Cog):
         # PREMIUM CHECK
         if not self.check_premium(ctx.guild.id):
             embed = discord.Embed(title="🔒 MODULE LOCKED", color=0xff0000)
-            embed.description = "The **SHIP** module is not active for this server. An administrator must use `!premium` to unlock high-tier arena features."
+            embed.description = "The **LOVE** module is not active for this server. An administrator must use `!premium` to unlock high-tier sanctuary features."
             return await ctx.send(embed=embed)
 
         if user2 is None:
@@ -229,7 +229,7 @@ class Ship(commands.Cog):
                 image_buffer = self.create_ship_card(av1_data, av2_data, percentage)
                 
                 file = discord.File(fp=image_buffer, filename="ship_result.png")
-                embed = discord.Embed(title="⚔️ The Ship Arena Result ⚔️", color=0xff0000)
+                embed = discord.Embed(title="💕 The Love Sanctuary Result 💕", color=0xff69b4)
                 embed.set_image(url="attachment://ship_result.png")
 
                 # Tiered Message Logic
@@ -247,30 +247,30 @@ class Ship(commands.Cog):
                 if percentage == 0: status = "🧊 Absolute Zero - Ice Cold"
                 elif percentage < 25: status = "💔 Broken Bonds - No Match"
                 elif percentage < 50: status = "🤝 Just Friends - Casual"
-                elif percentage < 75: status = "💖 Growing Spark - Hot"
+                elif percentage < 75: status = "💖 Growing Spark - Sweet"
                 elif percentage < 100: status = "🔥 Eternal Flames - Perfection"
                 else: status = "💎 UNSTOPPABLE DESTINY 💎"
                 
-                embed.set_footer(text=f"Arena Status: {status}")
+                embed.set_footer(text=f"Sanctuary Status: {status}")
                 
                 await ctx.send(file=file, embed=embed)
                 
             except Exception as e:
                 print(f"Error in Ship Command: {e}")
-                await ctx.send("⚠️ An error occurred while generating the ship card. Check the console.")
+                await ctx.send("⚠️ An error occurred while generating the love card. Check the console.")
 
     @commands.command(name="matchme")
     async def matchme(self, ctx):
         # PREMIUM CHECK
         if not self.check_premium(ctx.guild.id):
             embed = discord.Embed(title="🔒 MODULE LOCKED", color=0xff0000)
-            embed.description = "The **SHIP** module is not active for this server. An administrator must use `!premium` to unlock high-tier arena features."
+            embed.description = "The **LOVE** module is not active for this server. An administrator must use `!premium` to unlock high-tier sanctuary features."
             return await ctx.send(embed=embed)
 
         async with ctx.typing():
             try:
                 members = [m for m in ctx.guild.members if not m.bot and m.id != ctx.author.id]
-                if not members: return await ctx.send("⚠️ No arena contenders found!")
+                if not members: return await ctx.send("⚠️ No kindred souls found!")
                 matches = []
                 today = datetime.now().strftime("%Y-%m-%d")
                 for member in members:
@@ -280,13 +280,13 @@ class Ship(commands.Cog):
                     matches.append((member, score))
                 matches.sort(key=lambda x: x[1], reverse=True)
                 top_5 = matches[:5]
-                embed = discord.Embed(title="🔥 ARENA TENSION: TOP 5 MATCHES 🔥", description=f"Scanning the crowd for **{ctx.author.display_name}**'s perfect match...", color=0xFF4500)
+                embed = discord.Embed(title="✨ KINDRED SPIRITS: TOP 5 MATCHES ✨", description=f"Scanning the hearts for **{ctx.author.display_name}**'s perfect match...", color=0xff69b4)
                 ranking_text = ""
-                medals = ["🥇", "🥈", "🥉", "🏅", "🏅"]
+                medals = ["❤️", "🧡", "💛", "💚", "💙"]
                 for i, (member, score) in enumerate(top_5):
-                    intensity = "MAXIMUM" if score > 90 else "HIGH" if score > 70 else "WARM"
+                    intensity = "MAXIMUM" if score > 90 else "HIGH" if score > 70 else "SWEET"
                     ranking_text += f"{medals[i]} **{member.display_name}** — **{score}%** `{intensity}`\n"
-                embed.add_field(name="⚔️ Current Contenders", value=ranking_text, inline=False)
+                embed.add_field(name="💞 Kindred Souls", value=ranking_text, inline=False)
                 if os.path.exists("fierylogo.jpg"):
                     file = discord.File("fierylogo.jpg", filename="fierylogo.jpg")
                     embed.set_thumbnail(url="attachment://fierylogo.jpg")
@@ -297,7 +297,7 @@ class Ship(commands.Cog):
                 random.seed()
             except Exception as e:
                 print(f"Error: {e}")
-                await ctx.send("⚠️ The Arena is too hot!")
+                await ctx.send("⚠️ The Sanctuary is too warm!")
 
 async def setup(bot):
     await bot.add_cog(Ship(bot))
