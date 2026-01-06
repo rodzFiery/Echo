@@ -27,20 +27,26 @@ class Bank(commands.Cog):
                                class_type TEXT DEFAULT 'None')''')
         self.conn.commit()
 
-        # Scenarios for immersion
+        # Scenarios for immersion (Updated with 3 new Work and 3 new Job scenarios)
         self.work_scenarios = [
             "You spent the morning stabilizing the Echo-Chamber.",
             "You helped a traveler navigate the Spark-Fields.",
             "You performed maintenance on the Sanctuary data-nodes.",
             "You spent hours polishing raw crystals for the market.",
-            "You assisted an Elder in documenting Echo-History."
+            "You assisted an Elder in documenting Echo-History.",
+            "You spent the day harvesting wild Spark-Berries for the locals.",
+            "You spent hours scrubbing the graffiti off the Sanctuary walls.",
+            "You worked a shift as a temporary guide for the Echo-Catacombs."
         ]
         self.job_scenarios = [
             "You completed a high-risk security contract for the Spark-Vault.",
             "You successfully recalibrated the main Sanctuary Echo-Core.",
             "You led an expedition deep into the Uncharted Caverns.",
             "You negotiated a massive trade deal between Sanctuary factions.",
-            "You engineered a new power grid using pure Echo-Energy."
+            "You engineered a new power grid using pure Echo-Energy.",
+            "You successfully infiltrated a rival faction's Echo-Archive.",
+            "You neutralized a dangerous rogue-spirit haunting the Spark-Core.",
+            "You designed a revolutionary Echo-Interface for the High Council."
         ]
 
     def check_premium(self, guild_id):
@@ -158,26 +164,18 @@ class Bank(commands.Cog):
             await ctx.send(embed=embed)
 
     @commands.command(name="work")
+    @commands.cooldown(1, 10800, commands.BucketType.user)
     async def work(self, ctx):
         """Earn Sparks and XP through minor tasks (3h CD)"""
         if not self.check_premium(ctx.guild.id):
+            self.work.reset_cooldown(ctx)
             return await ctx.send("🔒 Unlock the **BANK** module to use the `work` command.")
         
         # Cooldown Logic with Exhibitionist Bonus
         data = await self.get_user_data(ctx.author.id)
         class_type = data[3]
         
-        # Manual Cooldown Check
-        bucket = self.work._buckets.get_bucket(ctx)
-        retry_after = bucket.update_rate_limit()
-        
-        # Apply Exhibitionist 15% reduction to the retry display if on cooldown
-        if retry_after:
-            if class_type == "Exhibitionist":
-                retry_after *= 0.85
-            minutes, seconds = divmod(retry_after, 60)
-            return await ctx.send(f"⏳ Patience! You can earn more in **{int(minutes)}m {int(seconds)}s**.")
-
+        # Manual Cooldown Check (Note: Decorator handles standard, logic below handles rewards)
         sp_gain = random.randint(100, 3500)
         xp_gain = 1000
         
@@ -202,22 +200,15 @@ class Bank(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(name="job")
+    @commands.cooldown(1, 18000, commands.BucketType.user)
     async def job(self, ctx):
         """Earn Sparks and XP through high-tier contracts (5h CD)"""
         if not self.check_premium(ctx.guild.id):
+            self.job.reset_cooldown(ctx)
             return await ctx.send("🔒 Unlock the **BANK** module to use the `job` command.")
         
         data = await self.get_user_data(ctx.author.id)
         class_type = data[3]
-        
-        bucket = self.job._buckets.get_bucket(ctx)
-        retry_after = bucket.update_rate_limit()
-        
-        if retry_after:
-            if class_type == "Exhibitionist":
-                retry_after *= 0.85
-            minutes, seconds = divmod(retry_after, 60)
-            return await ctx.send(f"⏳ Patience! You can earn more in **{int(minutes)}m {int(seconds)}s**.")
 
         sp_gain = random.randint(500, 5000)
         xp_gain = 2000
@@ -248,42 +239,92 @@ class Bank(commands.Cog):
     async def clean(self, ctx):
         """Work category: Clean the Sanctuary floors."""
         self.work.reset_cooldown(ctx) # Shared cooldown with work
-        await self.work(ctx)
+        await ctx.invoke(self.work)
 
     @commands.command(name="beg")
     async def beg(self, ctx):
         """Work category: Beg for Sparks in the Echo-Plaza."""
         self.work.reset_cooldown(ctx)
-        await self.work(ctx)
+        await ctx.invoke(self.work)
 
     @commands.command(name="slut")
     async def slut(self, ctx):
         """Work category: Sell your Echo-energy on the street."""
         self.work.reset_cooldown(ctx)
-        await self.work(ctx)
+        await ctx.invoke(self.work)
+
+    @commands.command(name="farm")
+    async def farm(self, ctx):
+        """Work category: Harvest resources from the Spark-Fields."""
+        self.work.reset_cooldown(ctx)
+        await ctx.invoke(self.work)
+
+    @commands.command(name="cook")
+    async def cook(self, ctx):
+        """Work category: Prepare Echo-infused meals for travelers."""
+        self.work.reset_cooldown(ctx)
+        await ctx.invoke(self.work)
+
+    @commands.command(name="mine")
+    async def mine(self, ctx):
+        """Work category: Extract raw crystals from the Sanctuary mines."""
+        self.work.reset_cooldown(ctx)
+        await ctx.invoke(self.work)
 
     @commands.command(name="crime")
     async def crime(self, ctx):
         """Job category: Attempt a high-stakes Echo-heist."""
         self.job.reset_cooldown(ctx) # Shared cooldown with job
-        await self.job(ctx)
+        await ctx.invoke(self.job)
 
     @commands.command(name="pimp")
     async def pimp(self, ctx):
         """Job category: Manage a ring of Echo-energy sellers."""
         self.job.reset_cooldown(ctx)
-        await self.job(ctx)
+        await ctx.invoke(self.job)
+
+    @commands.command(name="hack")
+    async def hack(self, ctx):
+        """Job category: Breach a high-security Sanctuary data-node."""
+        self.job.reset_cooldown(ctx)
+        await ctx.invoke(self.job)
+
+    @commands.command(name="assassinate")
+    async def assassinate(self, ctx):
+        """Job category: Take down a rogue entity threatening the Echo-Chamber."""
+        self.job.reset_cooldown(ctx)
+        await ctx.invoke(self.job)
+
+    @commands.command(name="smuggle")
+    async def smuggle(self, ctx):
+        """Job category: Transport illegal Echo-crystals past Sanctuary guards."""
+        self.job.reset_cooldown(ctx)
+        await ctx.invoke(self.job)
 
     @work.error
     @job.error
     @clean.error
     @beg.error
     @slut.error
+    @farm.error
+    @cook.error
+    @mine.error
     @crime.error
     @pimp.error
+    @hack.error
+    @assassinate.error
+    @smuggle.error
     async def command_error(self, ctx, error):
         if isinstance(error, commands.CommandOnCooldown):
-            minutes, seconds = divmod(error.retry_after, 60)
+            data = await self.get_user_data(ctx.author.id)
+            class_type = data[3]
+            retry_after = error.retry_after
+            
+            # Apply Exhibitionist 15% reduction to the cooldown message
+            if class_type == "Exhibitionist":
+                retry_after *= 0.85
+
+            minutes, seconds = divmod(retry_after, 60)
             hours, minutes = divmod(minutes, 60)
             await ctx.send(f"⏳ Patience! You can earn more in **{int(hours)}h {int(minutes)}m {int(seconds)}s**.")
 
