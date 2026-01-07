@@ -1195,7 +1195,7 @@ async def on_message(message):
     if message.author.bot: 
         return
     
-    # Standard processing for all messages (triggers commands automatically)
+    # Process commands for all messages
     await bot.process_commands(message)
 
 async def main():
