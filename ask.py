@@ -12,7 +12,7 @@ from PIL import Image, ImageDraw, ImageOps, ImageFilter
 class DungeonAsk(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.AUDIT_CHANNEL_ID = 1438810509322223677
+        self.AUDIT_CHANNEL_ID = 1457706060199996570
 
     async def create_ask_lobby(self, u1_url, u2_url, title="DM REQUEST"):
         """Generates visual for the request using square avatars and fiery theme."""
