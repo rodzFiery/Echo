@@ -316,7 +316,7 @@ async def premiumstatus(ctx):
 
 # --- NEW: DEVELOPER GLOBAL MODULE TOGGLES ---
 @bot.command(name="echoon")
-async def fieryon(ctx):
+async def echoon(ctx):
     # Restrict to your developer server ID
     if ctx.guild.id != 1457658274496118786:
         return
@@ -330,7 +330,7 @@ async def fieryon(ctx):
     # Set expiry to 10 years in the future for dev server
     dev_expiry = (datetime.now(timezone.utc) + timedelta(days=3650)).timestamp()
 
-    # CRITICAL FIX: Directly update the shared instance within the bot
+    # CRITICAL FIX: Ensure bot.PREMIUM_GUILDS is updated directly
     if guild_id_str not in bot.PREMIUM_GUILDS:
         bot.PREMIUM_GUILDS[guild_id_str] = {}
 
@@ -343,7 +343,7 @@ async def fieryon(ctx):
     await ctx.send("🛠️ **DEVELOPER MODE:** All modules activated for this server.")
 
 @bot.command(name="echooff")
-async def fieryoff(ctx):
+async def echooff(ctx):
     # Restrict to your developer server ID
     if ctx.guild.id != 1457658274496118786:
         return
@@ -353,7 +353,7 @@ async def fieryoff(ctx):
 
     guild_id_str = str(ctx.guild.id)
     
-    # CRITICAL FIX: Directly update the shared instance within the bot
+    # CRITICAL FIX: Ensure bot.PREMIUM_GUILDS is updated directly
     if guild_id_str in bot.PREMIUM_GUILDS:
         bot.PREMIUM_GUILDS[guild_id_str] = {}
         with open(PREMIUM_FILE, "w") as f:
