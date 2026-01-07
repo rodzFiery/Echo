@@ -31,8 +31,8 @@ sys.dont_write_bytecode = True
 load_dotenv()
 # Railway will pull the DISCORD_TOKEN from the Variables tab automatically
 TOKEN = os.getenv("DISCORD_TOKEN")
-AUDIT_CHANNEL_ID = 1438810509322223677 # Seu canal de auditoria
-STREAK_ALERTS_CHANNEL_ID = 1438810509322223677 # Red Room Channel for Pings
+AUDIT_CHANNEL_ID = 1457706060199996570 # Seu canal de auditoria
+STREAK_ALERTS_CHANNEL_ID = 1457706060199996570 # Red Room Channel for Pings
 
 # --- NEW FEATURE: PERSISTENT STORAGE PATH ---
 # This checks if the bot is on Railway (using a volume at /app/data)
@@ -1218,4 +1218,5 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
+
 
