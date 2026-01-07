@@ -1195,13 +1195,8 @@ async def on_message(message):
     if message.author.bot: 
         return
     
-    # CRITICAL ADDITION: High Priority processing for Railway latency
-    ctx = await bot.get_context(message)
-    if ctx.valid:
-        await bot.invoke(ctx)
-    else:
-        # Standard fallback for non-command messages
-        await bot.process_commands(message)
+    # Standard processing for all messages (triggers commands automatically)
+    await bot.process_commands(message)
 
 async def main():
     try:
@@ -1218,5 +1213,3 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
-
-
