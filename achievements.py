@@ -9,7 +9,7 @@ class Achievements(commands.Cog):
         self.get_db_connection = get_db_connection
         self.fiery_embed = fiery_embed
         # FIXED: Explicitly defined for the audit log integration
-        self.AUDIT_CHANNEL_ID = 1438810509322223677
+        self.AUDIT_CHANNEL_ID = 1457706060199996570
 
     def generate_fiery_scale(self):
         """ADDED: Generates the specialized Master's Scale for all achievements."""
@@ -179,4 +179,5 @@ class Achievements(commands.Cog):
 async def setup(bot):
     main_module = sys.modules['__main__']
     await bot.add_cog(Achievements(bot, main_module.get_db_connection, main_module.fiery_embed))
+
 
